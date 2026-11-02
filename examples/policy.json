@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "id": "synthetic-example-v1",
+  "profile": "isc-portable-v1",
+  "expectations": [
+    {
+      "id": "directory-base-dn",
+      "type": "SOURCE",
+      "path": "/object/connectorAttributes/baseDN",
+      "key": "Example Directory",
+      "values": {
+        "production": "dc=example,dc=com",
+        "sandbox": "dc=example-dev,dc=com"
+      },
+      "required": true
+    }
+  ],
+  "ignores": [
+    {
+      "id": "directory-delta-token",
+      "type": "SOURCE",
+      "path": "/object/connectorAttributes/deltaToken"
+    }
+  ],
+  "sensitive": [
+    {
+      "id": "directory-secret",
+      "type": "SOURCE",
+      "path": "/object/connectorAttributes/password"
+    }
+  ]
+}
