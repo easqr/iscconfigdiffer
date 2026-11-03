@@ -377,6 +377,17 @@ func (c *comparison) walk(a any, aok bool, b any, bok bool, path string) {
 		}
 		lp, rp := physical(r.TargetType, as), physical(r.TargetType, bs)
 		la, rb := c.m.left[lp], c.m.right[rp]
+		// An explicit out-of-snapshot mapping cannot replace correspondence that
+		// was established from the actual inventories, even if the supplied right
+		// ID does not exist in that inventory.
+		if target := c.m.correspondence[lp]; target != "" {
+			if rb == nil {
+				c.diagnostic("unresolved reference", path, r.ID)
+			} else if target != rp {
+				c.diff(path, "reference", r.ID)
+			}
+			return
+		}
 		if la != nil && rb != nil {
 			target := c.m.correspondence[lp]
 			if target == "" {

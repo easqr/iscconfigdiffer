@@ -376,6 +376,18 @@ func (p Policy) Validate() error {
 			profileSelectors = append(profileSelectors, r.Selector)
 		}
 	}
+	// V1 expectations are expanded before keyed alignment. Only wildcard item
+	// selectors preserve applicability across reordered arrays; a positional rule
+	// could otherwise assert one item and suppress a different aligned item.
+	for _, collection := range p.Collections {
+		parent, _ := segments(collection.Path)
+		for _, sel := range profileSelectors {
+			child, _ := segments(sel.Path)
+			if overlaps(collection.Selector, sel) && len(child) > len(parent) && child[len(parent)] != "*" {
+				return errors.New("rules under keyed collections require wildcard item selectors")
+			}
+		}
+	}
 	for _, sel := range profileSelectors {
 		if p.Profile != "" {
 			for _, path := range []string{"/jwsHeader", "/jwsSignature"} {

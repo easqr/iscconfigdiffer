@@ -17,7 +17,7 @@ func list(s string) []string {
 	}
 	return strings.Split(s, ",")
 }
-func run(args []string, out, errOut io.Writer) int {
+func runLegacy(args []string, out, errOut io.Writer) int {
 	f := flag.NewFlagSet("isc-configdiffer", flag.ContinueOnError)
 	f.SetOutput(errOut)
 	left := f.String("left", "", "left input directory")

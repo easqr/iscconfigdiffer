@@ -1,0 +1,303 @@
+# Comparison policy v2
+
+V2 is an offline, vendor-neutral compiler and comparison engine in `v2/`. The root
+package adapts validated ISC snapshots and Configuration Hub artifacts. Production
+comparison code imports neither exporter authentication nor a generated SDK.
+
+## Entry points and compatibility
+
+* `v2.Decode`, `v2.Compile`, `v2.Run`: neutral policy/documents.
+* `differ.AdaptSnapshot`: validates and detaches `snapshot.Input`, preserving
+  provenance and unknown fields. Payload becomes `content`; envelope fields other
+  than `object` become `metadata`.
+* `differ.CompileV2` and `differ.CompareV2`: ISC profiles and validated storage.
+* `differ.TranslateV1`: explicit drift migration; it never grants deployment
+  authority to legacy equivalence rules.
+* `differ.ImportHubV2` / `ReadHubV2`: offline array/bundle adapters.
+
+Existing `DecodePolicy`, `Compare`, v1 report JSON, and CLI invocations without
+`--mode` retain their schema and valid supported behavior. Correctness fixes prevent
+external mappings from overriding established reference correspondence and reject
+unsafe positional selectors beneath keyed arrays. Use wildcard item selectors
+there; see the [seven-slice review](v2-review.md) for compatibility details.
+New CLI execution requires `--mode drift`
+or `--mode deployment`; it emits report version 2. V1 policies may be translated
+automatically for explicit drift execution, or migrated separately:
+
+```sh
+isc-configdiffer --translate-policy /policies/legacy.json > /policies/v2.json
+```
+
+The translator preserves assertions, exact matching, references, keyed arrays,
+exclusions and directional Hub relationships. V2 provides corrected aligned-item
+evaluation and more conservative sensitive provenance handling; v1 report counts
+are not converted into v2 decision counts. Envelope-root reference/collection
+rules and metadata-based identities require the legacy executor or a manually
+authored v2 policy. Translation fails explicitly for unsupported semantics.
+Legacy Hub translation requires left/right environment bindings in the policy.
+Root envelope assertions split into content and metadata assertions. Generated
+IDs must still meet v2's ID contract; no silent truncation is performed.
+
+## Schema
+
+The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`, and rule arrays.
+Root `modes` restricts permitted comparison modes; migrated policies are explicitly
+restricted to drift. An omitted mode restriction permits both execution modes.
+JSON is strict: exact property spelling, no unknown properties or duplicate keys,
+valid UTF-8, no trailing JSON, and exact numbers. Policy/rule IDs use 1–200 ASCII
+letters/digits and `_ . : -`, beginning with a letter/digit. Required JSON
+properties must be supplied even when their valid value is an empty pointer.
+
+All rule categories include `id` and optional `replaces`, `required`, `modes`, and
+`evidence`. Evidence contains `kind`, optional `digest`, `record_id`, and string
+`attributes`. Evidence is attribution; authority is a separate expectation field.
+Treat labels, authority and evidence attributes as visible report metadata and
+do not put secrets in them.
+
+Selectors contain `type`, `path`, optional exact logical `key`, and optional
+`space` (`content`, the default, or `metadata`). Paths are JSON Pointers relative
+to the selected section. `""` selects the section root. Escape `~` as `~0` and
+`/` as `~1`. A segment exactly `*` selects one object member or array item; no
+recursive wildcard, regex, filter or expression language exists. A literal member
+named `*` cannot be addressed by a selector. Literal missing paths are evaluated;
+wildcards expand only from available structures.
+
+| Array | Additional fields |
+| --- | --- |
+| `identities` | `type`, `strategy`: `fields`, `singleton`, or `dependent`; `paths`; optional `component_type`: `scalar` (default) or `string`; for dependent identity, `parent_type`, `parent_path` |
+| `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id` |
+| `ignores` | Selector; explicit subtree exclusion/normalization |
+| `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
+| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
+| `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
+| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys` only for keyed |
+| `sensitive` | Selector; conservative report redaction |
+
+Identity and pairing rules are unconditional: `modes` is not allowed. Other rules
+default to both modes, except equivalence and references, which default to drift
+and cannot enable deployment. Use `modes:["deployment"]` for deployment-only
+expectations and normalization. Binding names must match the request roles.
+
+Exact, typed identity tuples distinguish numbers, strings and booleans. String
+identity components are nonempty. Parent-qualified identity uses established
+parent identities. Drift requires parent correspondence; deployment can identify
+baseline/source-only parents for explicit deletions. Physical pairings reserve endpoints before automatic
+matching; duplicate logical keys remain ambiguous even with pairings. Unknown
+types need explicit strategies. Dependency cycles fail compilation; unavailable
+parents or endpoints prevent runtime completeness. A rename remains value drift.
+
+`pairs` is an array of typed `{left,right}` values, applicable in the declared
+direction and environment pair. `groups` is an array of environment-to-value
+objects; each group explicitly establishes symmetric equivalence among its
+environments. Do not combine pairs/groups. Cases must be unambiguous. There is no
+substring replacement, substitution chaining, inferred transitivity or coercion.
+Several disjoint cases belong in one rule; overlapping rule ownership is rejected.
+
+### Expectations
+
+| Operation | Expected source |
+| --- | --- |
+| `literal` | Exactly one of `expected` or environment-indexed `values` |
+| `absent` | Missing state, with no supplied value |
+| `copy_source` | Source value/state at the aligned field, or concrete `from` path |
+| `preserve_target` | Baseline value/state at the aligned field, or concrete `from` path |
+| `reference_target` | Corresponding baseline object's physical ID for `target_type`; source reference at the aligned field or `from` |
+
+Omitted `from` uses the aligned field. Explicit `"from":""` selects the section
+root. In Go this uses `From *string`: nil versus a pointer to an empty string.
+References to explicitly deleted targets are violations, even when a retained
+draft field still contains the old baseline ID.
+
+State is `{"state":"absent"}` or
+`{"state":"present","value":null}` (or another typed JSON value). Missing,
+null, empty string, empty object and empty array are different. Numbers compare
+by exact mathematical value; strings/numbers/booleans never coerce.
+
+`authority` must be nonempty and `evidence.kind` present before an expectation can
+verify anything. Missing authority/evidence, environment values, baseline or
+reference correspondence yields `unverified`, never success. `copy_source` is
+authoritative only because the policy explicitly declares that preservation
+requirement. A missing baseline field can authoritatively require absence if the
+baseline object is established. A missing baseline object cannot.
+
+Only literal/absence assertions run in drift. They independently assert both
+environments, so two equal-but-wrong values violate the policy. Derivation
+operations require deployment; if enabled in drift they are unverified.
+
+Reference expectations require independent destination evidence: the baseline ID
+or an explicit literal assertion. The draft's own ID is never used as an expected
+destination ID. New-object references without independent evidence remain
+unverified. Use a literal for an independently governed expected new-object ID.
+
+Hub promotion can add `source_equals`, `source_environment`, `source_tenant`, and
+`target_tenant`. A source guard is a tagged state and must be deployment-only.
+It preserves mapping applicability; a nonmatching source leaves the field for
+ordinary coverage evaluation. Context mismatch is unverified. These guards do
+not change the draft or grant authority.
+
+### Conflicts and normalization
+
+There is no first/last-match or specificity precedence. Profiles expand to named
+rules; `replaces` explicitly replaces a profile rule of the same category and
+ownership. Replacement history is retained. Ordinary custom-rule replacement
+chains are unsupported: compose a new versioned profile instead.
+
+Competing active value rules and ancestor/descendant ownership overlap fail
+compilation. Rules with disjoint modes can own the same field. Ignores and
+equivalence cannot overlap logical identity fields. Expectations may assert an
+identity after matching but cannot change correspondence.
+
+Collection rules establish alignment and may contain field rules. Nested keyed
+collections are supported; child rules under keyed collections require wildcard
+item selectors. Ordered collections also permit canonical literal item indices,
+including missing indices selected by assertions. Array
+order is significant unless explicitly normalized. Keyed keys must be present,
+nonnull scalar values, unique per side; empty string keys are valid. Composite
+keys retain types and exact numeric equality. Multisets preserve multiplicity and
+cannot contain field/collection rules. An ignore of a child does not erase the
+existence difference of its parent container or array item.
+
+Deployment equivalence is inactive. A declared keyed collection allows order
+normalization but does not verify its member values; those still need
+expectations. Multisets alone cannot establish deployment expectations; a whole
+array assertion can instead validate a required value. Normalization cannot own
+the same active field as an expectation or hide a failed substitution.
+
+## ISC profiles
+
+* `isc-identity-v2`: existing named, composite, parent-qualified and singleton
+  identity strategies, with all payload/envelope fields comparable in drift.
+* `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
+* `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
+  `/created`, `/modified`, and lifecycle `/identityCount`.
+
+All three contain explicit deployment structural expectations for envelope
+`/version` and `/self/type`. Unknown envelope/payload fields remain comparable in
+drift and unverified in deployment without authority. These profiles do not strip
+nested IDs or delta tokens and do not infer reference paths or array sorting.
+ISC profile identity components are nonempty strings, preserving the v1 domain
+constraints; generic neutral profiles may use typed scalar components.
+
+Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
+(`physical-id`, `jws-header`, `jws-signature`, `identity-count`, `id`, `created`,
+`modified`), and `isc.TYPE.envelope.version` / `isc.TYPE.envelope.self.type`.
+Unknown types with custom identities receive the same explicit metadata profile
+expansion. Profile digest covers that expansion; policy digest covers effective
+rules, replacements, profile selection and evidence.
+
+## Requests, operations and CLI
+
+Drift roles are `left` and `right`. Deployment roles are `source`, `actual`, and
+optional `baseline`. Reading mode is independently `snapshot` or `tree`. An
+explicit common type scope must be available in every supplied input. Default
+scope requires equal selected type sets in the two primary inputs; selected types
+with zero objects remain declared scope.
+
+Deployment takes a strict operations JSON array:
+
+```json
+[{"type":"SOURCE","key":"Invented Directory","action":"update"}]
+```
+
+Actions are `create`, `update`, or `delete`. Keys are logical source keys, including
+the source key for an explicit renamed pairing. Composite string keys use a JSON
+tuple string. Ambiguous key presentation cannot pass. Every operation must be
+available in type scope and unique. Unexpected draft objects are unverified.
+Unselected source/baseline objects are outside the operation comparison, although
+they may establish reference correspondence. Omission never implies deletion.
+
+An explicit delete validates absence in the projected draft and requires a
+baseline object; it does not attest that an uninspected proprietary deployment
+format contains a remote delete instruction. A supplied baseline also establishes
+create/update existence checks. Without a baseline, ordinary update content can
+still be verified by independent expectations.
+
+```sh
+isc-configdiffer --mode drift \
+  --left /data/dev --left-mode snapshot --left-env dev \
+  --right /data/prod --right-mode snapshot --right-env prod \
+  --policy examples/policy-v2-drift.json --scope SOURCE --format json
+
+isc-configdiffer --mode deployment \
+  --source /data/dev --source-mode snapshot --source-env dev \
+  --actual /data/draft --actual-mode tree --actual-types SOURCE --actual-env prod \
+  --baseline /data/prod --baseline-mode snapshot --baseline-env prod \
+  --operations examples/operations-v2.json \
+  --policy examples/policy-v2-deployment.json --scope SOURCE --format json
+```
+
+Tree mode without a manifest needs the role's `--*-types`. Role-specific labels
+use `--*-label`. `--matching` includes ordinary equal leaves; it does not change
+counts, completeness, request digest, or policy decisions. A v2 policy requires
+explicit new-mode execution. Legacy deployment policies are rejected.
+
+Only exporter-format projected drafts are supported. Native proprietary draft
+files need a separately inspected adapter; no format or substitution semantics
+are guessed. Full three-way destination-impact and change-authorization analysis
+are outside this implementation.
+
+## Optional Hub adapter
+
+`--hub` accepts an array file or a bundle directory containing `mappings.json`
+and `provenance.json`. Bundle checks validate byte digest, count, schema, pinned
+API version/endpoint, retrieval metadata and caller context. Retrieval context is
+recorded evidence, not remote authenticity or a transaction with the exports.
+
+Array files require `--hub-source-tenant` and `--hub-target-tenant`. Bundles supply
+these from provenance; conflicting supplied context fails. The `default` source
+group requires `--hub-default-source-tenant REAL-SOURCE`. Import also requires the
+two resolved input environments (from policy bindings or CLI labels); tenant identity is checked against snapshot
+provenance during execution. Manifest-free trees cannot invent verified tenant
+context from their labels.
+
+Enabled mappings support the existing documented JSONPath subset and string
+values only. Unsupported active expressions or properties fail. Disabled records,
+including unknown semantics, remain inert evidence with diagnostics. Mapping IDs,
+original path, enabled status, timestamps and hashes remain attributable; values
+are not emitted. Multiple cases at one path are grouped into one equivalence rule
+and checked for collisions/chains. Neither IDs nor names are used to infer an
+object pairing.
+
+Deployment import requires both `--hub-deployment-authority APPROVAL` and
+`--hub-deployment-evidence /policies/evidence.json`. Evidence is a strict object
+with nonempty `kind`. Promotion creates guarded destination expectations; it does
+not rewrite the draft. A multi-case mapping group is rejected for automatic
+deployment promotion because choosing among conditional destinations needs an
+explicit authored policy. It remains supported for drift. Successful retrieval
+does not establish applicability or approval, and no undocumented global Hub
+substitution parity is claimed.
+
+## Reports and verification
+
+V2 JSON includes input provenance/content hashes, effective type/operation scope,
+request/policy/profile digests, matching decisions, replacement history, rule
+usage, adapter evidence, diagnostics, decision counts and object coverage.
+Each input also has a measured `document_hash` covering detached documents and
+declared types, independently of an upstream artifact `content_hash` supplied by
+a neutral caller. Request digests bind both.
+Decision statuses are `equal`, `equivalent`, `excluded`, `verified`, `different`,
+`violation`, `unverified`, and `conflict`. Locations retain each role's physical
+pointer, presence and JSON kind. Keyed item identities are opaque hashes rather
+than raw item-key values. Derived expectations retain the independent origin's
+role/artifact/pointer. All actual and expected values are omitted.
+
+Counts are evaluated decision units, not object counts or percentage leaf
+coverage. A whole-subtree expectation/exclusion counts once. Object coverage
+separately records scoped inputs, compared groups, selected operations, objects
+outside operation scope, and groups with unverified/conflict decisions. Matching
+and policy decisions remain available when ordinary equal leaves are omitted.
+Required unused rules prevent completeness. Unused optional rules are visible
+without blocking it. Sensitive selectors conservatively hide all identity and
+physical provenance for their object type and dependent types, including operation
+keys and derivation origins; this can redact more than the selected object.
+
+Exit 0: complete and correct. Exit 1: complete with known differences/violations.
+Exit 2: invalid input/policy/request, incomplete/unverified comparison, or output
+failure. `correct` is false whenever incomplete. No unverified result can pass.
+Inputs, policies, profiles, and reports are detached; compiled plans can be reused
+concurrently. Policy order and permitted collection reordering do not change
+comparison semantics. The CLI preserves v1 output behavior when `--mode` is absent.
+
+Automated verification uses invented data only. Both module test suites, race
+tests, vet, build and formatting checks are required before marking the seven
+slices complete. See [implementation evidence](v2-implementation.md).

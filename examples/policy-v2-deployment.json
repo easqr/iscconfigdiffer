@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "id": "invented-deployment",
+  "profile": "isc-portable-v2",
+  "expectations": [
+    {
+      "id": "directory-name",
+      "modes": ["deployment"],
+      "type": "SOURCE",
+      "path": "/name",
+      "operation": "copy_source",
+      "authority": "invented-release-policy",
+      "evidence": {"kind": "invented-approval", "record_id": "release-1"}
+    },
+    {
+      "id": "directory-host",
+      "modes": ["deployment"],
+      "type": "SOURCE",
+      "path": "/connectorAttributes/host",
+      "operation": "literal",
+      "values": {"prod": {"state": "present", "value": "directory-prod.example.invalid"}},
+      "authority": "invented-release-policy",
+      "evidence": {"kind": "invented-approval", "record_id": "release-1"}
+    },
+    {
+      "id": "directory-timeout",
+      "modes": ["deployment"],
+      "type": "SOURCE",
+      "path": "/connectorAttributes/timeout",
+      "operation": "copy_source",
+      "authority": "invented-release-policy",
+      "evidence": {"kind": "invented-approval", "record_id": "release-1"}
+    },
+    {
+      "id": "directory-target-endpoint",
+      "modes": ["deployment"],
+      "type": "SOURCE",
+      "path": "/connectorAttributes/tokenEndpoint",
+      "operation": "preserve_target",
+      "authority": "invented-release-policy",
+      "evidence": {"kind": "invented-approval", "record_id": "release-1"}
+    }
+  ]
+}

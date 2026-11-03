@@ -1,5 +1,12 @@
 # ISC configuration differ
 
+Policy v2 adds explicit **drift** and **deployment** comparison modes, a neutral
+policy compiler, independent deployment expectations, aligned nested collections,
+decision provenance, and optional offline Hub adapters. See the
+[v2 contract, CLI and migration guide](docs/policy-v2.md) and
+[seven-slice acceptance record](docs/v2-implementation.md). Existing v1 API and
+CLI invocations without `--mode` retain their behavior.
+
 Offline Go library and thin CLI for comparing two exporter-format inputs. No authentication, live tenant calls, mutation, deployment, remediation, or Git automation. Inputs are validated before comparison; ambiguous or unresolved comparisons cannot return a clean exit status.
 
 ## Local development

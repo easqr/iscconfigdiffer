@@ -1,9 +1,12 @@
 package differ
 
 import (
+	"context"
 	"encoding/json"
 	exporter "github.com/elianderson/iscutilities/configexporter"
 	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -127,5 +130,43 @@ func TestSensitiveDerivedIdentityAndDiagnostics(t *testing.T) {
 	raw, _ = json.Marshal(out)
 	if strings.Contains(string(raw), "private-id") || strings.Contains(string(raw), "id-707269") {
 		t.Fatal("diagnostic exposed sensitive provenance")
+	}
+}
+
+// This fixture exercises the public exporter boundary without a tenant, SDK
+// authentication, remote calls or reference-export files.
+type retrievedMappingAPI struct {
+	data   json.RawMessage
+	source string
+}
+
+func (a *retrievedMappingAPI) GetMappings(_ context.Context, source string) (exporter.MappingDownload, error) {
+	a.source = source
+	return exporter.MappingDownload{Data: a.data, APIOrigin: "https://invented-sb.example.invalid"}, nil
+}
+func TestRetrievedMappingBundleImportsOffline(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		raw := hubJSON("$.dn", enabled)
+		api := &retrievedMappingAPI{data: raw}
+		saved, e := exporter.RetrieveMappings(context.Background(), api, exporter.MappingRequest{SourceOrg: "invented-prod", TargetTenant: "invented-sb", ExportJobID: "synthetic-job"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		root := t.TempDir()
+		publication, e := (exporter.MappingFileStore{Directory: filepath.Join(root, "mappings"), ExportRoot: filepath.Join(root, "exports")}).Publish(context.Background(), saved)
+		if e != nil {
+			t.Fatal(e)
+		}
+		data, e := os.ReadFile(filepath.Join(publication.Directory, "mappings.json"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		if api.source != "invented-prod" || string(data) != string(raw) || snapshot.Checksum(data) != publication.Provenance.SHA256 {
+			t.Fatal("retrieval bytes or context changed")
+		}
+		rules, e := ImportHub(data, HubContext{SourceTenant: publication.Provenance.SourceOrg, TargetTenant: publication.Provenance.TargetTenant, Provenance: "sha256:" + publication.Provenance.SHA256})
+		if e != nil || len(rules) != 1 || rules[0].Enabled != enabled || rules[0].SourceTenant != "invented-prod" || rules[0].TargetTenant != "invented-sb" || rules[0].Created != "2025-01-01" {
+			t.Fatal("retrieved mapping did not survive offline handoff", e)
+		}
 	}
 }
