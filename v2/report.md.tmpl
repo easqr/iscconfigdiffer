@@ -112,7 +112,13 @@ Collection mapping extensions:
 | Field | Value |
 | --- | --- |
 {{range .Extensions}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
-{{end}}{{end}}{{end}}{{if .Derivation}}
+{{end}}{{end}}{{end}}{{if .ItemScope}}
+Collection item scope:
+
+| Key component | Identity |
+| --- | --- |
+{{range .ItemScope}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{if .Derivation}}
 Expected result derived from:
 
 | Field | Value |

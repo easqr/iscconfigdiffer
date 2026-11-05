@@ -56,6 +56,7 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 <td>{{if .Normalization}}<p>Normalization: <code>{{.Normalization}}</code></p>{{end}}{{if .ExpectedRole}}<p>Expected ({{.ExpectedRole}}): <code>{{.ExpectedValue}}</code></p>{{end}}{{if .RuleID}}Rule: <code>{{.RuleID}}</code>{{else}}No policy rule applied.{{end}}{{if .Authority}}<p>Authority: {{.Authority}}</p>{{end}}{{if .Replaces}}<p>Replaces: {{.Replaces}}</p>{{end}}
 {{if .Evidence}}<details><summary>Evidence</summary><dl>{{range .Evidence}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
 {{if .Extensions}}<details><summary>Collection mapping extensions</summary><dl>{{range .Extensions}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
+{{if .ItemScope}}<details><summary>Collection item scope</summary><dl>{{range .ItemScope}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}</dl></details>{{end}}
 {{if .Derivation}}<details><summary>Expected result derived from</summary><dl>{{range .Derivation}}<dt>{{.Name}}</dt><dd><code>{{.Value}}</code></dd>{{end}}</dl></details>{{end}}</td></tr>{{end}}
 </tbody></table></div>{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
 </div></details>{{else}}<p>No decisions to display.</p>{{end}}

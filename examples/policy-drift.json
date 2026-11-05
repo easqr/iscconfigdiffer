@@ -68,11 +68,73 @@
         {
           "dev": "DC=dev,DC=example,DC=invalid",
           "prod": "DC=prod,DC=example,DC=invalid"
+        },
+        {
+          "dev": "DC=regional,DC=dev,DC=example,DC=invalid",
+          "prod": "DC=regional,DC=prod,DC=example,DC=invalid"
         }
       ],
       "evidence": {
         "kind": "invented-policy",
         "record_id": "directory-environment-domains"
+      }
+    },
+    {
+      "id": "directory-corporate-domain-user",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-domains",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          },
+          "/domainDN": {
+            "mapped": "corporate-domain"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "svc-corporate@dev.example.invalid",
+          "prod": "svc-corporate@prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "corporate-domain-service-account"
+      }
+    },
+    {
+      "id": "directory-regional-domain-user",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-domains",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          },
+          "/domainDN": {
+            "mapped": "regional-domain"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "svc-regional@regional.dev.example.invalid",
+          "prod": "svc-regional@regional.prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "regional-domain-service-account"
       }
     }
   ],
@@ -123,6 +185,13 @@
               "values": {
                 "dev": "DC=dev,DC=example,DC=invalid",
                 "prod": "DC=prod,DC=example,DC=invalid"
+              }
+            },
+            {
+              "key": "regional-domain",
+              "values": {
+                "dev": "DC=regional,DC=dev,DC=example,DC=invalid",
+                "prod": "DC=regional,DC=prod,DC=example,DC=invalid"
               }
             }
           ]

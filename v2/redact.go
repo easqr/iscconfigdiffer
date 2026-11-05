@@ -90,6 +90,7 @@ func (x *execution) redact() {
 			}
 		}
 		if hidden[d.Type] {
+			d.Item = nil
 			if d.Expected != nil {
 				d.Expected = &State{State: "redacted"}
 			}

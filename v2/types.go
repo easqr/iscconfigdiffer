@@ -105,14 +105,26 @@ type ValuePair struct {
 type Equivalence struct {
 	Rule
 	Selector
-	LeftEnv     string      `json:"left_env"`
-	RightEnv    string      `json:"right_env"`
-	LeftTenant  string      `json:"left_tenant,omitempty"`
-	RightTenant string      `json:"right_tenant,omitempty"`
-	Pairs       []ValuePair `json:"pairs,omitempty"`
+	Item        *CollectionItemSelector `json:"item,omitempty"`
+	LeftEnv     string                  `json:"left_env"`
+	RightEnv    string                  `json:"right_env"`
+	LeftTenant  string                  `json:"left_tenant,omitempty"`
+	RightTenant string                  `json:"right_tenant,omitempty"`
+	Pairs       []ValuePair             `json:"pairs,omitempty"`
 	// Each environment contributes exactly one value to a group. Groups and
 	// pairs cannot be combined in one rule. Groups are explicitly symmetric.
 	Groups []map[string]any `json:"groups,omitempty"`
+}
+
+// CollectionItemSelector selects an aligned item by its complete logical key.
+// Mapped keys reference declared mapping-group names; values match raw keys.
+type CollectionItemSelector struct {
+	Collection string                       `json:"collection"`
+	Keys       map[string]CollectionItemKey `json:"keys"`
+}
+type CollectionItemKey struct {
+	Mapped string          `json:"mapped,omitempty"`
+	Value  json.RawMessage `json:"value,omitempty"`
 }
 type State struct {
 	State string          `json:"state"`
@@ -232,6 +244,7 @@ type Location struct {
 	Context   []ItemContext `json:"context,omitempty"`
 }
 type Decision struct {
+	Item          *CollectionItemSelector  `json:"item,omitempty"`
 	Extensions    []CollectionMappingUsage `json:"extensions,omitempty"`
 	Normalization string                   `json:"normalization,omitempty"`
 	Expected      *State                   `json:"expected,omitempty"`

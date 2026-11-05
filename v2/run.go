@@ -17,6 +17,8 @@ type slot struct {
 	unavailable bool
 }
 type frame struct {
+	items       map[string]map[string]CollectionItemKey
+	itemScope   *CollectionItemSelector
 	extensions  []CollectionMappingUsage
 	property    bool
 	nodes       [3]slot
@@ -377,6 +379,7 @@ func (x *execution) diagnose(d Diagnostic) {
 func (x *execution) record(f frame, status, code string, r Rule, authority string) {
 	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
 	d.Normalization = x.normalization
+	d.Item = f.itemScope
 	d.Extensions = f.extensions
 	if code == "null and absent properties equivalent" {
 		d.Normalization = "null_equals_absent"
@@ -461,12 +464,14 @@ func (x *execution) walk(f frame) {
 			}
 		}
 		for _, r := range x.c.policy.Equivalences {
-			if !active(r.Rule, "drift") || !x.selected(r.Selector, f) {
+			if !active(r.Rule, "drift") || !x.selected(r.Selector, f) || !itemSelected(r.Item, f.items) {
 				continue
 			}
+			nf := f
+			nf.itemScope = r.Item
 			l, rr := x.inputs[0], x.inputs[1]
 			if (r.LeftTenant != "" && r.LeftTenant != l.Tenant) || (r.RightTenant != "" && r.RightTenant != rr.Tenant) {
-				x.record(f, "unverified", "equivalence tenant context mismatch", r.Rule, "")
+				x.record(nf, "unverified", "equivalence tenant context mismatch", r.Rule, "")
 				return
 			}
 			if !f.nodes[0].present || !f.nodes[1].present {
@@ -485,7 +490,7 @@ func (x *execution) walk(f frame) {
 				matched = matched || (ao && bo && equal(a, av) && equal(b, bv))
 			}
 			if matched {
-				x.record(f, "equivalent", "approved value relationship", r.Rule, "")
+				x.record(nf, "equivalent", "approved value relationship", r.Rule, "")
 				return
 			}
 		}
@@ -840,10 +845,12 @@ func (x *execution) arrays(f frame, r Collection) {
 	if r.Mode == "keyed" {
 		idx := [3]map[string]int{{}, {}, {}}
 		all := map[string]bool{}
+		identities := map[string]map[string]CollectionItemKey{}
+		inconsistentIdentities := map[string]bool{}
 		mapped := false
 		for side, arr := range a {
 			for i, v := range arr {
-				k, used, err := collectionKey(v, r, x.inputs[side].Environment)
+				k, used, components, err := collectionIdentity(v, r, x.inputs[side].Environment)
 				if err != nil {
 					x.record(f, "conflict", err.Error(), r.Rule, "")
 					return
@@ -855,6 +862,10 @@ func (x *execution) arrays(f frame, r Collection) {
 				}
 				idx[side][k] = i
 				all[k] = true
+				if previous, exists := identities[k]; exists && !sameItemIdentity(previous, components) {
+					inconsistentIdentities[k] = true
+				}
+				identities[k] = components
 			}
 		}
 		status := "equal"
@@ -868,6 +879,15 @@ func (x *execution) arrays(f frame, r Collection) {
 		x.record(f, status, code, r.Rule, "")
 		for _, k := range keys(all) {
 			nf := f
+			nf.items = maps.Clone(f.items)
+			if nf.items == nil {
+				nf.items = map[string]map[string]CollectionItemKey{}
+			}
+			if !inconsistentIdentities[k] {
+				nf.items[r.ID] = identities[k]
+			} else {
+				delete(nf.items, r.ID)
+			}
 			nf.path = f.path + "/*"
 			nf.property = false
 			nf.itemKeys = append(append([]string{}, f.itemKeys...), hash([]byte(k)))

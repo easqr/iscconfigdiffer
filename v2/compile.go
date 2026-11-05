@@ -215,6 +215,10 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		return false
 	}
 	collectionsByID := map[string]Collection{}
+	equivalencesByID := map[string]Equivalence{}
+	for _, r := range p.Equivalences {
+		equivalencesByID[r.ID] = r
+	}
 	for _, r := range p.Collections {
 		collectionsByID[r.ID] = r
 	}
@@ -239,6 +243,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 				continue
 			}
 			if !coactive(rulesByID[id], rulesByID[old.id]) {
+				continue
+			}
+			if kind == "equivalence" && old.kind == "equivalence" && disjointItems(equivalencesByID[id].Item, equivalencesByID[old.id].Item) {
 				continue
 			}
 			if kind == "collection" && old.kind == "collection" {
@@ -496,6 +503,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		}
 	}
 	if err := validateCollectionExtensions(p, collectionsByID, coactive); err != nil {
+		return nil, err
+	}
+	if err := validateEquivalenceItems(p, collectionsByID); err != nil {
 		return nil, err
 	}
 	for _, r := range p.Sensitive {

@@ -714,6 +714,81 @@ Collection extensions align entries in deployment too, but destination values
 still need independent expectations. `copy_source` checks the original source
 name/DN; use destination literals or `preserve_target` with a baseline when needed.
 
+### Different service accounts for multiple domains
+
+Use an equivalence's `item` selector to restrict approval to one logical domain.
+Keep the field path `/connectorAttributes/domainSettings/*/user`; the engine
+aligns domains by their complete mapped forest/domain tuple before evaluating
+this rule. No array index is used in the policy.
+
+The [example drift policy](examples/policy-drift.json) includes two domains in
+the same forest, with these independent approvals:
+
+| Logical domain | Development account | Production account |
+| --- | --- | --- |
+| `corporate-domain` | `svc-corporate@dev.example.invalid` | `svc-corporate@prod.example.invalid` |
+| `regional-domain` | `svc-regional@regional.dev.example.invalid` | `svc-regional@regional.prod.example.invalid` |
+
+Here is the corporate-domain rule from its `equivalences` array:
+
+```json
+{
+  "id": "directory-corporate-domain-user",
+  "type": "SOURCE",
+  "key": "Invented Directory",
+  "path": "/connectorAttributes/domainSettings/*/user",
+  "item": {
+    "collection": "isc.SOURCE.ad-domains",
+    "keys": {
+      "/forestName": {
+        "mapped": "corporate-forest"
+      },
+      "/domainDN": {
+        "mapped": "corporate-domain"
+      }
+    }
+  },
+  "left_env": "dev",
+  "right_env": "prod",
+  "groups": [
+    {
+      "dev": "svc-corporate@dev.example.invalid",
+      "prod": "svc-corporate@prod.example.invalid"
+    }
+  ],
+  "evidence": {
+    "kind": "invented-policy",
+    "record_id": "corporate-domain-service-account"
+  }
+}
+```
+
+The second rule uses `"mapped":"regional-domain"` for `/domainDN` and its own
+account values. Both use `corporate-forest` for `/forestName`. Those names refer
+to the logical group `key` values declared in `collection_mappings`, not exported
+forest names, domain DNs, or report hashes. All key components are required.
+The shipped AD domain definition supplies the two key paths and report labels.
+
+The same account pair approved for one domain is not approved for another domain.
+Reordering the arrays does not change the result, and reports retain the original
+indices, domain context, and selected logical identity. For an unmapped key
+component, use `{"value":"the exact raw key"}` instead of `{"mapped":"group"}`;
+provide exactly one form per component. Raw and mapped identities are distinct.
+
+An unscoped wildcard equivalence approves its listed pairs across all aligned
+domains. To switch that field to domain-specific approvals, remove the unscoped
+rule and author one scoped rule per intended domain. Overlapping scoped/broad
+rules or duplicate item scopes fail compilation; there is no first-match order.
+Unexpected account differences and domain additions/removals remain findings;
+duplicate domain keys remain conflicts. Equivalence does not assert that an
+account or domain must exist. Set `required:true` if an unused approval must make
+the comparison incomplete.
+
+`item` is currently supported on drift equivalences. It does not introduce
+per-item deployment expectations or change deployment authority requirements.
+The same selector can scope other drift fields, including complete server arrays,
+or target another keyed collection; it contains no AD-specific engine logic.
+
 ## Deployment validation
 
 ```sh

@@ -91,7 +91,7 @@ wildcards expand only from available structures.
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id` |
 | `ignores` | Selector; explicit subtree exclusion/normalization |
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
-| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
+| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` scope |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
 | `collection_mappings` | `collection` effective keyed collection ID, optional object `key`, and nonempty `key_mappings`; common rule fields except `replaces` |
 | `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, `key_cases`, and `key_mappings` only for keyed; optional `item_label` and `display_fields` for report context |
@@ -116,6 +116,131 @@ objects; each group explicitly establishes symmetric equivalence among its
 environments. Do not combine pairs/groups. Cases must be unambiguous. There is no
 substring replacement, substitution chaining, inferred transitivity or coercion.
 Several disjoint cases belong in one rule; overlapping rule ownership is rejected.
+
+### Equivalence item scopes
+
+An equivalence may include `item:{"collection":RULE_ID,"keys":{...}}` to select
+one aligned item of an ancestor keyed collection. The field selector still uses
+wildcard array segments. Scoping occurs after collection key resolution, including
+implementation mapping extensions; it never uses numeric item positions.
+
+Each `keys` entry is an item-relative key pointer with exactly one of:
+
+* `{"mapped":"group-name"}`: the logical group `key` declared for that key
+  component in an applicable collection mapping.
+* `{"value":SCALAR}`: an exact raw, unmapped key component.
+
+The complete key tuple is required. This includes every component of a composite
+key, or the complete default/conditional tuple of a `key_cases` collection.
+Component paths must be distinct; conditional tuples cannot ambiguously reorder
+the same set of component paths.
+Group names are validated against inline mappings and drift-active extensions
+compatible with the equivalence's object key. A raw literal is not resolved
+through an environment mapping; it does not match a mapped alias even when its
+text equals an alias name. Raw numeric keys retain exact mathematical equality;
+strings, numbers, and booleans do not coerce. Null, structured, blank string
+components under `component_type:"string"`, missing components, and ambiguous
+mapped/value forms are rejected.
+
+Unknown, disabled, replaced, non-keyed, inactive, or non-ancestor collection
+references fail compilation. Reference the effective replacement ID when
+appropriate. Scope does not expand the collection's type, variant, key, section,
+or path ownership. Different complete tuples in the same collection are disjoint
+owners and can approve different value pairs at the same field. Identical scopes,
+broad/scoped competing owners, and potentially overlapping scopes on different
+ancestor collections are rejected. Scope never adds precedence over ignores,
+expectations, or other rule categories.
+
+The selector requires consistent resolved component identities across the inputs
+that contain the aligned item; it never borrows a conditional key from only one
+side. The selector also works on a
+field nested under additional child collections while retaining that ancestor
+identity. Missing counterparts do not receive equivalence, duplicate keys still
+conflict, and unavailable mapping environments cannot be bypassed. An unused
+scoped rule follows existing optional/required coverage behavior. Unapproved
+values fall back to ordinary comparison; declaring a scope is not an assertion
+that an item must exist or that both environments must have a specified value.
+
+Reports retain `Decision.item` on applied scoped equivalence decisions, together
+with original locations, containing-item context, and mapping extension evidence.
+HTML and Markdown show Collection item scope. Scope identifiers, like other
+identity metadata, remain visible with `--exclude-values`; explicit sensitive
+redaction removes them for affected types. Scope definitions are detached and
+included in the effective policy digest. Equivalences remain drift-only;
+expectations do not accept `item` in this iteration.
+
+For example, these two rules approve service accounts for two domains in the
+same mapped forest. The complete executable policy and both domains' DN mapping
+groups are in [policy-drift.json](../examples/policy-drift.json).
+
+```json
+{
+  "equivalences": [
+    {
+      "id": "directory-corporate-domain-user",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-domains",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          },
+          "/domainDN": {
+            "mapped": "corporate-domain"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "svc-corporate@dev.example.invalid",
+          "prod": "svc-corporate@prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "corporate-domain-service-account"
+      }
+    },
+    {
+      "id": "directory-regional-domain-user",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-domains",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          },
+          "/domainDN": {
+            "mapped": "regional-domain"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "svc-regional@regional.dev.example.invalid",
+          "prod": "svc-regional@regional.prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "regional-domain-service-account"
+      }
+    }
+  ]
+}
+```
+
+Both rules reference `corporate-forest`, but their `corporate-domain` and
+`regional-domain` identities differ. Moving a valid account pair to the other
+domain produces drift, even though that pair is approved elsewhere.
 
 ### Collection key mappings
 

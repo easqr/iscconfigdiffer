@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"encoding/json"
 	"errors"
 	"sort"
 	"strings"
@@ -111,6 +112,11 @@ func validateCollectionKeyMappings(r Collection) error {
 }
 
 func collectionKey(item any, r Collection, env string) (string, bool, error) {
+	key, mapped, _, err := collectionIdentity(item, r, env)
+	return key, mapped, err
+}
+
+func collectionIdentity(item any, r Collection, env string) (string, bool, map[string]CollectionItemKey, error) {
 	paths := r.Keys
 	for _, c := range r.KeyCases {
 		value, present := get(item, c.WhenPath)
@@ -121,18 +127,21 @@ func collectionKey(item any, r Collection, env string) (string, bool, error) {
 		}
 	}
 	parts := make([]any, 0, len(paths))
+	components := map[string]CollectionItemKey{}
 	mapped := false
 	for _, path := range paths {
 		key, present := get(item, path)
 		if !present || !scalar(key) {
-			return "", false, errors.New("collection key unavailable")
+			return "", false, nil, errors.New("collection key unavailable")
 		}
 		if r.ComponentType == "string" {
 			s, ok := key.(string)
 			if !ok || strings.TrimSpace(s) == "" {
-				return "", false, errors.New("collection key must be a nonblank string")
+				return "", false, nil, errors.New("collection key must be a nonblank string")
 			}
 		}
+		raw, _ := json.Marshal(key)
+		components[path] = CollectionItemKey{Value: raw}
 		for _, mapping := range r.KeyMappings {
 			if mapping.Path != path {
 				continue
@@ -145,15 +154,16 @@ func collectionKey(item any, r Collection, env string) (string, bool, error) {
 				knownEnv = knownEnv || ok
 				if ok && equal(value, key) {
 					component = map[string]any{"mapped": group.Key}
+					components[path] = CollectionItemKey{Mapped: group.Key}
 					mapped = true
 				}
 			}
 			if !knownEnv {
-				return "", false, errors.New("collection key mapping environment unavailable")
+				return "", false, nil, errors.New("collection key mapping environment unavailable")
 			}
 			key = component
 		}
 		parts = append(parts, key)
 	}
-	return valueKey(parts), mapped, nil
+	return valueKey(parts), mapped, components, nil
 }
