@@ -36,6 +36,7 @@ func run(args []string, errOut io.Writer) int {
 	outputFile := f.String("output-file", "", "report filename override (default: policy ID plus .html, .md, or .json)")
 	scope := f.String("scope", "", "explicit common type scope")
 	name := f.String("name", "", "exact logical object name/key within one explicit scope type")
+	excludeValues := f.Bool("exclude-values", false, "omit observed and expected configuration values from reports")
 	matching := f.Bool("matching", false, "include ordinary equal leaves")
 	operations := f.String("operations", "", "explicit deployment operations JSON file")
 	hub := f.String("hub", "", "offline Hub array or bundle directory")
@@ -128,7 +129,7 @@ func run(args []string, errOut io.Writer) int {
 		}
 	}
 
-	req := differ.Request{Mode: *mode, Left: l, Right: r, Scope: list(*scope), ObjectKey: *name, IncludeMatching: *matching}
+	req := differ.Request{Mode: *mode, Left: l, Right: r, Scope: list(*scope), ObjectKey: *name, IncludeMatching: *matching, ExcludeValues: *excludeValues}
 	if *baseline.dir != "" {
 		b, e := readInput(baseline)
 		if e != nil {

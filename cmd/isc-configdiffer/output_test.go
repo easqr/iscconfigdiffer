@@ -110,3 +110,35 @@ func TestReportOutputIncompleteAndFailures(t *testing.T) {
 		t.Fatal("invalid request created output", err)
 	}
 }
+
+func TestCLIExcludeValues(t *testing.T) {
+	left, right := tree(t, "dev-value-sentinel"), tree(t, "prod-value-sentinel")
+	base := []string{"--left", left, "--right", right, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE"}
+	for _, format := range []string{"html", "md", "json"} {
+		for _, exclude := range []bool{false, true} {
+			dir := t.TempDir()
+			args := append(append([]string{}, base...), "--output-dir", dir, "--format", format)
+			if exclude {
+				args = append(args, "--exclude-values")
+			}
+			var errOut bytes.Buffer
+			if code := run(args, &errOut); code != 1 {
+				t.Fatal(code, errOut.String())
+			}
+			data, err := os.ReadFile(filepath.Join(dir, "default."+format))
+			if err != nil {
+				t.Fatal(err)
+			}
+			shown := strings.Contains(string(data), "dev-value-sentinel") && strings.Contains(string(data), "prod-value-sentinel")
+			if shown == exclude {
+				t.Fatal("wrong value visibility", format, exclude)
+			}
+			if format == "json" {
+				var report v2.Report
+				if err := json.Unmarshal(data, &report); err != nil || report.ValuesExcluded != exclude {
+					t.Fatal(err, report)
+				}
+			}
+		}
+	}
+}

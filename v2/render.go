@@ -1,7 +1,9 @@
 package v2
 
 import (
+	"bytes"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -20,9 +22,10 @@ type humanInput struct {
 	Role   string
 	Fields []reportField
 }
-type humanLocation struct{ Role, State, Kind, Pointer, ID, Artifact string }
+type humanLocation struct{ Role, State, Kind, Pointer, ID, Artifact, Value string }
 type humanDecision struct {
 	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
+	ExpectedRole, ExpectedValue                                   string
 	ItemKeys                                                      []string
 	Locations                                                     []humanLocation
 	Evidence                                                      []reportField
@@ -36,6 +39,7 @@ type humanGroup struct {
 	Decisions               []humanDecision
 }
 type humanReport struct {
+	ValueNotice                                            string
 	Title, Outcome, ObjectType, ObjectKey                  string
 	Complete, Correct                                      bool
 	ExitCode                                               int
@@ -46,6 +50,27 @@ type humanReport struct {
 	Diagnostics, OptionalDiagnostics                       []Diagnostic
 	UnusedOptional                                         int
 	MissingObjects, ContainerDifferences, FieldDifferences int
+}
+
+func valueView(v *State) string {
+	if v == nil {
+		return "omitted"
+	}
+	if v.State != "present" {
+		return v.State
+	}
+	parsed, err := JSON(v.Value)
+	if err != nil {
+		return "unavailable"
+	}
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(parsed); err != nil {
+		return "unavailable"
+	}
+	return strings.TrimSuffix(b.String(), "\n")
 }
 
 func countView(counts map[string]int) []statusCount {
@@ -64,10 +89,17 @@ func locationView(role string, loc Location) humanLocation {
 	if path == "" {
 		path = "(root)"
 	}
-	return humanLocation{role, state, loc.ValueKind, path, loc.ID, loc.Artifact}
+	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: valueView(loc.Value)}
 }
-func decisionView(d Decision, roles []string) humanDecision {
+func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
 	out := humanDecision{Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	if d.ExpectedRole != "" {
+		out.ExpectedRole = d.ExpectedRole
+		out.ExpectedValue = valueView(d.Expected)
+		if d.Expected == nil && !excludeValues {
+			out.ExpectedValue = "unavailable"
+		}
+	}
 	switch d.Status {
 	case "different":
 		out.Explanation = "Unexpected drift under the selected policy."
@@ -103,7 +135,7 @@ func decisionView(d Decision, roles []string) humanDecision {
 		if ok {
 			out.Locations = append(out.Locations, locationView(role, loc))
 		} else {
-			out.Locations = append(out.Locations, humanLocation{Role: role, State: "object unavailable", Pointer: "not available"})
+			out.Locations = append(out.Locations, humanLocation{Role: role, State: "object unavailable", Pointer: "not available", Value: "not available"})
 		}
 	}
 	if d.Evidence != nil {
@@ -114,15 +146,20 @@ func decisionView(d Decision, roles []string) humanDecision {
 	}
 	if d.Derivation != nil {
 		loc := locationView(d.Derivation.Role, d.Derivation.Location)
-		out.Derivation = []reportField{{"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}}
+		out.Derivation = []reportField{{"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}, {"Value", loc.Value}}
 	}
 	return out
 }
 
 // humanView derives presentation only from the already-redacted structured report.
-// It never reopens artifacts or reads configuration values.
+// It never reopens artifacts or reads values outside the structured report.
 func (r Report) humanView() humanReport {
 	v := humanReport{Title: fmt.Sprintf("Comparison v%d (%s)", r.Version, r.Mode), Complete: r.Complete, Correct: r.Correct, ExitCode: r.ExitCode(), Counts: countView(r.Counts)}
+	if r.ValuesExcluded {
+		v.ValueNotice = "Configuration values are omitted (--exclude-values)."
+	} else {
+		v.ValueNotice = "Observed and expected values are shown when available. Values covered by sensitive rules are redacted."
+	}
 	switch v.ExitCode {
 	case 0:
 		v.Outcome = "Complete: no unexpected drift or violations."
@@ -178,7 +215,7 @@ func (r Report) humanView() humanReport {
 	}
 	for _, d := range r.Decisions {
 		g := getGroup(d.Type, d.Key)
-		g.Decisions = append(g.Decisions, decisionView(d, roles))
+		g.Decisions = append(g.Decisions, decisionView(d, roles, r.ValuesExcluded))
 		token := physical(d.Type, d.Key)
 		counts[token][d.Status]++
 		for role := range d.Locations {
@@ -244,7 +281,7 @@ var reportMarkdown = texttemplate.Must(texttemplate.New("report").Funcs(texttemp
 // HTML writes an offline HTML report with expandable object groups and local filters.
 func (r Report) HTML(w io.Writer) error { return reportHTML.Execute(w, r.humanView()) }
 
-// Markdown writes a grouped Markdown report without configuration values.
+// Markdown writes a grouped Markdown report using the captured report values.
 func (r Report) Markdown(w io.Writer) error { return reportMarkdown.Execute(w, r.humanView()) }
 func markdownCell(s string) string {
 	return strings.NewReplacer("\\", "\\\\", "|", "&#124;", "`", "\\`", "*", "\\*", "_", "\\_", "[", "\\[", "]", "\\]", "\r\n", "<br>", "\r", "<br>", "\n", "<br>").Replace(html.EscapeString(s))

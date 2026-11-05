@@ -1,7 +1,7 @@
 package v2
 
 // Sensitive selectors conservatively hide the identity and physical provenance of
-// their object type and dependency-derived types. Values are never in reports.
+// their object type and dependency-derived types, including report values.
 func (x *execution) redact() {
 	hidden := map[string]bool{}
 	for _, r := range x.c.policy.Sensitive {
@@ -40,6 +40,18 @@ func (x *execution) redact() {
 	changed := true
 	for changed {
 		changed = false
+		for _, r := range x.c.policy.References {
+			if active(r.Rule, x.request.Mode) && hidden[r.TargetType] && !hidden[r.Type] {
+				hidden[r.Type] = true
+				changed = true
+			}
+		}
+		for _, r := range x.c.policy.Expectations {
+			if active(r.Rule, x.request.Mode) && r.Operation == "reference_target" && hidden[r.TargetType] && !hidden[r.Type] {
+				hidden[r.Type] = true
+				changed = true
+			}
+		}
 		for _, r := range x.c.policy.Identities {
 			if hidden[r.ParentType] && !hidden[r.Type] {
 				hidden[r.Type] = true
@@ -56,6 +68,9 @@ func (x *execution) redact() {
 			loc.ID = "[redacted]"
 			loc.Artifact = "[redacted]"
 			loc.Pointer = "[redacted]"
+			if loc.Value != nil {
+				loc.Value = &State{State: "redacted"}
+			}
 			locations[role] = loc
 		}
 	}
@@ -65,8 +80,20 @@ func (x *execution) redact() {
 			d.Derivation.Location.ID = "[redacted]"
 			d.Derivation.Location.Artifact = "[redacted]"
 			d.Derivation.Location.Pointer = "[redacted]"
+			if d.Derivation.Location.Value != nil {
+				d.Derivation.Location.Value = &State{State: "redacted"}
+			}
+			if d.Expected != nil {
+				d.Expected = &State{State: "redacted"}
+			}
 		}
 		if hidden[d.Type] {
+			if d.Expected != nil {
+				d.Expected = &State{State: "redacted"}
+			}
+			if d.Derivation != nil && d.Derivation.Location.Value != nil {
+				d.Derivation.Location.Value = &State{State: "redacted"}
+			}
 			d.Key = "[redacted]"
 			d.ItemKeys = nil
 			mask(d.Locations)

@@ -310,7 +310,18 @@ Decision statuses are `equal`, `equivalent`, `excluded`, `verified`, `different`
 `violation`, `unverified`, and `conflict`. Locations retain each role's physical
 pointer, presence and JSON kind. Keyed item identities are opaque hashes rather
 than raw item-key values. Derived expectations retain the independent origin's
-role/artifact/pointer. All actual and expected values are omitted.
+role/artifact/pointer. Observed values are captured by default in optional tagged
+`Location.value` states (`present` with a JSON value, including `null`, `absent`,
+`unavailable`, or `redacted`). Decisions from expectation checks additionally
+carry `expected` and `expected_role` when the expected value can be determined.
+Derivation locations can also carry their observed value.
+
+Set `Request.ExcludeValues` or CLI `--exclude-values` to omit all observed,
+expected, and derivation values. `values_excluded` records this presentation
+choice. Values are absent from the report when excluded, rather than hidden only
+by a renderer. This option does not alter counts, decisions, matching, policy
+usage, exit status or request digest. Rendering uses captured, redacted report
+values and does not reopen configuration artifacts.
 
 Counts are evaluated decision units, not object counts or percentage leaf
 coverage. A whole-subtree expectation/exclusion counts once. Object coverage
@@ -319,8 +330,10 @@ outside operation scope, and groups with unverified/conflict decisions. Matching
 and policy decisions remain available when ordinary equal leaves are omitted.
 Required unused rules prevent completeness. Unused optional rules are visible
 without blocking it. Sensitive selectors conservatively hide all identity and
-physical provenance for their object type and dependent types, including operation
-keys and derivation origins; this can redact more than the selected object.
+physical provenance and values for their object type, dependent types and types
+referencing them through active declared reference/reference-target rules,
+including operation keys, expected values and derivation origins. This can redact
+more than the selected object. Labels and evidence remain visible metadata.
 
 Exit 0: complete and correct. Exit 1: complete with known differences/violations.
 Exit 2: invalid input/policy/request, incomplete/unverified comparison, or output

@@ -162,6 +162,8 @@ type Request struct {
 	ObjectKey       string
 	Operations      []Operation
 	IncludeMatching bool
+	// ExcludeValues omits observed and expected values from report decisions.
+	ExcludeValues bool
 }
 type Location struct {
 	ID        string `json:"id"`
@@ -169,20 +171,23 @@ type Location struct {
 	Pointer   string `json:"pointer"`
 	Present   bool   `json:"present"`
 	ValueKind string `json:"value_kind,omitempty"`
+	Value     *State `json:"value,omitempty"`
 }
 type Decision struct {
-	Type       string              `json:"type"`
-	Key        string              `json:"key"`
-	Status     string              `json:"status"`
-	Code       string              `json:"code,omitempty"`
-	Space      string              `json:"space,omitempty"`
-	RuleID     string              `json:"rule_id,omitempty"`
-	Replaces   string              `json:"replaces,omitempty"`
-	Authority  string              `json:"authority,omitempty"`
-	Evidence   *Evidence           `json:"evidence,omitempty"`
-	ItemKeys   []string            `json:"item_keys,omitempty"`
-	Locations  map[string]Location `json:"locations,omitempty"`
-	Derivation *Derivation         `json:"derivation,omitempty"`
+	Expected     *State              `json:"expected,omitempty"`
+	ExpectedRole string              `json:"expected_role,omitempty"`
+	Type         string              `json:"type"`
+	Key          string              `json:"key"`
+	Status       string              `json:"status"`
+	Code         string              `json:"code,omitempty"`
+	Space        string              `json:"space,omitempty"`
+	RuleID       string              `json:"rule_id,omitempty"`
+	Replaces     string              `json:"replaces,omitempty"`
+	Authority    string              `json:"authority,omitempty"`
+	Evidence     *Evidence           `json:"evidence,omitempty"`
+	ItemKeys     []string            `json:"item_keys,omitempty"`
+	Locations    map[string]Location `json:"locations,omitempty"`
+	Derivation   *Derivation         `json:"derivation,omitempty"`
 }
 type Derivation struct {
 	Role     string   `json:"role"`
@@ -203,6 +208,7 @@ type Match struct {
 	Locations map[string]Location `json:"locations"`
 }
 type Report struct {
+	ValuesExcluded bool                `json:"values_excluded"`
 	Version        int                 `json:"version"`
 	Mode           string              `json:"mode"`
 	Complete       bool                `json:"complete"`

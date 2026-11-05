@@ -60,8 +60,8 @@ func TestCLIModesAndReports(t *testing.T) {
 	if code := runWithReports(t, args, &out, &errOut); code != 1 {
 		t.Fatal(code, errOut.String())
 	}
-	if strings.Contains(out.String(), "changed") {
-		t.Fatal("payload leaked")
+	if !strings.Contains(out.String(), "changed") {
+		t.Fatal("observed value missing")
 	}
 	// Explicit deployment scopes and independently declared expectations.
 	policy := writeJSON(t, map[string]any{"version": 2, "id": "deployment", "profile": "isc-portable-v2", "expectations": []any{map[string]any{"id": "name", "type": "ROLE", "path": "/name", "operation": "copy_source", "authority": "approved", "evidence": map[string]any{"kind": "invented-release"}}, map[string]any{"id": "secret", "type": "ROLE", "path": "/secret", "operation": "copy_source", "authority": "approved", "evidence": map[string]any{"kind": "invented-release"}}}})

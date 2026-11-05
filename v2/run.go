@@ -22,15 +22,17 @@ type frame struct {
 	itemKeys    []string
 }
 type execution struct {
-	c          *Compiled
-	request    Request
-	report     Report
-	inputs     [3]*Input
-	inventory  *inventory
-	current    *group
-	roles      [3]string
-	derivation *Derivation
-	operations map[string]Operation
+	c            *Compiled
+	request      Request
+	report       Report
+	inputs       [3]*Input
+	inventory    *inventory
+	current      *group
+	roles        [3]string
+	derivation   *Derivation
+	expected     *State
+	expectedRole string
+	operations   map[string]Operation
 }
 
 func role(side int, _ bool, deployment bool) string {
@@ -41,7 +43,7 @@ func role(side int, _ bool, deployment bool) string {
 }
 func Run(request Request, c *Compiled) (Report, error) {
 	x := execution{c: c, request: request, roles: [3]string{"left", "right", "baseline"}}
-	x.report = Report{Version: 2, Mode: request.Mode, Complete: false, Correct: false, Inputs: map[string]Input{}, Excluded: map[string][]string{}, Counts: map[string]int{}, RuleUsage: map[string]int{}, Replacements: map[string]string{}, Matches: []Match{}, Decisions: []Decision{}, Diagnostics: []Diagnostic{}}
+	x.report = Report{ValuesExcluded: request.ExcludeValues, Version: 2, Mode: request.Mode, Complete: false, Correct: false, Inputs: map[string]Input{}, Excluded: map[string][]string{}, Counts: map[string]int{}, RuleUsage: map[string]int{}, Replacements: map[string]string{}, Matches: []Match{}, Decisions: []Decision{}, Diagnostics: []Diagnostic{}}
 	x.report.ObjectCoverage = map[string]int{}
 	if c == nil || c.policy.Version != 2 || c.digest == "" {
 		return x.report, errors.New("compiled policy required")
@@ -329,6 +331,25 @@ func Run(request Request, c *Compiled) (Report, error) {
 	}
 	return result, nil
 }
+func (x *execution) slotValue(n slot) *State {
+	if n.unavailable && !x.request.ExcludeValues {
+		return &State{State: "unavailable"}
+	}
+	return x.reportValue(n.value, n.present)
+}
+func (x *execution) reportValue(value any, present bool) *State {
+	if x.request.ExcludeValues {
+		return nil
+	}
+	if !present {
+		return &State{State: "absent"}
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return &State{State: "unavailable"}
+	}
+	return &State{State: "present", Value: data}
+}
 func stable(v any) string { b, _ := json.Marshal(v); return string(b) }
 func (x *execution) diagnose(d Diagnostic) {
 	for i, r := range []string{"left", "right"} {
@@ -342,6 +363,8 @@ func (x *execution) diagnose(d Diagnostic) {
 func (x *execution) record(f frame, status, code string, r Rule, authority string) {
 	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
 	d.Derivation = x.derivation
+	d.Expected = x.expected
+	d.ExpectedRole = x.expectedRole
 	for i, o := range x.current.nodes {
 		if o != nil {
 			n := f.nodes[i]
@@ -349,10 +372,11 @@ func (x *execution) record(f frame, status, code string, r Rule, authority strin
 			if f.space == "" {
 				present = true
 			}
-			d.Locations[x.roles[i]] = Location{ID: o.doc.ID, Artifact: o.doc.Path, Pointer: n.pointer, Present: present, ValueKind: valueKind(n.value, present)}
+			d.Locations[x.roles[i]] = Location{ID: o.doc.ID, Artifact: o.doc.Path, Pointer: n.pointer, Present: present, ValueKind: valueKind(n.value, present), Value: x.slotValue(n)}
 			if f.space == "" {
 				loc := d.Locations[x.roles[i]]
 				loc.ValueKind = "document"
+				loc.Value = x.reportValue(o.doc.Content, true)
 				d.Locations[x.roles[i]] = loc
 			}
 		}
@@ -588,7 +612,7 @@ func (x *execution) leaf(f frame, code string) {
 	}
 }
 func (x *execution) expect(f frame, r Expectation) {
-	defer func() { x.derivation = nil }()
+	defer func() { x.derivation = nil; x.expected = nil; x.expectedRole = "" }()
 	if r.Authority == "" || r.Evidence == nil || r.Evidence.Kind == "" {
 		x.record(f, "unverified", "expectation authority/evidence unavailable", r.Rule, r.Authority)
 		return
@@ -602,6 +626,8 @@ func (x *execution) expect(f frame, r Expectation) {
 		sides = []int{0, 1}
 	}
 	for _, side := range sides {
+		x.expected = nil
+		x.expectedRole = x.roles[side]
 		x.derivation = nil
 		var want any
 		present := true
@@ -643,7 +669,7 @@ func (x *execution) expect(f frame, r Expectation) {
 				available = true
 			}
 			if origin := x.current.nodes[fromSide]; origin != nil {
-				x.derivation = &Derivation{Role: x.roles[fromSide], Type: origin.doc.Type, Location: Location{ID: origin.doc.ID, Artifact: origin.doc.Path, Pointer: n.pointer, Present: n.present, ValueKind: valueKind(n.value, n.present)}}
+				x.derivation = &Derivation{Role: x.roles[fromSide], Type: origin.doc.Type, Location: Location{ID: origin.doc.ID, Artifact: origin.doc.Path, Pointer: n.pointer, Present: n.present, ValueKind: valueKind(n.value, n.present), Value: x.slotValue(n)}}
 			}
 			want, present = n.value, n.present
 			if r.Operation == "reference_target" && available {
@@ -659,7 +685,7 @@ func (x *execution) expect(f frame, r Expectation) {
 					want = g.nodes[2].doc.ID
 					present = true
 					o := g.nodes[2]
-					x.derivation = &Derivation{Role: "baseline", Type: o.doc.Type, Location: Location{ID: o.doc.ID, Artifact: o.doc.Path, Present: true, ValueKind: "object-identity"}}
+					x.derivation = &Derivation{Role: "baseline", Type: o.doc.Type, Location: Location{ID: o.doc.ID, Artifact: o.doc.Path, Present: true, ValueKind: "object-identity", Value: x.reportValue(o.doc.ID, true)}}
 				}
 			}
 		}
@@ -667,6 +693,7 @@ func (x *execution) expect(f frame, r Expectation) {
 			x.record(f, "unverified", "expectation derivation unavailable", r.Rule, r.Authority)
 			continue
 		}
+		x.expected = x.reportValue(want, present)
 		actual := f.nodes[side]
 		if present == actual.present && (!present || equal(want, actual.value)) {
 			x.record(f, "verified", "expectation satisfied: "+x.roles[side], r.Rule, r.Authority)

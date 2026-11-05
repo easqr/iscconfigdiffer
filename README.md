@@ -185,7 +185,8 @@ presence and JSON type. Artifact paths and IDs identify the source files. Keyed
 array item identities explain alignment when input indices differ. Applied rules,
 authority, evidence and expectation derivations explain policy decisions. Pointer
 `(root)` means the entire content payload or metadata envelope; pointers are not
-prefixed with `/object`. No configuration payload values are included.
+prefixed with `/object`. Observed values are shown for each input, and expectation
+checks also show the independently computed expected value and target role.
 
 Diagnostics distinguish required or blocking findings from unused optional rules.
 The latter are listed separately and do not themselves make a comparison fail.
@@ -231,10 +232,24 @@ applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
 `equivalent`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
 `conflict`. Decision counts are not object counts or percentage leaf coverage.
 
-Actual and expected payload values are omitted in all output formats. Names,
-IDs, labels, and declared evidence may be visible as provenance. `sensitive`
-selectors conservatively hide identity/provenance for the selected object type
-and dependent types; put no secrets in labels or evidence metadata. `--matching`
+Observed and expected configuration values are included by default in HTML,
+Markdown, and JSON. Use `--exclude-values` to omit them from all three formats;
+this does not change comparison decisions, counts, exit codes, or request digests.
+The library exposes the same option as `Request.ExcludeValues`.
+
+JSON locations carry an optional tagged `value`: `{"state":"present","value":...}`
+(including explicit `null`), `{"state":"absent"}`, `{"state":"unavailable"}`, or
+`{"state":"redacted"}`. Expectation decisions carry `expected` and `expected_role`
+when available. Reports record `values_excluded`; with omission enabled, value
+fields are absent. Missing objects/fields, JSON `null`, empty strings, `false`,
+and zero remain distinguishable. Containers may include complete objects/arrays;
+ordinary equal leaves still require `--matching` to appear.
+
+Policy `sensitive` selectors continue to redact values and identity/provenance
+conservatively for their object type, dependent types, and types connected through
+known policy reference rules. Expected values and derivation values are redacted
+too. The omission flag does not hide names, IDs, labels or declared evidence;
+put no secrets in labels or evidence metadata. `--matching`
 adds ordinary equal leaves; policy decisions remain visible without it.
 
 Exit `1` is an expected result when drift is found. If using a shell with
@@ -786,6 +801,7 @@ are resolved relative to the current working directory unless absolute.
 | `--format` | `html` | `html`, `md` (Markdown), or `json` |
 | `--output-dir DIRECTORY` | `reports` | Report directory relative to the working directory; created if needed |
 | `--output-file NAME` | Policy ID plus `.html`, `.md`, or `.json` | Exact filename within the output directory; existing reports are replaced |
+| `--exclude-values` | `false` | Omit observed, expected, and derivation values in every report format |
 | `--matching` | `false` | Include ordinary equal leaves in reports; does not affect result counts or exit status |
 | `--operations FILE` | None | Required deployment operation list; invalid in drift mode |
 
@@ -980,7 +996,7 @@ The other policy arrays use the following syntax:
 | `references` | Selector plus `target_type`, optional one-to-one `external` ID map; compare references through object correspondence in drift |
 | `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys` for keyed arrays only |
 | `ignores` | Selector; explicitly exclude that subtree from comparison |
-| `sensitive` | Selector; conservatively redact object identity and physical provenance in reports |
+| `sensitive` | Selector; conservatively redact values, object identity and physical provenance in reports |
 
 For example, this fragment defines a keyed schema array and a source-specific
 runtime-field exclusion:

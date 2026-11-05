@@ -9,7 +9,7 @@
 | Exit code | {{.ExitCode}} |
 {{if .ObjectKey}}| Object filter | {{cell .ObjectType}} &quot;{{cell .ObjectKey}}&quot; |
 {{end}}
-Configuration values are omitted. Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
+{{.ValueNotice}} Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
 
 Decision counts are not object counts or independent problems. A missing container and its descendants can each produce decisions. Ordinary equal leaves are counted but omitted from details unless `--matching` is enabled. Object counts describe selected scope, not the entire tenant.
 
@@ -77,14 +77,17 @@ Object matching and artifacts:
 
 Section: {{cell .Space}}
 
-| Role | Presence | JSON type | Path | Artifact | ID |
-| --- | --- | --- | --- | --- | --- |
-{{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{cell .Artifact}} | {{cell .ID}} |
+| Role | Presence | JSON type | Path | Value | Artifact | ID |
+| --- | --- | --- | --- | --- | --- | --- |
+{{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{cell .Value}} | {{cell .Artifact}} | {{cell .ID}} |
 {{end}}{{if .ItemKeys}}
 Collection item keys (outer to inner):
 
 {{range .ItemKeys}}- {{cell .}}
 {{end}}{{end}}
+{{if .ExpectedRole}}
+Expected ({{cell .ExpectedRole}}): {{cell .ExpectedValue}}
+{{end}}
 {{if .RuleID}}Rule: {{cell .RuleID}}{{else}}No policy rule applied.{{end}}
 {{if .Authority}}
 Authority: {{cell .Authority}}

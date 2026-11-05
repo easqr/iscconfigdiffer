@@ -22,6 +22,8 @@ type Request struct {
 	ObjectKey       string
 	Operations      []v2.Operation
 	IncludeMatching bool
+	// ExcludeValues omits observed and expected values from report decisions.
+	ExcludeValues bool
 }
 
 func DefaultPolicy() v2.Policy {
@@ -58,7 +60,7 @@ func Compare(r Request, p v2.Policy) (v2.Report, error) {
 	if e != nil {
 		return report, e
 	}
-	req := v2.Request{Mode: r.Mode, Left: left, Right: right, Scope: r.Scope, ObjectKey: r.ObjectKey, Operations: r.Operations, IncludeMatching: r.IncludeMatching}
+	req := v2.Request{Mode: r.Mode, Left: left, Right: right, Scope: r.Scope, ObjectKey: r.ObjectKey, Operations: r.Operations, IncludeMatching: r.IncludeMatching, ExcludeValues: r.ExcludeValues}
 	if r.Baseline != nil {
 		b, e := AdaptSnapshot(*r.Baseline)
 		if e != nil {
