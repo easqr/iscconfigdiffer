@@ -4,7 +4,9 @@ The module has one comparison implementation: the neutral `v2` engine, with ISC
 snapshot and optional Configuration Hub adapters in the root `differ` package.
 ISC domain rules are assembled under `internal/iscprofile`, with separate SOURCE
 schema and provisioning-policy providers. The neutral engine supports generic
-conditional collection keys; it contains no SOURCE-specific matching logic.
+conditional collection keys and per-input collection context; it contains no
+SOURCE-specific matching logic. SOURCE schemas/attributes match by name, while
+provisioning policies use usage/subtype and fields use name.
 Policies and reports use schema `2`. Exporter manifests/envelopes retain their
 independent storage-format numbers.
 

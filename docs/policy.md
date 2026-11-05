@@ -219,8 +219,8 @@ This default follows the null/absent-property convention in the
 ## ISC profiles
 
 * `isc-identity-v2`: existing named, composite, parent-qualified and singleton
-  identity strategies plus SOURCE provisioning alignment and generated
-  provisioning policy/field metadata exclusions. Other fields remain comparable.
+  identity strategies plus SOURCE schema/attribute and provisioning alignment,
+  and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
   `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
@@ -245,6 +245,32 @@ Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
 Unknown types with custom identities receive the same explicit metadata profile
 expansion. Profile digest covers that expansion; policy digest covers effective
 rules, replacements, profile selection and evidence.
+
+## SOURCE schema rules
+
+All ISC profiles declare `isc.SOURCE.schemas` at `/schemas` and
+`isc.SOURCE.schema-attributes` at `/schemas/*/attributes`, both keyed by `/name`
+with nonblank string components. Schema names are unique within a source for
+comparison; attribute names are unique within a schema. Duplicates, missing,
+null, blank or non-string names fail with conflicts. These are explicit differ
+validation requirements, not assumptions about undocumented platform constraints.
+
+`nativeObjectType` is not an identity component. Repeated native types are valid
+for comparison, and changes to native types remain data differences. Per-role
+`Location.context` identifies Schema (name/native type) and Attribute (name), with
+original pointers and no inferred labels for absent items. Context applies to
+expectation derivations and follows existing omission/redaction behavior.
+
+Portable schema metadata exclusions are unchanged. Nested attribute schema
+reference IDs remain comparable, as do schema/attribute membership and other
+properties. No new exclusions or matching changes apply to other object types.
+Deployment member values require explicit expectations beneath the keyed arrays;
+parent collection rules do not grant authority.
+
+Custom collection rules at these paths require explicit same-category,
+same-selector `replaces`. Replacements supply their own display annotations.
+The SOURCE provider is `internal/iscprofile/source_schema.go`; the neutral engine
+and renderers use existing generic collection and context capabilities.
 
 ## SOURCE provisioning policy rules
 
@@ -287,9 +313,10 @@ supports searching it; Markdown provides a per-role context table. JSON retains
 structured context. Identifiers remain available with `--exclude-values`;
 `sensitive` redaction removes affected location and derivation context. As with
 object names and evidence, do not select secrets as display metadata.
- `component_type` accepts `scalar`
-(the default) or `string` (nonblank strings only). All key components remain
-present and nonnull regardless of null/absent-property normalization.
+
+`component_type` accepts `scalar` (the default) or `string` (nonblank strings only).
+All key components remain present and nonnull regardless of null/absent-property
+normalization.
 
 The neutral engine interprets these declarations without SOURCE-specific code.
 ISC profile assembly lives in `internal/iscprofile`; SOURCE schema and

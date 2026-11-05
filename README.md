@@ -198,7 +198,8 @@ item. HTML search also finds these names. Markdown and JSON retain the same cont
 
 These names/types are report identity metadata and remain visible with
 `--exclude-values`, like object names and IDs. Explicit `sensitive` rules remove
-context along with other identity/provenance for affected types. Renderers use
+context along with other identity/provenance for affected types. Schema and
+attribute findings use the same per-input context model. Renderers use
 captured context and do not reopen the configuration files.
 
 Diagnostics distinguish required or blocking findings from unused optional rules.
@@ -903,7 +904,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities and SOURCE provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
+| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
@@ -924,6 +925,35 @@ include their parent identity profile; attribute-sync configurations use their
 parent source. `ACCESS_REQUEST_CONFIG` and `AUTH_ORG` are singletons. Ambiguous
 identities do not pass. See the [identity contract](docs/contracts.md#scope-and-identities)
 for the named-type list.
+
+### SOURCE schemas and attributes
+
+All ISC profiles automatically match `/schemas` by `name` within each source and
+`/schemas/*/attributes` by `name` within each schema. Names must be present,
+nonblank strings and unique within their containing array. Duplicates or invalid
+names produce conflicts and exit `2`. Attribute names can repeat in different
+schemas; schema names can repeat in different sources.
+
+`nativeObjectType` is compared as configuration data, not used as a matching key.
+Repeated native object types are allowed. A change to the native object type of a
+matched schema remains a reported difference.
+
+Findings show each input's schema name, native object type when present, and
+attribute name beside the original JSON Pointer. For example,
+`/schemas/0/attributes/42/schema/id` is accompanied by its containing schema and
+attribute labels; reordered inputs retain their own indices. Missing counterparts
+are not given another item's labels. HTML, Markdown, JSON, omission, and sensitive
+redaction use the same context behavior as provisioning findings.
+
+The built-in rules are `isc.SOURCE.schemas` and `isc.SOURCE.schema-attributes`.
+Existing custom rules at these paths must declare `replaces` with the corresponding
+ID, or can be removed to use the built-ins. Replacements define their own
+`item_label` and `display_fields`; include these to retain readable context.
+Schema `id`, `created`, and `modified` exclusions remain specific to the portable
+profile. Nested references such as `/schemas/*/attributes/*/schema/id`, other
+attribute properties, and schema/attribute additions or removals remain comparable.
+Deployment alignment still requires independent expectations for member values;
+use wildcard item selectors for assertions beneath these keyed arrays.
 
 ### SOURCE provisioning policies
 
@@ -1058,17 +1088,30 @@ The other policy arrays use the following syntax:
 | `identities` | `type`, `strategy` (`fields`, `singleton`, `dependent`); `paths` for fields; `parent_type`/`parent_path` for dependencies; optional `component_type` (`scalar` or `string`) |
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id`; explicitly relate physical objects; deployment interprets left/right as source/actual |
 | `references` | Selector plus `target_type`, optional one-to-one `external` ID map; compare references through object correspondence in drift |
-| `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys` for keyed arrays only |
+| `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys`, `component_type`, and `key_cases` for keyed arrays; optional `item_label` and `display_fields` for report context |
 | `ignores` | Selector; explicitly exclude that subtree from comparison |
 | `sensitive` | Selector; conservatively redact values, object identity and physical provenance in reports |
 
-For example, this fragment defines a keyed schema array and a source-specific
-runtime-field exclusion:
+For example, this fragment explicitly replaces the built-in schema rule and adds
+a source-specific runtime-field exclusion. The attribute rule remains active:
 
 ```json
 {
   "collections": [
-    {"id":"schemas-by-name","type":"SOURCE","path":"/schemas","mode":"keyed","keys":["/name"]}
+    {
+      "id": "schemas-by-name",
+      "replaces": "isc.SOURCE.schemas",
+      "type": "SOURCE",
+      "path": "/schemas",
+      "mode": "keyed",
+      "keys": ["/name"],
+      "component_type": "string",
+      "item_label": "Schema",
+      "display_fields": [
+        {"label": "Name", "path": "/name"},
+        {"label": "Native object type", "path": "/nativeObjectType"}
+      ]
+    }
   ],
   "ignores": [
     {"id":"last-run","type":"SOURCE","path":"/connectorAttributes/lastRun","modes":["drift"]}

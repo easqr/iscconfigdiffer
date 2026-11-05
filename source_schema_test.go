@@ -36,7 +36,7 @@ func TestPortableSourceSchemaMetadataExclusions(t *testing.T) {
 			right := schemaMetadataInput(t, "prod", "SOURCE", keyed, false)
 			p := portable()
 			if keyed {
-				p.Collections = []v2.Collection{{Rule: rule("schemas-by-name"), Selector: v2.Selector{Type: "SOURCE", Path: "/schemas"}, Mode: "keyed", Keys: []string{"/name"}}}
+				p.Collections = []v2.Collection{{Rule: v2.Rule{ID: "schemas-by-name", Replaces: "isc.SOURCE.schemas", Evidence: &v2.Evidence{Kind: "invented-policy"}}, Selector: v2.Selector{Type: "SOURCE", Path: "/schemas"}, Mode: "keyed", Keys: []string{"/name"}}}
 			}
 			for _, mode := range []string{"drift", "deployment"} {
 				t.Run(mode, func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestPortableSourceSchemaMetadataExclusions(t *testing.T) {
 					policy := p
 					if mode == "deployment" {
 						req.Operations = []v2.Operation{{Type: "SOURCE", Key: "Invented", Action: "update"}}
-						for i, path := range []string{"/name", "/schemas/*/name", "/schemas/*/attributes"} {
+						for i, path := range []string{"/name", "/schemas/*/name", "/schemas/*/attributes/*/name", "/schemas/*/attributes/*/schema/id"} {
 							policy.Expectations = append(policy.Expectations, v2.Expectation{Rule: rule(fmt.Sprintf("copy-%d", i)), Selector: v2.Selector{Type: "SOURCE", Path: path}, Operation: "copy_source", Authority: "invented-policy"})
 						}
 					}
