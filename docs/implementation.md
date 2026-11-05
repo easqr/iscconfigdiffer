@@ -5,10 +5,12 @@ snapshot and optional Configuration Hub adapters in the root `differ` package.
 ISC domain rules are assembled under `internal/iscprofile`, with separate SOURCE
 schema, provisioning-policy, and Active Directory providers. The neutral engine
 supports generic conditional collection keys, environment key mappings, and
-per-input collection context; it contains no SOURCE-specific matching logic. SOURCE schemas/attributes match by name, while
+per-input collection context; it contains no SOURCE-specific matching logic.
+SOURCE schemas/attributes match by name, while
 provisioning policies use usage/subtype and fields use name. Active Directory
-forest settings use forestName, with explicit policy-authored environment aliases
-for alignment; value equivalence and deployment expectations stay independent.
+forest settings use forestName and domain settings use the forestName/domainDN
+tuple, with explicit policy-authored environment aliases for alignment; value
+equivalence and deployment expectations stay independent.
 Policies and reports use schema `2`. Exporter manifests/envelopes retain their
 independent storage-format numbers.
 
@@ -25,8 +27,11 @@ independent storage-format numbers.
 Synthetic tests cover exporter organization/publication to validated readers and
 comparison, plus mapping retrieval/publication to offline import. No tenant
 exports, credentials or network services are fixtures. Current examples are
-compiled and executed in `TestDocumentedExamples` and
-`TestDocumentedForestMappingAndReportContext`. Collection mapping validation,
+compiled and executed in `TestDocumentedExamples`,
+`TestDocumentedForestMappingAndReportContext`, and
+`TestDocumentedDomainMappingAndContext`. Domain tests also cover composite-key
+uniqueness, per-input context, deployment authority, and server ordering.
+Collection mapping validation,
 typed fallback, original pointers, baseline alignment, deterministic digests, and
 compiled-plan detachment are covered in `v2/collection_mappings_test.go`.
 

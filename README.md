@@ -639,14 +639,91 @@ Mapped names in one input and raw names in the other are distinct identities,
 even if their strings happen to be equal. Duplicate or invalid forest names,
 ambiguous mappings, or missing/unlisted input environments cannot produce a
 successful comparison. Other forest settings, additions, and removals remain
-comparable. Domain settings and other references to forest names need their own
-rules; this configuration does not implicitly map them.
+comparable. Domain settings use [their own rules and mappings](#domain-settings-between-environments);
+this forest configuration does not implicitly map references elsewhere.
 
 Reports preserve each input's actual forest name and array index, and identify
 the collection mapping rule and its evidence. The mapping aligns entries in
 both drift and deployment. It does not itself accept different name values or
 verify a deployment: deployment still needs an independent destination-name
 expectation, such as a literal value or `preserve_target` with a baseline.
+
+### Domain settings between environments
+
+All ISC profiles match `/connectorAttributes/domainSettings` by the complete
+`(forestName, domainDN)` tuple within a source. Both fields must be nonblank
+strings; duplicate tuples produce conflicts. Multiple domains may share a
+forest name, and the same domain DN may appear in different forests. This is a
+differ validation requirement, not a claim about ISC enforcing array uniqueness.
+Domain entries are unordered. Each finding shows Domain context containing both
+Forest name and Domain DN beside each input's original JSON Pointer.
+
+To compare corresponding domains with different environment-specific names,
+replace `isc.SOURCE.ad-domains` and map **both key components**. This collection
+belongs in the policy's `collections` array:
+
+```json
+{
+  "id": "directory-domains",
+  "replaces": "isc.SOURCE.ad-domains",
+  "type": "SOURCE",
+  "path": "/connectorAttributes/domainSettings",
+  "mode": "keyed",
+  "keys": ["/forestName", "/domainDN"],
+  "component_type": "string",
+  "item_label": "Domain",
+  "display_fields": [
+    {"label":"Forest name","path":"/forestName"},
+    {"label":"Domain DN","path":"/domainDN"}
+  ],
+  "key_mappings": [
+    {
+      "path": "/forestName",
+      "groups": [
+        {"key":"corporate-forest","values":{"dev":"dev.example.invalid","prod":"prod.example.invalid"}}
+      ]
+    },
+    {
+      "path": "/domainDN",
+      "groups": [
+        {"key":"corporate-domain","values":{"dev":"DC=dev,DC=example,DC=invalid","prod":"DC=prod,DC=example,DC=invalid"}}
+      ]
+    }
+  ],
+  "evidence": {"kind":"approved-policy","record_id":"environment-domains"}
+}
+```
+
+The replacement keeps the built-in selector without an object `key`, as with the
+forest rule. Matching stays local to each source. Add separate, source-key-scoped
+`equivalences` rules for drift at:
+
+| Path | Approved environment values |
+| --- | --- |
+| `/connectorAttributes/domainSettings/*/forestName` | `dev.example.invalid` ↔ `prod.example.invalid` |
+| `/connectorAttributes/domainSettings/*/domainDN` | `DC=dev,DC=example,DC=invalid` ↔ `DC=prod,DC=example,DC=invalid` |
+
+[`examples/policy-drift.json`](examples/policy-drift.json) contains the complete
+collection, both equivalence rules scoped to `Invented Directory`, and the
+separate forest-settings mappings. Edit all applicable occurrences for your
+environments and run with `--left-env dev --right-env prod` or equivalent policy
+bindings. Mapping groups are not shared automatically across paths or arrays.
+Use another logical domain group for each additional corresponding domain; keep
+the forest component mapped to its corresponding forest group.
+
+Names and DNs use exact, case-sensitive matching. DN canonicalization, suffix
+replacement, and cross-environment mapping inference are not performed. The
+rule does not validate that a domain's forest reference exists in `forestSettings`.
+Unmapped values retain exact matching, and domain additions/removals remain
+comparable. Authentication, TLS, port, service account, unknown fields, and other
+settings remain comparable. The `servers` array stays ordered because its order
+controls connection fallback priority.
+
+Key mappings only establish correspondence. Drift equivalences accept the two
+name differences; deployment still requires independent expectations for those
+values and the other domain settings. An authoritative `copy_source` expectation
+still checks the raw source name/DN; it does not substitute a mapped destination
+value. Use destination literals or `preserve_target` with a baseline as appropriate.
 
 ## Deployment validation
 
@@ -999,7 +1076,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute and AD forest alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
+| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute and AD forest/domain alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 

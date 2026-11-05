@@ -274,7 +274,7 @@ This default follows the null/absent-property convention in the
 ## ISC profiles
 
 * `isc-identity-v2`: existing named, composite, parent-qualified and singleton
-  identity strategies plus SOURCE schema/attribute, AD forest, and provisioning
+  identity strategies plus SOURCE schema/attribute, AD forest/domain, and provisioning
   alignment, and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
@@ -329,7 +329,7 @@ same-selector `replaces`. Replacements supply their own display annotations.
 The SOURCE provider is `internal/iscprofile/source_schema.go`; the neutral engine
 and renderers use existing generic collection and context capabilities.
 
-## SOURCE Active Directory forest rules
+## SOURCE Active Directory forest and domain rules
 
 All ISC profiles supply `isc.SOURCE.ad-forests` at
 `/connectorAttributes/forestSettings`, keyed by the nonblank string `/forestName`.
@@ -337,8 +337,19 @@ Names must be unique within a source for comparison. This is an explicit differ
 requirement, not a documented guarantee of ISC validation. Entries are unordered;
 other settings remain comparable. The rule displays Forest / Name context using
 each input's original forest name and pointer. Missing counterparts receive no
-inferred forest labels. No rules are added for domain settings, server lists,
-credentials, or other connector configuration paths.
+inferred forest labels.
+
+`isc.SOURCE.ad-domains` matches `/connectorAttributes/domainSettings` by the
+complete `[/forestName, /domainDN]` tuple, with nonblank string components.
+Uniqueness is required for the tuple within each source, not either component
+alone. This is a differ requirement rather than a documented ISC validation
+guarantee. Domain entries are unordered; context shows Domain / Forest name /
+Domain DN at each input's original location, including expectation derivations.
+Invalid components and duplicate tuples produce conflicts. Each component can
+use the existing generic `key_mappings`; both resolved components must match.
+No DN normalization is implied. Server lists remain ordered, and credentials,
+connection settings, unknown fields, and other values remain comparable.
+Domain-to-forest referential integrity is not validated.
 
 The SOURCE Active Directory provider is `internal/iscprofile/source_ad.go`. It
 supplies no tenant-specific mappings or equivalences. To add mappings, explicitly
@@ -347,7 +358,14 @@ replace the collection with the same selector, retaining `item_label` and
 object key, replacements retain that scope; each source/parent array remains
 independent. Value equivalences can be source-key scoped. See the complete
 [drift example](../examples/policy-drift.json) and
-[README walkthrough](../README.md#forest-names-that-differ-between-environments).
+[forest walkthrough](../README.md#forest-names-that-differ-between-environments)
+and [domain walkthrough](../README.md#domain-settings-between-environments).
+Domain mappings must be authored independently of forest-settings mappings;
+there is no implicit reuse of group definitions between collections. Separate
+drift equivalences at `/connectorAttributes/domainSettings/*/forestName` and
+`/connectorAttributes/domainSettings/*/domainDN` accept mapped value differences.
+Deployment alignment does not grant authority or rewrite expected source values;
+independent destination expectations remain required.
 
 ## SOURCE provisioning policy rules
 

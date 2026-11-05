@@ -38,6 +38,42 @@
         "kind": "invented-policy",
         "record_id": "environment-forests"
       }
+    },
+    {
+      "id": "directory-domain-forestName",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/forestName",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "dev.example.invalid",
+          "prod": "prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "directory-environment-domains"
+      }
+    },
+    {
+      "id": "directory-domain-domainDN",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/domainSettings/*/domainDN",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "DC=dev,DC=example,DC=invalid",
+          "prod": "DC=prod,DC=example,DC=invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "directory-environment-domains"
+      }
     }
   ],
   "collections": [
@@ -75,6 +111,59 @@
       "evidence": {
         "kind": "invented-policy",
         "record_id": "environment-forests"
+      }
+    },
+    {
+      "id": "directory-domains",
+      "replaces": "isc.SOURCE.ad-domains",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/domainSettings",
+      "mode": "keyed",
+      "keys": [
+        "/forestName",
+        "/domainDN"
+      ],
+      "component_type": "string",
+      "item_label": "Domain",
+      "display_fields": [
+        {
+          "label": "Forest name",
+          "path": "/forestName"
+        },
+        {
+          "label": "Domain DN",
+          "path": "/domainDN"
+        }
+      ],
+      "key_mappings": [
+        {
+          "path": "/forestName",
+          "groups": [
+            {
+              "key": "corporate-forest",
+              "values": {
+                "dev": "dev.example.invalid",
+                "prod": "prod.example.invalid"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/domainDN",
+          "groups": [
+            {
+              "key": "corporate-domain",
+              "values": {
+                "dev": "DC=dev,DC=example,DC=invalid",
+                "prod": "DC=prod,DC=example,DC=invalid"
+              }
+            }
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "directory-environment-domains"
       }
     }
   ]
