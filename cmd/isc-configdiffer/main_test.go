@@ -42,7 +42,7 @@ func TestCLIModesAndReports(t *testing.T) {
 	left, right := tree(t, "same"), tree(t, "same")
 	args := []string{"--mode", "drift", "--left", left, "--right", right, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--format", "json"}
 	var out, errOut bytes.Buffer
-	if code := run(args, &out, &errOut); code != 0 {
+	if code := runWithReports(t, args, &out, &errOut); code != 0 {
 		t.Fatal(code, errOut.String())
 	}
 	var r v2.Report
@@ -51,13 +51,13 @@ func TestCLIModesAndReports(t *testing.T) {
 	}
 	first := out.String()
 	out.Reset()
-	if code := run(args, &out, &errOut); code != 0 || out.String() != first {
+	if code := runWithReports(t, args, &out, &errOut); code != 0 || out.String() != first {
 		t.Fatal("nondeterministic report", code)
 	}
 	right = tree(t, "changed")
 	args[5] = right
 	out.Reset()
-	if code := run(args, &out, &errOut); code != 1 {
+	if code := runWithReports(t, args, &out, &errOut); code != 1 {
 		t.Fatal(code, errOut.String())
 	}
 	if strings.Contains(out.String(), "changed") {
@@ -68,18 +68,18 @@ func TestCLIModesAndReports(t *testing.T) {
 	ops := writeJSON(t, []v2.Operation{{Type: "ROLE", Key: "Invented", Action: "update"}})
 	deployment := []string{"--mode", "deployment", "--source", left, "--actual", left, "--source-mode", "tree", "--actual-mode", "tree", "--source-types", "ROLE", "--actual-types", "ROLE", "--operations", ops, "--policy", policy, "--format", "json"}
 	out.Reset()
-	if code := run(deployment, &out, &errOut); code != 0 {
+	if code := runWithReports(t, deployment, &out, &errOut); code != 0 {
 		t.Fatal(code, errOut.String(), out.String())
 	}
 	deployment[5] = right
 	out.Reset()
-	if code := run(deployment, &out, &errOut); code != 1 {
+	if code := runWithReports(t, deployment, &out, &errOut); code != 1 {
 		t.Fatal(code, errOut.String(), out.String())
 	}
 	// Without explicit field expectations even equal drafts remain unverified.
 	deployment = deployment[:len(deployment)-4]
 	out.Reset()
-	if code := run(deployment, &out, &errOut); code != 2 || !strings.Contains(out.String(), "unverified") {
+	if code := runWithReports(t, deployment, &out, &errOut); code != 2 || !strings.Contains(out.String(), "unverified") {
 		t.Fatal(code, errOut.String(), out.String())
 	}
 }
@@ -89,11 +89,11 @@ func TestCLIRejectsAmbiguousRolesAndScope(t *testing.T) {
 	var out, errOut bytes.Buffer
 	for _, extra := range [][]string{{"--actual-env", "prod"}, {"--baseline-env", "prod"}, {"--operations", "missing.json"}, {"--hub-source-tenant", "unbound"}, {"--mode", "unknown"}, {"--scope", "SOURCE"}, {"--hub-deployment-authority", "approval"}} {
 		args := append(append([]string{}, base...), extra...)
-		if code := run(args, &out, &errOut); code != 2 {
+		if code := runWithReports(t, args, &out, &errOut); code != 2 {
 			t.Fatal(extra, code)
 		}
 	}
-	if code := run([]string{"--mode", "deployment", "--source", root, "--actual", root}, &out, &errOut); code != 2 {
+	if code := runWithReports(t, []string{"--mode", "deployment", "--source", root, "--actual", root}, &out, &errOut); code != 2 {
 		t.Fatal(code)
 	}
 }
@@ -102,7 +102,7 @@ func TestLabelIsOnlyMetadata(t *testing.T) {
 	root := tree(t, "v")
 	var out, errOut bytes.Buffer
 	args := []string{"--left", root, "--right", root, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--left-label", "--mode", "--format", "json"}
-	if code := run(args, &out, &errOut); code != 0 {
+	if code := runWithReports(t, args, &out, &errOut); code != 0 {
 		t.Fatal(code, errOut.String())
 	}
 	if !strings.Contains(out.String(), `"version": 2`) {
@@ -114,7 +114,7 @@ func TestDefaultDriftAndPolicySchema(t *testing.T) {
 	root := tree(t, "value")
 	base := []string{"--left", root, "--right", root, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--format", "json"}
 	var out, errOut bytes.Buffer
-	if code := run(base, &out, &errOut); code != 0 {
+	if code := runWithReports(t, base, &out, &errOut); code != 0 {
 		t.Fatal(code, errOut.String())
 	}
 	var report v2.Report
@@ -124,10 +124,10 @@ func TestDefaultDriftAndPolicySchema(t *testing.T) {
 	unsupported := writeJSON(t, map[string]any{"version": 3, "id": "unsupported", "profile": "isc-portable-v2"})
 	out.Reset()
 	errOut.Reset()
-	if code := run(append(append([]string{}, base...), "--policy", unsupported), &out, &errOut); code != 2 || out.Len() != 0 {
+	if code := runWithReports(t, append(append([]string{}, base...), "--policy", unsupported), &out, &errOut); code != 2 || out.Len() != 0 {
 		t.Fatal("unsupported schema was executed", code, out.String(), errOut.String())
 	}
-	if code := run(append(append([]string{}, base...), "--unknown"), &out, &errOut); code != 2 {
+	if code := runWithReports(t, append(append([]string{}, base...), "--unknown"), &out, &errOut); code != 2 {
 		t.Fatal("unknown option accepted")
 	}
 }
@@ -150,7 +150,7 @@ func TestReviewHubUsesPolicyEnvironmentBindings(t *testing.T) {
 	hub := writeJSON(t, []any{map[string]any{"objectMappingId": "invented-map", "objectType": "ROLE", "jsonPath": "$.secret", "sourceValue": "same", "targetValue": "same", "enabled": true}})
 	args := []string{"--mode", "drift", "--left", left, "--right", right, "--left-mode", "snapshot", "--right-mode", "snapshot", "--policy", policy, "--hub", hub, "--hub-source-tenant", "invented-source", "--hub-target-tenant", "invented-target", "--format", "json"}
 	var out, errOut bytes.Buffer
-	if code := run(args, &out, &errOut); code != 0 {
+	if code := runWithReports(t, args, &out, &errOut); code != 0 {
 		t.Fatal(code, errOut.String(), out.String())
 	}
 	var r v2.Report
@@ -160,7 +160,7 @@ func TestReviewHubUsesPolicyEnvironmentBindings(t *testing.T) {
 	args = append(args, "--left-env", "conflict")
 	out.Reset()
 	errOut.Reset()
-	if code := run(args, &out, &errOut); code != 2 || !strings.Contains(errOut.String(), "conflicting environment binding") {
+	if code := runWithReports(t, args, &out, &errOut); code != 2 || !strings.Contains(errOut.String(), "conflicting environment binding") {
 		t.Fatal(code, errOut.String())
 	}
 }
@@ -178,7 +178,7 @@ func TestCLIObjectNameFilter(t *testing.T) {
 		{[]string{"--scope", "ROLE", "--name", ""}, 2},
 	} {
 		var out, errOut bytes.Buffer
-		if code := run(append(append([]string{}, base...), tc.extra...), &out, &errOut); code != tc.code {
+		if code := runWithReports(t, append(append([]string{}, base...), tc.extra...), &out, &errOut); code != tc.code {
 			t.Fatal(tc, code, errOut.String(), out.String())
 		}
 		if tc.code == 0 {
@@ -188,4 +188,10 @@ func TestCLIObjectNameFilter(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Keep CLI tests independent of the checkout and one another's reports.
+func runWithReports(t *testing.T, args []string, out, errOut *bytes.Buffer) int {
+	t.Helper()
+	return run(append(append([]string{}, args...), "--output-dir", t.TempDir()), out, errOut)
 }

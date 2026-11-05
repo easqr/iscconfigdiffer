@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	differ "github.com/elianderson/iscutilities/configdiffer"
@@ -30,6 +32,8 @@ func run(args []string, out, errOut io.Writer) int {
 	policyPath := f.String("policy", "", "comparison policy JSON file")
 
 	format := f.String("format", "text", "text or json")
+	outputDir := f.String("output-dir", "reports", "report output directory (relative to working directory)")
+	outputFile := f.String("output-file", "", "report filename override (default: policy ID plus .txt or .json)")
 	scope := f.String("scope", "", "explicit common type scope")
 	name := f.String("name", "", "exact logical object name/key within one explicit scope type")
 	matching := f.Bool("matching", false, "include ordinary equal leaves")
@@ -46,11 +50,21 @@ func run(args []string, out, errOut io.Writer) int {
 	fail := func(e error) int { fmt.Fprintln(errOut, e); return 2 }
 	bad := func(s string) int { return fail(fmt.Errorf("%s", s)) }
 	emptyName := false
+	emptyOutput := false
 	f.Visit(func(fl *flag.Flag) {
+		if (fl.Name == "output-dir" && *outputDir == "") || (fl.Name == "output-file" && *outputFile == "") {
+			emptyOutput = true
+		}
 		if fl.Name == "name" && *name == "" {
 			emptyName = true
 		}
 	})
+	if emptyOutput {
+		return bad("output directory and filename must not be empty")
+	}
+	if *outputFile != "" && (*outputFile == "." || *outputFile == ".." || filepath.Base(*outputFile) != *outputFile || strings.ContainsAny(*outputFile, "/\\")) {
+		return bad("output-file must be a filename without directory components")
+	}
 	if emptyName {
 		return bad("name must not be empty")
 	}
@@ -177,17 +191,52 @@ func run(args []string, out, errOut io.Writer) int {
 		return fail(e)
 	}
 	report.Diagnostics = append(report.Diagnostics, adapterDiagnostics...)
+	var rendered bytes.Buffer
 	if *format == "json" {
-		enc := json.NewEncoder(out)
+		enc := json.NewEncoder(&rendered)
 		enc.SetIndent("", "  ")
 		e = enc.Encode(report)
 	} else {
-		e = report.Text(out)
+		e = report.Text(&rendered)
 	}
 	if e != nil {
 		return bad("cannot write report")
 	}
+	filename := *outputFile
+	if filename == "" {
+		ext := ".txt"
+		if *format == "json" {
+			ext = ".json"
+		}
+		filename = p.ID + ext
+	}
+	if e = saveReport(*outputDir, filename, rendered.Bytes()); e != nil {
+		return fail(fmt.Errorf("cannot save report: %w", e))
+	}
+	if _, e = io.Copy(out, &rendered); e != nil {
+		return bad("cannot write report to standard output")
+	}
 	return report.ExitCode()
+}
+
+// saveReport replaces the destination only after the complete report is written.
+func saveReport(dir, filename string, data []byte) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(dir, ".isc-configdiffer-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	if _, err = f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), filepath.Join(dir, filename))
 }
 
 func effectiveEnvironment(input, bound string) (string, error) {

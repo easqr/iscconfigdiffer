@@ -18,6 +18,18 @@ The CLI defaults to drift mode; select `--mode deployment` for draft validation.
 Policies use payload-relative selectors. `DecodePolicy`, `Compile`, and `Compare`
 are the public ISC entry points; the `v2` package provides the neutral core.
 
+## CLI report files
+
+The CLI saves every produced report under `--output-dir` (default `reports` in
+the working directory) as `<policy-id>.txt` or `<policy-id>.json`, according to
+`--format`. The built-in policy ID is `default`. `--output-file` overrides the
+exact filename, without directory components; it does not alter the format.
+Directories are created as needed. Existing reports are replaced after the new
+report has been fully written. Reports also remain available on standard output.
+Output failures return exit `2`. Incomplete comparison reports are saved too;
+invalid requests that never produce a report do not create one. The library's
+report API does not write files automatically.
+
 ## Object selection
 
 `differ.Request.ObjectKey` and `v2.Request.ObjectKey` optionally select one exact,

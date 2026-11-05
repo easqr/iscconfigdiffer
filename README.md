@@ -82,11 +82,11 @@ mode validates that exported inventory before comparing it.
   --right /data/prod --right-mode snapshot --right-env prod \
   --scope SOURCE \
   --policy examples/policy.json \
-  --format json > drift-report.json
+  --format json
 ```
 
 Replace `/data/dev` and `/data/prod` with your export directories. This command
-compares all `SOURCE` objects and writes a report to `drift-report.json`.
+compares all `SOURCE` objects and saves `reports/portable-comparison.json`.
 `examples/policy.json` supplies ISC matching and standard metadata exclusions;
 it contains no environment-specific value mappings, so different hostnames and
 other environment values will appear as differences. Omit `--scope SOURCE` to
@@ -150,9 +150,36 @@ machine-readable report.
 
 ## Reports and exit codes
 
-Text and JSON reports go to standard output; input/policy/request errors go to
-standard error. Use `--format json > report.json` for automation. A comparison can
-produce an incomplete diagnostic report on stdout and still exit `2`.
+Reports are saved in `./reports`, relative to the directory where you run the
+command. The directory is created automatically. The default filename is the
+policy's `id` plus `.txt` for text or `.json` for JSON. For example, a policy with
+`"id": "source-drift"` produces `reports/source-drift.json` with `--format json`.
+Without `--policy`, the built-in policy uses `default.txt` or `default.json`.
+
+Use `--output-dir /data/comparison-reports` to choose another directory and
+`--output-file ad-only.json` to override the exact filename:
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left /data/dev --left-mode snapshot --left-env dev \
+  --right /data/prod --right-mode snapshot --right-env prod \
+  --scope SOURCE --name "Active Directory" \
+  --policy examples/policy-drift.json --format json \
+  --output-dir ./reports --output-file ad-only.json
+```
+
+`--output-file` accepts a filename, including its desired extension, without
+directory components. It does not select the output format; `--format` does.
+Existing reports with the same filename are replaced only after the new report
+has been completely written. Filtered and full comparisons use the same default
+policy filename, so give them different overrides if you want to retain both.
+The default `reports/` directory is excluded from Git tracking.
+
+Reports also continue to go to standard output for piping or redirection;
+input/policy/request and output errors go to standard error. A completed
+comparison saves its diagnostic report even when it is incomplete and exits `2`.
+Requests rejected before comparison do not create a new report. An output failure
+returns `2`; an older report may remain in place, so always check the exit code.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -387,7 +414,7 @@ Using the executable built earlier, compare your actual export roots:
   --right /data/prod --right-mode snapshot --right-env prod \
   --scope SOURCE \
   --policy /policies/dev-to-prod.json \
-  --format json > drift-report.json
+  --format json
 ```
 
 `--left` and `--right` locate the exported data. `--left-env dev` assigns the label
@@ -470,7 +497,7 @@ categories; you can leave them out until needed.
   --scope SOURCE \
   --operations examples/operations.json \
   --policy examples/policy-deployment.json \
-  --format json > deployment-report.json
+  --format json
 ```
 
 The source is the starting configuration; actual is the projected deployment
@@ -547,7 +574,7 @@ Use the operation file together with the expectation policy:
   --scope SOURCE \
   --operations examples/operations.json \
   --policy examples/policy-deployment.json \
-  --format json > deployment-report.json
+  --format json
 ```
 
 `--actual` is the projected configuration being checked; `--baseline` is the
@@ -720,6 +747,8 @@ are resolved relative to the current working directory unless absolute.
 | `--scope TYPES` | Full declared type set; primary sets must match | Explicit comma-separated type subset available in all inputs |
 | `--name KEY` | All objects | Exact logical name/key within one explicit `--scope` type |
 | `--format` | `text` | `text` or `json` |
+| `--output-dir DIRECTORY` | `reports` | Report directory relative to the working directory; created if needed |
+| `--output-file NAME` | Policy ID plus `.txt` or `.json` | Exact filename within the output directory; existing reports are replaced |
 | `--matching` | `false` | Include ordinary equal leaves in reports; does not affect result counts or exit status |
 | `--operations FILE` | None | Required deployment operation list; invalid in drift mode |
 
