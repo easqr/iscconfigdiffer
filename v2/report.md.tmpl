@@ -85,6 +85,9 @@ Collection item keys (outer to inner):
 
 {{range .ItemKeys}}- {{cell .}}
 {{end}}{{end}}
+{{if .Normalization}}
+Normalization: {{cell .Normalization}}
+{{end}}
 {{if .ExpectedRole}}
 Expected ({{cell .ExpectedRole}}): {{cell .ExpectedValue}}
 {{end}}

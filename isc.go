@@ -91,7 +91,7 @@ func ISCProfile(p v2.Policy) (v2.Profile, error) {
 	if p.Profile != "isc-identity-v2" && p.Profile != "isc-envelope-v2" && p.Profile != "isc-portable-v2" {
 		return v2.Profile{}, errors.New("unknown ISC v2 profile")
 	}
-	profile := v2.Profile{ID: p.Profile}
+	profile := v2.Profile{ID: p.Profile, Rules: v2.Policy{NullHandling: "null_equals_absent"}}
 	rule := func(id string) v2.Rule {
 		return v2.Rule{ID: id, Evidence: &v2.Evidence{Kind: "isc-profile", RecordID: p.Profile}}
 	}

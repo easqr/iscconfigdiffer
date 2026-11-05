@@ -97,6 +97,8 @@ type Reference struct {
 	External   map[string]string `json:"external,omitempty"`
 }
 type Policy struct {
+	// NullHandling controls content-property comparison; neutral default is strict.
+	NullHandling string            `json:"null_handling,omitempty"`
 	Version      int               `json:"version"`
 	ID           string            `json:"id"`
 	Modes        []string          `json:"modes,omitempty"`
@@ -174,20 +176,21 @@ type Location struct {
 	Value     *State `json:"value,omitempty"`
 }
 type Decision struct {
-	Expected     *State              `json:"expected,omitempty"`
-	ExpectedRole string              `json:"expected_role,omitempty"`
-	Type         string              `json:"type"`
-	Key          string              `json:"key"`
-	Status       string              `json:"status"`
-	Code         string              `json:"code,omitempty"`
-	Space        string              `json:"space,omitempty"`
-	RuleID       string              `json:"rule_id,omitempty"`
-	Replaces     string              `json:"replaces,omitempty"`
-	Authority    string              `json:"authority,omitempty"`
-	Evidence     *Evidence           `json:"evidence,omitempty"`
-	ItemKeys     []string            `json:"item_keys,omitempty"`
-	Locations    map[string]Location `json:"locations,omitempty"`
-	Derivation   *Derivation         `json:"derivation,omitempty"`
+	Normalization string              `json:"normalization,omitempty"`
+	Expected      *State              `json:"expected,omitempty"`
+	ExpectedRole  string              `json:"expected_role,omitempty"`
+	Type          string              `json:"type"`
+	Key           string              `json:"key"`
+	Status        string              `json:"status"`
+	Code          string              `json:"code,omitempty"`
+	Space         string              `json:"space,omitempty"`
+	RuleID        string              `json:"rule_id,omitempty"`
+	Replaces      string              `json:"replaces,omitempty"`
+	Authority     string              `json:"authority,omitempty"`
+	Evidence      *Evidence           `json:"evidence,omitempty"`
+	ItemKeys      []string            `json:"item_keys,omitempty"`
+	Locations     map[string]Location `json:"locations,omitempty"`
+	Derivation    *Derivation         `json:"derivation,omitempty"`
 }
 type Derivation struct {
 	Role     string   `json:"role"`
@@ -208,6 +211,7 @@ type Match struct {
 	Locations map[string]Location `json:"locations"`
 }
 type Report struct {
+	NullHandling   string              `json:"null_handling"`
 	ValuesExcluded bool                `json:"values_excluded"`
 	Version        int                 `json:"version"`
 	Mode           string              `json:"mode"`

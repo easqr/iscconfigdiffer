@@ -63,7 +63,8 @@ Sensitive selectors redact the filter key along with other object identities.
 
 ## Schema
 
-The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`, and rule arrays.
+The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`,
+`null_handling`, and rule arrays.
 Root `modes` restricts permitted comparison modes; an omitted restriction permits both execution modes.
 JSON is strict: exact property spelling, no unknown properties or duplicate keys,
 valid UTF-8, no trailing JSON, and exact numbers. Policy/rule IDs use 1–200 ASCII
@@ -132,7 +133,8 @@ draft field still contains the old baseline ID.
 
 State is `{"state":"absent"}` or
 `{"state":"present","value":null}` (or another typed JSON value). Missing,
-null, empty string, empty object and empty array are different. Numbers compare
+null, empty string, empty object and empty array are different under strict
+comparison. Numbers compare
 by exact mathematical value; strings/numbers/booleans never coerce.
 
 `authority` must be nonempty and `evidence.kind` present before an expectation can
@@ -182,8 +184,37 @@ existence difference of its parent container or array item.
 Deployment equivalence is inactive. A declared keyed collection allows order
 normalization but does not verify its member values; those still need
 expectations. Multisets alone cannot establish deployment expectations; a whole
-array assertion can instead validate a required value. Normalization cannot own
-the same active field as an expectation or hide a failed substitution.
+array assertion can instead validate a required value. Exclusion rules cannot own
+the same active field as an expectation or hide a failed substitution. The
+`null_handling` comparison setting applies within expectations without claiming
+field ownership or granting authority.
+
+## Null and absent payload properties
+
+`null_handling` accepts `strict` or `null_equals_absent`. Neutral policies default
+to `strict`. All ISC profiles supply `null_equals_absent`; an explicit policy
+setting overrides the profile default. The effective setting is part of the
+compiled policy digest and appears as `Report.null_handling`. The profile's
+default is covered by its digest too.
+
+With equivalence enabled, a null-valued content property and an absent content
+property compare as equivalent. It applies recursively to object properties in
+whole-value expectations, source guards and multiset members, as well as ordinary
+field comparisons. Drift decisions using it are `equivalent`; expectation checks
+remain `verified` when satisfied. Applied normalization is recorded in the
+decision's `normalization` field. Original locations, presence, values and expected
+states remain unchanged in reports.
+
+Envelope metadata remains strict. Empty strings, false, zero, empty containers,
+array lengths/membership, and required nonnull identity/collection keys are not
+normalized to absence. Null array elements remain elements. A null object is not
+an empty object. Optional drift reference fields with null/absent values have no
+reference to resolve; nonempty references still require correspondence. Deployment
+still needs explicit expectations/authority, and unavailable derivations remain
+unverified. Exclusions retain their existing precedence.
+
+This default follows the null/absent-property convention in the
+[SailPoint API guidelines](https://sailpoint-oss.github.io/sailpoint-api-guidelines/).
 
 ## ISC profiles
 

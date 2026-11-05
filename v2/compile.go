@@ -95,7 +95,18 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	}
 	base = detachedProfile
 	if base.Version != 0 || base.ID != "" || base.Profile != "" || len(base.Modes) > 0 || len(base.Bindings) > 0 {
-		return nil, errors.New("profile rules may supply rule arrays and evidence only")
+		return nil, errors.New("profile rules may supply comparison defaults, rule arrays and evidence only")
+	}
+	for _, setting := range []string{p.NullHandling, base.NullHandling} {
+		if !contains([]string{"", "strict", "null_equals_absent"}, setting) {
+			return nil, errors.New("invalid null_handling setting")
+		}
+	}
+	if p.NullHandling == "" {
+		p.NullHandling = base.NullHandling
+	}
+	if p.NullHandling == "" {
+		p.NullHandling = "strict"
 	}
 	p.Evidence = append(p.Evidence, base.Evidence...)
 	// Empty selector space is the content alias, including replacement ownership.

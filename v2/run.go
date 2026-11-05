@@ -17,22 +17,24 @@ type slot struct {
 	unavailable bool
 }
 type frame struct {
+	property    bool
 	nodes       [3]slot
 	path, space string
 	itemKeys    []string
 }
 type execution struct {
-	c            *Compiled
-	request      Request
-	report       Report
-	inputs       [3]*Input
-	inventory    *inventory
-	current      *group
-	roles        [3]string
-	derivation   *Derivation
-	expected     *State
-	expectedRole string
-	operations   map[string]Operation
+	c             *Compiled
+	request       Request
+	report        Report
+	inputs        [3]*Input
+	inventory     *inventory
+	current       *group
+	roles         [3]string
+	derivation    *Derivation
+	expected      *State
+	expectedRole  string
+	normalization string
+	operations    map[string]Operation
 }
 
 func role(side int, _ bool, deployment bool) string {
@@ -43,7 +45,7 @@ func role(side int, _ bool, deployment bool) string {
 }
 func Run(request Request, c *Compiled) (Report, error) {
 	x := execution{c: c, request: request, roles: [3]string{"left", "right", "baseline"}}
-	x.report = Report{ValuesExcluded: request.ExcludeValues, Version: 2, Mode: request.Mode, Complete: false, Correct: false, Inputs: map[string]Input{}, Excluded: map[string][]string{}, Counts: map[string]int{}, RuleUsage: map[string]int{}, Replacements: map[string]string{}, Matches: []Match{}, Decisions: []Decision{}, Diagnostics: []Diagnostic{}}
+	x.report = Report{NullHandling: cNullHandling(c), ValuesExcluded: request.ExcludeValues, Version: 2, Mode: request.Mode, Complete: false, Correct: false, Inputs: map[string]Input{}, Excluded: map[string][]string{}, Counts: map[string]int{}, RuleUsage: map[string]int{}, Replacements: map[string]string{}, Matches: []Match{}, Decisions: []Decision{}, Diagnostics: []Diagnostic{}}
 	x.report.ObjectCoverage = map[string]int{}
 	if c == nil || c.policy.Version != 2 || c.digest == "" {
 		return x.report, errors.New("compiled policy required")
@@ -362,6 +364,10 @@ func (x *execution) diagnose(d Diagnostic) {
 }
 func (x *execution) record(f frame, status, code string, r Rule, authority string) {
 	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
+	d.Normalization = x.normalization
+	if code == "null and absent properties equivalent" {
+		d.Normalization = "null_equals_absent"
+	}
 	d.Derivation = x.derivation
 	d.Expected = x.expected
 	d.ExpectedRole = x.expectedRole
@@ -415,7 +421,7 @@ func (x *execution) walk(f frame) {
 			if r.SourceEquals != nil {
 				wantPresent := r.SourceEquals.State == "present"
 				want, _ := JSON(r.SourceEquals.Value)
-				if f.nodes[0].present != wantPresent || wantPresent && !equal(f.nodes[0].value, want) {
+				if !x.statesEqual(f, f.nodes[0], slot{value: want, present: wantPresent}) {
 					continue
 				}
 			}
@@ -541,6 +547,7 @@ func (x *execution) walk(f frame) {
 		for _, k := range keys(children) {
 			nf := f
 			nf.path = f.path + "/" + esc(k)
+			nf.property = true
 			for i, n := range f.nodes {
 				v, ok := n.value.(map[string]any)
 				value, present := v[k]
@@ -605,14 +612,18 @@ func (x *execution) leaf(f frame, code string) {
 			code = "value mismatch"
 		}
 	}
-	if a.present == b.present && equal(a.value, b.value) {
-		x.record(f, "equal", code, Rule{}, "")
+	if x.statesEqual(f, a, b) {
+		if a.present != b.present || !equal(a.value, b.value) {
+			x.record(f, "equivalent", "null and absent properties equivalent", Rule{}, "")
+		} else {
+			x.record(f, "equal", code, Rule{}, "")
+		}
 	} else {
 		x.record(f, "different", code, Rule{}, "")
 	}
 }
 func (x *execution) expect(f frame, r Expectation) {
-	defer func() { x.derivation = nil; x.expected = nil; x.expectedRole = "" }()
+	defer func() { x.derivation = nil; x.expected = nil; x.expectedRole = ""; x.normalization = "" }()
 	if r.Authority == "" || r.Evidence == nil || r.Evidence.Kind == "" {
 		x.record(f, "unverified", "expectation authority/evidence unavailable", r.Rule, r.Authority)
 		return
@@ -627,6 +638,7 @@ func (x *execution) expect(f frame, r Expectation) {
 	}
 	for _, side := range sides {
 		x.expected = nil
+		x.normalization = ""
 		x.expectedRole = x.roles[side]
 		x.derivation = nil
 		var want any
@@ -695,7 +707,10 @@ func (x *execution) expect(f frame, r Expectation) {
 		}
 		x.expected = x.reportValue(want, present)
 		actual := f.nodes[side]
-		if present == actual.present && (!present || equal(want, actual.value)) {
+		if x.statesEqual(f, slot{value: want, present: present}, actual) {
+			if present != actual.present || present && !equal(want, actual.value) {
+				x.normalization = "null_equals_absent"
+			}
 			x.record(f, "verified", "expectation satisfied: "+x.roles[side], r.Rule, r.Authority)
 		} else {
 			x.record(f, "violation", "expectation failed: "+x.roles[side], r.Rule, r.Authority)
@@ -704,6 +719,14 @@ func (x *execution) expect(f frame, r Expectation) {
 }
 func (x *execution) reference(f frame, r Reference) {
 	a, b := f.nodes[0], f.nodes[1]
+	if x.nullProperties(f) && !a.unavailable && !b.unavailable && (!a.present || a.value == nil) && (!b.present || b.value == nil) {
+		if a.present != b.present {
+			x.record(f, "equivalent", "null and absent properties equivalent", r.Rule, "")
+		} else {
+			x.record(f, "equal", "optional reference absent", r.Rule, "")
+		}
+		return
+	}
 	as, ao := a.value.(string)
 	bs, bo := b.value.(string)
 	if !a.present || !b.present || !ao || !bo {
@@ -762,18 +785,28 @@ func (x *execution) arrays(f frame, r Collection) {
 			return
 		}
 		counts := map[string]int{}
+		strictCounts := map[string]int{}
 		for _, v := range a[0] {
-			counts[valueKey(v)]++
+			counts[valueKey(x.comparisonValue(f.space, v))]++
+			strictCounts[valueKey(v)]++
 		}
 		for _, v := range a[1] {
-			counts[valueKey(v)]--
+			counts[valueKey(x.comparisonValue(f.space, v))]--
+			strictCounts[valueKey(v)]--
 		}
 		same := f.nodes[0].present == f.nodes[1].present
 		for _, n := range counts {
 			same = same && n == 0
 		}
 		if same {
+			for _, n := range strictCounts {
+				if n != 0 {
+					x.normalization = "null_equals_absent"
+					break
+				}
+			}
 			x.record(f, "equivalent", "multiset order normalization", r.Rule, "")
+			x.normalization = ""
 		} else {
 			x.record(f, "different", "multiset members or multiplicity", r.Rule, "")
 		}
@@ -810,6 +843,7 @@ func (x *execution) arrays(f frame, r Collection) {
 		for _, k := range keys(all) {
 			nf := f
 			nf.path = f.path + "/*"
+			nf.property = false
 			nf.itemKeys = append(append([]string{}, f.itemKeys...), hash([]byte(k)))
 			for side := range a {
 				i, ok := idx[side][k]
@@ -852,6 +886,7 @@ func (x *execution) arrays(f frame, r Collection) {
 	for _, i := range ordered {
 		nf := f
 		nf.path = f.path + "/" + strconv.Itoa(i)
+		nf.property = false
 		for side := range a {
 			nf.nodes[side] = slot{pointer: f.nodes[side].pointer + "/" + strconv.Itoa(i), unavailable: f.nodes[side].unavailable}
 			if i < len(a[side]) {

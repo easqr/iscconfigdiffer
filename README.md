@@ -849,7 +849,18 @@ Policy files are strict JSON: no comments, trailing commas, duplicate keys,
 unknown properties, or case-insensitive property aliases. Policy/rule IDs contain
 1–200 ASCII letters/digits or `_ . : -`, starting with a letter/digit. Rule IDs
 must be unique across all categories. Values retain JSON types; strings are not
-converted to numbers or booleans, and missing values differ from `null`.
+converted to numbers or booleans. ISC profiles treat a null-valued payload
+property and an absent property as equivalent by default. Reports preserve the
+original null/absent states and identify `null_equals_absent` normalization.
+Empty strings, `false`, zero, empty objects/arrays, null array members, identity
+components, and envelope metadata remain distinct. This setting does not remove
+array members or supply deployment authority.
+
+Set `"null_handling": "strict"` in your policy to compare null and absent payload
+properties strictly. A neutral policy without an ISC profile defaults to strict;
+it can opt in with `"null_handling": "null_equals_absent"`. Whole-value expectations,
+source guards, and multiset object members use the same property semantics.
+Original exports and captured report values are never rewritten.
 
 A minimal comparison policy, suitable as `portable-policy.json`, is:
 
@@ -861,14 +872,15 @@ A minimal comparison policy, suitable as `portable-policy.json`, is:
 }
 ```
 
-With this policy, ordinary fields are compared literally after the declared
-profile's exclusions. It does not add environment-specific hostname equivalence.
+With this policy, ordinary fields use the declared profile's exclusions and
+null/absent-property equivalence. It does not add environment-specific hostname equivalence.
 
 | Root property | Meaning |
 | --- | --- |
 | `version` | Required `2` for the comparison policy schema |
 | `id` | Required stable policy identifier |
 | `profile` | Optional named ISC identity/metadata profile |
+| `null_handling` | Optional `strict` or `null_equals_absent`; defaults to the selected profile, otherwise `strict`. Applies to payload properties only |
 | `modes` | Optional allowed comparison modes, e.g. `["drift"]` |
 | `bindings` | Optional role-to-environment object, e.g. `{"left":"dev","right":"prod"}`; deployment uses `source`, `actual`, `baseline` |
 | Rule arrays | The categories described below; omitted arrays are empty |
@@ -882,7 +894,8 @@ Built-in ISC profiles:
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
-All three include deployment structural expectations for envelope version/type.
+All three default to `null_equals_absent` for payload properties and include
+deployment structural expectations for envelope version/type.
 The portable profile excludes those three generated metadata fields on every
 SOURCE schema array item in both drift and deployment modes, including with keyed
 schema matching. For example, `/schemas/2/modified` is excluded. Other nested IDs

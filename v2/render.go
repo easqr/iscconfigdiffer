@@ -25,6 +25,7 @@ type humanInput struct {
 type humanLocation struct{ Role, State, Kind, Pointer, ID, Artifact, Value string }
 type humanDecision struct {
 	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
+	Normalization                                                 string
 	ExpectedRole, ExpectedValue                                   string
 	ItemKeys                                                      []string
 	Locations                                                     []humanLocation
@@ -92,7 +93,7 @@ func locationView(role string, loc Location) humanLocation {
 	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: valueView(loc.Value)}
 }
 func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
-	out := humanDecision{Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	out := humanDecision{Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
 	if d.ExpectedRole != "" {
 		out.ExpectedRole = d.ExpectedRole
 		out.ExpectedValue = valueView(d.Expected)
@@ -172,7 +173,7 @@ func (r Report) humanView() humanReport {
 		v.ObjectType = r.Scope[0]
 		v.ObjectKey = r.ObjectKey
 	}
-	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
+	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Null handling", r.NullHandling}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
 	for _, k := range keys(r.ObjectCoverage) {
 		v.Coverage = append(v.Coverage, reportField{k, fmt.Sprint(r.ObjectCoverage[k])})
 	}
