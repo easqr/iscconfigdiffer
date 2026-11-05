@@ -301,6 +301,17 @@ Unknown types with custom identities receive the same explicit metadata profile
 expansion. Profile digest covers that expansion; policy digest covers effective
 rules, replacements, profile selection and evidence.
 
+## SOURCE before-provisioning rule references
+
+All ISC profiles supply `isc.SOURCE.before-provisioning-rule-id`, excluding only
+content `/beforeProvisioningRule/id` on SOURCE objects in drift and deployment.
+The reference's `name`, `type`, and other fields retain ordinary comparison and
+expectation requirements. Missing or changed names/types remain findings; the
+exclusion does not establish equivalence or deployment authority for them.
+Exclusion decisions retain the profile rule ID, evidence, and original pointer.
+The rule is declared in `internal/iscprofile/source.go`; the neutral engine is
+unchanged. Other object types and unrelated nested IDs remain comparable.
+
 ## SOURCE schema rules
 
 All ISC profiles declare `isc.SOURCE.schemas` at `/schemas` and

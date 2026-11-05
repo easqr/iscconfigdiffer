@@ -1099,6 +1099,15 @@ parent source. `ACCESS_REQUEST_CONFIG` and `AUTH_ORG` are singletons. Ambiguous
 identities do not pass. See the [identity contract](docs/contracts.md#scope-and-identities)
 for the named-type list.
 
+### SOURCE before-provisioning rule references
+
+All ISC profiles exclude `/beforeProvisioningRule/id` in drift and deployment
+using `isc.SOURCE.before-provisioning-rule-id`. This reference ID is specific to
+the tenant. The rule reference's `name`, `type`, and other fields remain
+comparable; changing or removing a name or type still produces a finding.
+Deployment still requires independent expectations for the comparable fields.
+The exclusion applies only to SOURCE objects and this exact ID path.
+
 ### SOURCE schemas and attributes
 
 All ISC profiles automatically match `/schemas` by `name` within each source and
