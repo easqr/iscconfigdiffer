@@ -160,8 +160,37 @@ Without `--policy`, the built-in policy uses `default.html`, `default.md`, or
 
 HTML reports are self-contained documents that open locally in a browser without
 network access. Use `--format md` for a Markdown document, or `--format json` for
-structured processing. HTML and Markdown present the same result, decision counts,
-decisions, and diagnostics; choosing a format does not change comparison results.
+structured processing. Choosing a format does not change comparison results.
+
+Start with the result and input summary: it identifies the compared environments,
+export dates, policy, scope, and object inventory. Decision counts describe
+comparison decisions, not independent problems. The breakdown separates missing
+objects, container-presence differences, and other field or operation differences;
+a missing container can also contribute descendant decisions.
+
+The object index groups results by type and logical name. Each group's counts
+cover its **displayed decisions**; ordinary equal leaves may be counted in the
+report totals without appearing in the details. Matched objects with no displayed
+findings still appear in the index. Redacted identities are combined explicitly,
+without claiming individual object presence.
+
+HTML offers expandable object sections, search by object/path/rule, status
+filtering, and expand/collapse controls. Filters affect only the displayed details,
+not the comparison totals. Everything works locally; with JavaScript disabled,
+all details remain accessible through the expandable sections. Markdown provides
+the same information in sections and tables.
+
+Each decision shows its reason, content/metadata section, per-input JSON Pointer,
+presence and JSON type. Artifact paths and IDs identify the source files. Keyed
+array item identities explain alignment when input indices differ. Applied rules,
+authority, evidence and expectation derivations explain policy decisions. Pointer
+`(root)` means the entire content payload or metadata envelope; pointers are not
+prefixed with `/object`. No configuration payload values are included.
+
+Diagnostics distinguish required or blocking findings from unused optional rules.
+The latter are listed separately and do not themselves make a comparison fail.
+Policy and input hashes are available as provenance for identifying a particular
+run; the renderer does not reopen input files.
 
 Use `--output-dir /data/comparison-reports` to choose another directory and
 `--output-file ad-only.json` to override the exact filename:

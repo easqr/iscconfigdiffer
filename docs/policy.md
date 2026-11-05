@@ -24,7 +24,14 @@ The CLI saves every produced report under `--output-dir` (default `reports` in
 the working directory) as `<policy-id>.html` by default. Select `--format md` for
 `<policy-id>.md` or `--format json` for `<policy-id>.json`. HTML documents are
 self-contained and require no network access. Markdown and HTML carry the same
-human report content. The library exposes `Report.HTML` and `Report.Markdown`;
+human report content, grouped by object with per-role locations, matching, rule
+evidence, derivation and input/policy provenance. HTML uses local JavaScript for
+search and status filters; static content remains readable without it. Counts
+distinguish missing-object, container-presence and other difference decisions.
+Displayed group counts may omit ordinary equal leaves counted by the engine.
+Redacted logical identities are combined and labelled rather than presented as
+individual objects. Rendering uses only the structured report, preserving
+redaction and never reopening configuration artifacts. The library exposes `Report.HTML` and `Report.Markdown`;
 JSON serialization is unchanged. The built-in policy ID is `default`.
 `--output-file` overrides the
 exact filename, without directory components; it does not alter the format.

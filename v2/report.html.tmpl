@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<style>
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #172b3a; background: #f4f6f8; }
+body { margin: 0; padding: 2rem; } main { max-width: 95rem; margin: auto; background: white; padding: 2rem; border-radius: .5rem; }
+h1 { margin-top: 0; } h2 { margin-top: 2rem; } h3 { margin-top: 1.5rem; }
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; } th, td { padding: .65rem; text-align: left; vertical-align: top; border: 1px solid #cbd5df; overflow-wrap: anywhere; } th { background: #edf2f6; }
+code { white-space: pre-wrap; overflow-wrap: anywhere; } .summary { max-width: 42rem; } .table-wrap { overflow-x: auto; }
+.notice { padding: 1rem; border-left: .25rem solid #176a8a; background: #eef7fa; } .muted { color: #4c6172; } .badge { display: inline-block; background: #edf2f6; padding: .2rem .45rem; border-radius: .25rem; margin: .1rem; }
+details.object-group { border: 1px solid #cbd5df; padding: 1rem; margin: 1rem 0; } summary { cursor: pointer; } .object-group > summary { font-size: 1.1rem; } .object-body { margin-top: 1rem; }
+label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, button { font: inherit; padding: .45rem; } button { cursor: pointer; margin: .3rem; }
+.location { margin: 0 0 1rem; } .location:last-child { margin-bottom: 0; } .pre { white-space: pre-wrap; } [hidden] { display: none !important; }
+@media print { body, main { padding: 0; background: white; } #controls { display: none; } .table-wrap { overflow: visible; } }
+</style>
+</head>
+<body><main>
+<h1>{{.Title}}</h1>
+<p class="notice">{{.Outcome}}</p>
+<table class="summary"><caption>Result</caption><tbody>
+<tr><th scope="row">Complete</th><td>{{.Complete}}</td></tr><tr><th scope="row">Correct</th><td>{{.Correct}}</td></tr><tr><th scope="row">Exit code</th><td>{{.ExitCode}}</td></tr>
+{{if .ObjectKey}}<tr><th scope="row">Object filter</th><td>{{.ObjectType}} &quot;{{.ObjectKey}}&quot;</td></tr>{{end}}
+</tbody></table>
+<p>Configuration values are omitted. Paths are relative to the decision's <strong>content</strong> payload or <strong>metadata</strong> envelope. A <code>(root)</code> path selects that entire section. Array indices in locations are the original positions in each input; collection item keys explain alignment.</p>
+<p>Decision counts are not object counts or independent problems. A missing container and its descendants can each produce decisions. Ordinary equal leaves are counted but omitted from the details unless <code>--matching</code> is enabled. Object counts describe selected scope, not the entire tenant.</p>
+<h2>Decision counts</h2>
+{{if .Counts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Count</th></tr></thead><tbody>{{range .Counts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>{{end}}</tbody></table>{{else}}<p>No decisions counted.</p>{{end}}
+<table class="summary"><caption>Breakdown of different / violation decisions</caption><tbody>
+<tr><th scope="row">Object missing</th><td>{{.MissingObjects}}</td></tr><tr><th scope="row">Container presence differs</th><td>{{.ContainerDifferences}}</td></tr><tr><th scope="row">Other field / operation differences</th><td>{{.FieldDifferences}}</td></tr>
+</tbody></table>
+<h2>Inputs and scope</h2>
+{{range .Inputs}}<details><summary>{{.Role}} input</summary><table><tbody>{{range .Fields}}{{if .Value}}<tr><th scope="row">{{.Name}}</th><td class="pre">{{.Value}}</td></tr>{{end}}{{end}}</tbody></table></details>{{else}}<p>No input metadata available.</p>{{end}}
+<details><summary>Policy and provenance</summary><table><tbody>{{range .Provenance}}{{if .Value}}<tr><th scope="row">{{.Name}}</th><td><code>{{.Value}}</code></td></tr>{{end}}{{end}}</tbody></table></details>
+<details><summary>Object coverage</summary><p><code>*_in_scope</code> counts the full selected type inventory. <code>*_outside_object_filter</code> counts skipped objects. <code>compared_groups</code> counts groups reached for comparison; it is separate from decision counts.</p><table><tbody>{{range .Coverage}}<tr><th scope="row">{{.Name}}</th><td>{{.Value}}</td></tr>{{end}}</tbody></table></details>
+<h2>Objects</h2>
+{{if .Groups}}<div class="table-wrap"><table><thead><tr><th scope="col">Type</th><th scope="col">Object</th><th scope="col">Presence</th><th scope="col">Shown decisions</th></tr></thead><tbody>{{range .Groups}}<tr data-group="{{.ID}}"><td>{{.Type}}</td><td><a href="#{{.ID}}">{{.Key}}</a></td><td>{{.Presence}}</td><td>{{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{else}}No displayed decisions{{end}}</td></tr>{{end}}</tbody></table></div>{{else}}<p>No object groups available.</p>{{end}}
+<h2>Decisions</h2>
+<div id="controls" hidden>
+<label>Search objects, paths or rules <input id="search" type="search" placeholder="Object name, field path, rule…"></label>
+<label>Status <select id="status"><option value="">All statuses</option>{{range .Counts}}<option value="{{.Status}}">{{.Status}}</option>{{end}}</select></label>
+<button type="button" id="expand">Expand visible objects</button><button type="button" id="collapse">Collapse visible objects</button>
+<p id="filter-count" role="status" aria-live="polite"></p><p class="muted">Filters change only the displayed details. Comparison totals above remain unchanged.</p>
+</div>
+<noscript><p>Filtering requires JavaScript. All report content remains available through the expandable sections below.</p></noscript>
+{{range .Groups}}<details class="object-group" id="{{.ID}}" data-search="{{.Type}} {{.Key}}">
+<summary><strong>{{.Type}} — {{.Key}}</strong> {{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{end}}</summary>
+<div class="object-body"><p>{{.Presence}}</p>
+{{if .Matching}}<details><summary>Object matching and artifacts</summary><table><tbody>{{range .Matching}}<tr><th scope="row">{{.Name}}</th><td><code>{{.Value}}</code></td></tr>{{end}}</tbody></table></details>{{end}}
+{{if .Decisions}}<div class="table-wrap"><table><thead><tr><th scope="col">Status / explanation</th><th scope="col">Locations</th><th scope="col">Policy and provenance</th></tr></thead><tbody>
+{{range .Decisions}}<tr class="decision-row" data-status="{{.Status}}"><td><strong>{{.Status}}</strong><p>{{.Explanation}}</p><p>Reason: <code>{{.Code}}</code></p>{{if .Space}}<p>Section: {{.Space}}</p>{{end}}</td>
+<td>{{range .Locations}}<div class="location"><strong>{{.Role}}</strong>: {{.State}}{{if .Kind}} ({{.Kind}}){{end}}<br><code>{{.Pointer}}</code>{{if .Artifact}}<details><summary>Artifact</summary><p><code>{{.Artifact}}</code></p><p>ID: <code>{{.ID}}</code></p></details>{{end}}</div>{{end}}{{if .ItemKeys}}<p>Collection item keys (outer to inner):</p><ul>{{range .ItemKeys}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}</td>
+<td>{{if .RuleID}}Rule: <code>{{.RuleID}}</code>{{else}}No policy rule applied.{{end}}{{if .Authority}}<p>Authority: {{.Authority}}</p>{{end}}{{if .Replaces}}<p>Replaces: {{.Replaces}}</p>{{end}}
+{{if .Evidence}}<details><summary>Evidence</summary><dl>{{range .Evidence}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
+{{if .Derivation}}<details><summary>Expected result derived from</summary><dl>{{range .Derivation}}<dt>{{.Name}}</dt><dd><code>{{.Value}}</code></dd>{{end}}</dl></details>{{end}}</td></tr>{{end}}
+</tbody></table></div>{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
+</div></details>{{else}}<p>No decisions to display.</p>{{end}}
+<h2>Diagnostics</h2>
+{{if .Diagnostics}}<table><thead><tr><th scope="col">Diagnostic</th><th scope="col">Rule</th><th scope="col">Type</th><th scope="col">Side</th><th scope="col">Required</th></tr></thead><tbody>{{range .Diagnostics}}<tr><td>{{.Code}}</td><td>{{.RuleID}}</td><td>{{.Type}}</td><td>{{.Side}}</td><td>{{.Required}}</td></tr>{{end}}</tbody></table>{{else}}<p>No diagnostics to display.</p>{{end}}
+{{if .UnusedOptional}}<details><summary>Unused optional rules: {{.UnusedOptional}}</summary><p>These rules did not apply. They do not by themselves make the comparison incomplete.</p><table><thead><tr><th scope="col">Rule</th><th scope="col">Type</th><th scope="col">Side</th></tr></thead><tbody>{{range .OptionalDiagnostics}}<tr><td>{{.RuleID}}</td><td>{{.Type}}</td><td>{{.Side}}</td></tr>{{end}}</tbody></table></details>{{end}}
+</main>
+<script>
+(function () {
+  const groups = Array.from(document.querySelectorAll('.object-group'));
+  const search = document.getElementById('search');
+  const status = document.getElementById('status');
+  const rows = groups.flatMap(group => Array.from(group.querySelectorAll('.decision-row')));
+  document.getElementById('controls').hidden = false;
+  function filter() {
+    const query = search.value.trim().toLowerCase();
+    let shown = 0, visibleGroups = 0;
+    groups.forEach(group => {
+      let visibleRows = 0;
+      const groupMatch = group.dataset.search.toLowerCase().includes(query);
+      const groupRows = Array.from(group.querySelectorAll('.decision-row'));
+      groupRows.forEach(row => {
+        row.hidden = Boolean((status.value && row.dataset.status !== status.value) || (query && !groupMatch && !row.textContent.toLowerCase().includes(query)));
+        if (!row.hidden) visibleRows++;
+      });
+      group.hidden = groupRows.length ? visibleRows === 0 : Boolean(status.value || !groupMatch);
+      if (!group.hidden) { visibleGroups++; shown += visibleRows; if (query || status.value) group.open = true; }
+      const index = document.querySelector('[data-group="' + group.id + '"]');
+      if (index) index.hidden = group.hidden;
+    });
+    document.getElementById('filter-count').textContent = shown + ' of ' + rows.length + ' displayed decisions; ' + visibleGroups + ' object groups visible.';
+  }
+  search.addEventListener('input', filter);
+  status.addEventListener('change', filter);
+  document.getElementById('expand').addEventListener('click', () => groups.forEach(group => { if (!group.hidden) group.open = true; }));
+  document.getElementById('collapse').addEventListener('click', () => groups.forEach(group => { if (!group.hidden) group.open = false; }));
+  function openAnchor() { const group = document.getElementById(location.hash.slice(1)); if (group && group.classList.contains('object-group')) group.open = true; }
+  window.addEventListener('hashchange', openAnchor);
+  filter(); openAnchor();
+}());
+</script>
+</body></html>

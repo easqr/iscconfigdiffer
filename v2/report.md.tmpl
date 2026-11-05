@@ -1,0 +1,125 @@
+# {{cell .Title}}
+
+{{cell .Outcome}}
+
+| Result | Value |
+| --- | --- |
+| Complete | {{.Complete}} |
+| Correct | {{.Correct}} |
+| Exit code | {{.ExitCode}} |
+{{if .ObjectKey}}| Object filter | {{cell .ObjectType}} &quot;{{cell .ObjectKey}}&quot; |
+{{end}}
+Configuration values are omitted. Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
+
+Decision counts are not object counts or independent problems. A missing container and its descendants can each produce decisions. Ordinary equal leaves are counted but omitted from details unless `--matching` is enabled. Object counts describe selected scope, not the entire tenant.
+
+## Decision counts
+{{if .Counts}}
+| Status | Count |
+| --- | ---: |
+{{range .Counts}}| {{cell .Status}} | {{.Count}} |
+{{end}}{{else}}
+No decisions counted.
+{{end}}
+| Different / violation category | Decisions |
+| --- | ---: |
+| Object missing | {{.MissingObjects}} |
+| Container presence differs | {{.ContainerDifferences}} |
+| Other field / operation differences | {{.FieldDifferences}} |
+
+## Inputs and scope
+{{range .Inputs}}
+### {{cell .Role}} input
+
+| Field | Value |
+| --- | --- |
+{{range .Fields}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{else}}
+No input metadata available.
+{{end}}
+### Policy and provenance
+
+| Field | Value |
+| --- | --- |
+{{range .Provenance}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}
+### Object coverage
+
+`*_in_scope` counts the full selected type inventory. `*_outside_object_filter` counts skipped objects. `compared_groups` counts groups reached for comparison, separately from decision counts.
+
+| Metric | Count |
+| --- | ---: |
+{{range .Coverage}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}
+## Objects
+{{if .Groups}}
+| Type | Object | Presence | Shown decisions |
+| --- | --- | --- | --- |
+{{range .Groups}}| {{cell .Type}} | {{cell .Key}} | {{cell .Presence}} | {{range .Counts}}{{cell .Status}}: {{.Count}}; {{else}}No displayed decisions{{end}} |
+{{end}}{{else}}
+No object groups available.
+{{end}}
+## Decisions
+{{range .Groups}}
+### {{cell .Type}} — {{cell .Key}}
+
+{{cell .Presence}}
+{{if .Matching}}
+Object matching and artifacts:
+
+| Field | Value |
+| --- | --- |
+{{range .Matching}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{range .Decisions}}
+#### {{cell .Status}} — {{cell .Code}}
+
+{{cell .Explanation}}
+
+Section: {{cell .Space}}
+
+| Role | Presence | JSON type | Path | Artifact | ID |
+| --- | --- | --- | --- | --- | --- |
+{{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{cell .Artifact}} | {{cell .ID}} |
+{{end}}{{if .ItemKeys}}
+Collection item keys (outer to inner):
+
+{{range .ItemKeys}}- {{cell .}}
+{{end}}{{end}}
+{{if .RuleID}}Rule: {{cell .RuleID}}{{else}}No policy rule applied.{{end}}
+{{if .Authority}}
+Authority: {{cell .Authority}}
+{{end}}{{if .Replaces}}
+Replaces: {{cell .Replaces}}
+{{end}}{{if .Evidence}}
+Evidence:
+
+| Field | Value |
+| --- | --- |
+{{range .Evidence}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{end}}{{if .Derivation}}
+Expected result derived from:
+
+| Field | Value |
+| --- | --- |
+{{range .Derivation}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{else}}
+No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.
+{{end}}{{else}}
+No decisions to display.
+{{end}}
+## Diagnostics
+{{if .Diagnostics}}
+| Diagnostic | Rule | Type | Side | Required |
+| --- | --- | --- | --- | --- |
+{{range .Diagnostics}}| {{cell .Code}} | {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} | {{.Required}} |
+{{end}}{{else}}
+No diagnostics to display.
+{{end}}{{if .UnusedOptional}}
+### Unused optional rules: {{.UnusedOptional}}
+
+These rules did not apply. They do not by themselves make the comparison incomplete.
+
+| Rule | Type | Side |
+| --- | --- | --- |
+{{range .OptionalDiagnostics}}| {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} |
+{{end}}{{end}}

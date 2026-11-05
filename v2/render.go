@@ -1,139 +1,251 @@
 package v2
 
 import (
+	_ "embed"
 	"fmt"
 	"html"
 	"html/template"
 	"io"
+	"sort"
 	"strings"
+	texttemplate "text/template"
 )
 
 type statusCount struct {
 	Status string
 	Count  int
 }
+type reportField struct{ Name, Value string }
+type humanInput struct {
+	Role   string
+	Fields []reportField
+}
+type humanLocation struct{ Role, State, Kind, Pointer, ID, Artifact string }
+type humanDecision struct {
+	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
+	ItemKeys                                                      []string
+	Locations                                                     []humanLocation
+	Evidence                                                      []reportField
+	Derivation                                                    []reportField
+}
+type humanGroup struct {
+	ID, Type, Key, Presence string
+	Matches                 int
+	Matching                []reportField
+	Counts                  []statusCount
+	Decisions               []humanDecision
+}
 type humanReport struct {
-	Title                 string
-	Complete, Correct     bool
-	ExitCode              int
-	ObjectType, ObjectKey string
-	Counts                []statusCount
-	Decisions             []Decision
-	Diagnostics           []Diagnostic
-	UnusedOptional        int
+	Title, Outcome, ObjectType, ObjectKey                  string
+	Complete, Correct                                      bool
+	ExitCode                                               int
+	Counts                                                 []statusCount
+	Provenance, Coverage                                   []reportField
+	Inputs                                                 []humanInput
+	Groups                                                 []humanGroup
+	Diagnostics, OptionalDiagnostics                       []Diagnostic
+	UnusedOptional                                         int
+	MissingObjects, ContainerDifferences, FieldDifferences int
 }
 
-// humanView preserves the content of the human report without changing decisions.
+func countView(counts map[string]int) []statusCount {
+	var out []statusCount
+	for _, s := range keys(counts) {
+		out = append(out, statusCount{s, counts[s]})
+	}
+	return out
+}
+func locationView(role string, loc Location) humanLocation {
+	state := "absent"
+	if loc.Present {
+		state = "present"
+	}
+	path := loc.Pointer
+	if path == "" {
+		path = "(root)"
+	}
+	return humanLocation{role, state, loc.ValueKind, path, loc.ID, loc.Artifact}
+}
+func decisionView(d Decision, roles []string) humanDecision {
+	out := humanDecision{Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	switch d.Status {
+	case "different":
+		out.Explanation = "Unexpected drift under the selected policy."
+	case "violation":
+		out.Explanation = "A declared deployment operation or expectation is not satisfied."
+	case "equivalent":
+		out.Explanation = "The policy approves this difference or reference relationship."
+	case "excluded":
+		out.Explanation = "Explicitly excluded from comparison by a normalization rule."
+	case "verified":
+		out.Explanation = "The declared expectation or operation is satisfied."
+	case "equal":
+		out.Explanation = "The compared values are equal."
+	case "unverified":
+		out.Explanation = "Available inputs or policy authority cannot verify this result."
+	case "conflict":
+		out.Explanation = "A conflict prevents a conclusive result."
+	}
+	switch d.Code {
+	case "object missing":
+		out.Explanation = "The object is absent from one of the primary inputs."
+	case "container presence differs":
+		out.Explanation = "An object or array exists on only one side. Its descendants may produce additional decisions."
+	case "type mismatch":
+		out.Explanation = "The JSON value types differ, including possible null versus non-null values."
+	case "missing left":
+		out.Explanation = "The field or collection item is absent from left."
+	case "missing right":
+		out.Explanation = "The field or collection item is absent from right."
+	}
+	for _, role := range roles {
+		loc, ok := d.Locations[role]
+		if ok {
+			out.Locations = append(out.Locations, locationView(role, loc))
+		} else {
+			out.Locations = append(out.Locations, humanLocation{Role: role, State: "object unavailable", Pointer: "not available"})
+		}
+	}
+	if d.Evidence != nil {
+		out.Evidence = []reportField{{"Kind", d.Evidence.Kind}, {"Record", d.Evidence.RecordID}, {"Digest", d.Evidence.Digest}}
+		for _, k := range keys(d.Evidence.Attributes) {
+			out.Evidence = append(out.Evidence, reportField{k, d.Evidence.Attributes[k]})
+		}
+	}
+	if d.Derivation != nil {
+		loc := locationView(d.Derivation.Role, d.Derivation.Location)
+		out.Derivation = []reportField{{"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}}
+	}
+	return out
+}
+
+// humanView derives presentation only from the already-redacted structured report.
+// It never reopens artifacts or reads configuration values.
 func (r Report) humanView() humanReport {
-	v := humanReport{Title: fmt.Sprintf("Comparison v%d (%s)", r.Version, r.Mode), Complete: r.Complete, Correct: r.Correct, ExitCode: r.ExitCode(), Decisions: r.Decisions}
+	v := humanReport{Title: fmt.Sprintf("Comparison v%d (%s)", r.Version, r.Mode), Complete: r.Complete, Correct: r.Correct, ExitCode: r.ExitCode(), Counts: countView(r.Counts)}
+	switch v.ExitCode {
+	case 0:
+		v.Outcome = "Complete: no unexpected drift or violations."
+	case 1:
+		v.Outcome = "Complete: unexpected drift or expectation violations found."
+	default:
+		v.Outcome = "Incomplete: review diagnostics and unverified or conflicting decisions."
+	}
 	if r.ObjectKey != "" && len(r.Scope) == 1 {
 		v.ObjectType = r.Scope[0]
 		v.ObjectKey = r.ObjectKey
 	}
-	for _, status := range keys(r.Counts) {
-		v.Counts = append(v.Counts, statusCount{status, r.Counts[status]})
+	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
+	for _, k := range keys(r.ObjectCoverage) {
+		v.Coverage = append(v.Coverage, reportField{k, fmt.Sprint(r.ObjectCoverage[k])})
+	}
+	roles := []string{"left", "right"}
+	if r.Mode == "deployment" {
+		roles = []string{"source", "actual"}
+		if _, ok := r.Inputs["baseline"]; ok {
+			roles = append(roles, "baseline")
+		}
+	}
+	for _, role := range roles {
+		if in, ok := r.Inputs[role]; ok {
+			v.Inputs = append(v.Inputs, humanInput{role, []reportField{{"Label", in.Label}, {"Environment", in.Environment}, {"Tenant", in.Tenant}, {"Reading mode", in.ReadMode}, {"Export completed", in.Completed}, {"Objects in type scope", fmt.Sprint(r.ObjectCoverage[role+"_in_scope"])}, {"Outside object filter", fmt.Sprint(r.ObjectCoverage[role+"_outside_object_filter"])}, {"Excluded types", strings.Join(r.Excluded[role], ", ")}, {"Content hash", in.ContentHash}, {"Document hash", in.DocumentHash}, {"Manifest hash", in.ManifestHash}}})
+		}
+	}
+	groups := map[string]*humanGroup{}
+	counts := map[string]map[string]int{}
+	presence := map[string]map[string]bool{}
+	getGroup := func(typ, key string) *humanGroup {
+		token := physical(typ, key)
+		if g := groups[token]; g != nil {
+			return g
+		}
+		g := &humanGroup{Type: typ, Key: key}
+		groups[token] = g
+		counts[token] = map[string]int{}
+		presence[token] = map[string]bool{}
+		return g
+	}
+	for _, m := range r.Matches {
+		g := getGroup(m.Type, m.Key)
+		g.Matches++
+		g.Matching = append(g.Matching, reportField{"Matching rule", m.RuleID})
+		for _, role := range roles {
+			if loc, ok := m.Locations[role]; ok {
+				presence[physical(m.Type, m.Key)][role] = true
+				g.Matching = append(g.Matching, reportField{role, fmt.Sprintf("ID: %s; artifact: %s", loc.ID, loc.Artifact)})
+			}
+		}
+	}
+	for _, d := range r.Decisions {
+		g := getGroup(d.Type, d.Key)
+		g.Decisions = append(g.Decisions, decisionView(d, roles))
+		token := physical(d.Type, d.Key)
+		counts[token][d.Status]++
+		for role := range d.Locations {
+			presence[token][role] = true
+		}
+		if d.Status == "different" || d.Status == "violation" {
+			switch d.Code {
+			case "object missing":
+				v.MissingObjects++
+			case "container presence differs":
+				v.ContainerDifferences++
+			default:
+				v.FieldDifferences++
+			}
+		}
+	}
+	for _, g := range groups {
+		token := physical(g.Type, g.Key)
+		g.Counts = countView(counts[token])
+		var parts []string
+		for _, role := range roles {
+			state := "absent"
+			if presence[token][role] {
+				state = "present"
+			}
+			parts = append(parts, role+": "+state)
+		}
+		g.Presence = strings.Join(parts, "; ")
+		if g.Key == "[redacted]" {
+			g.Presence = "Redacted identities are combined; per-object presence cannot be inferred from this group."
+		}
+		v.Groups = append(v.Groups, *g)
+	}
+	sort.Slice(v.Groups, func(i, j int) bool {
+		a, b := v.Groups[i], v.Groups[j]
+		if a.Type != b.Type {
+			return a.Type < b.Type
+		}
+		return a.Key < b.Key
+	})
+	for i := range v.Groups {
+		v.Groups[i].ID = fmt.Sprintf("object-%d", i+1)
 	}
 	for _, d := range r.Diagnostics {
 		if d.Code == "unused rule" && !d.Required {
 			v.UnusedOptional++
-			continue
+			v.OptionalDiagnostics = append(v.OptionalDiagnostics, d)
+		} else {
+			v.Diagnostics = append(v.Diagnostics, d)
 		}
-		v.Diagnostics = append(v.Diagnostics, d)
 	}
 	return v
 }
 
-var reportHTML = template.Must(template.New("report").Parse(`<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}}</title>
-<style>
-:root { color-scheme: light; font-family: system-ui, sans-serif; color: #172b3a; background: #f4f6f8; }
-body { margin: 0; padding: 2rem; }
-main { max-width: 90rem; margin: auto; background: white; padding: 2rem; border-radius: .5rem; }
-h1 { margin-top: 0; } h2 { margin-top: 2rem; }
-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-th, td { padding: .65rem; text-align: left; vertical-align: top; border: 1px solid #cbd5df; overflow-wrap: anywhere; white-space: pre-wrap; }
-th { background: #edf2f6; } caption { text-align: left; font-weight: 600; padding-bottom: .5rem; }
-.summary { max-width: 32rem; } .table-wrap { overflow-x: auto; }
-@media print { body, main { padding: 0; background: white; } th { background: white; } }
-</style>
-</head>
-<body><main>
-<h1>{{.Title}}</h1>
-<table class="summary"><caption>Result</caption><tbody>
-<tr><th scope="row">Complete</th><td>{{.Complete}}</td></tr>
-<tr><th scope="row">Correct</th><td>{{.Correct}}</td></tr>
-<tr><th scope="row">Exit code</th><td>{{.ExitCode}}</td></tr>
-{{if .ObjectKey}}<tr><th scope="row">Object filter</th><td>{{.ObjectType}} &quot;{{.ObjectKey}}&quot;</td></tr>{{end}}
-</tbody></table>
-<h2>Decision counts</h2>
-{{if .Counts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Count</th></tr></thead><tbody>
-{{range .Counts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>
-{{end}}</tbody></table>{{else}}<p>No decisions counted.</p>{{end}}
-<h2>Decisions</h2>
-{{if .Decisions}}<div class="table-wrap"><table><thead><tr><th scope="col">Status</th><th scope="col">Type</th><th scope="col">Object</th><th scope="col">Rule</th><th scope="col">Reason</th></tr></thead><tbody>
-{{range .Decisions}}<tr><td>{{.Status}}</td><td>{{.Type}}</td><td>{{.Key}}</td><td>{{.RuleID}}</td><td>{{.Code}}</td></tr>
-{{end}}</tbody></table></div>{{else}}<p>No decisions to display.</p>{{end}}
-<h2>Diagnostics</h2>
-{{if .Diagnostics}}<div class="table-wrap"><table><thead><tr><th scope="col">Diagnostic</th><th scope="col">Rule</th><th scope="col">Type</th></tr></thead><tbody>
-{{range .Diagnostics}}<tr><td>{{.Code}}</td><td>{{.RuleID}}</td><td>{{.Type}}</td></tr>
-{{end}}</tbody></table></div>{{else}}<p>No diagnostics to display.</p>{{end}}
-{{if .UnusedOptional}}<p>Unused optional rules: {{.UnusedOptional}} (details in JSON rule_usage).</p>{{end}}
-</main></body>
-</html>
-`))
+//go:embed report.html.tmpl
+var htmlReportTemplate string
 
-// HTML writes a self-contained HTML document with no external assets or scripts.
-func (r Report) HTML(w io.Writer) error {
-	return reportHTML.Execute(w, r.humanView())
-}
+//go:embed report.md.tmpl
+var markdownReportTemplate string
+var reportHTML = template.Must(template.New("report").Parse(htmlReportTemplate))
+var reportMarkdown = texttemplate.Must(texttemplate.New("report").Funcs(texttemplate.FuncMap{"cell": markdownCell}).Parse(markdownReportTemplate))
 
-// Markdown writes a Markdown document with result, count, decision and diagnostic tables.
-func (r Report) Markdown(w io.Writer) error {
-	v := r.humanView()
-	var b strings.Builder
-	fmt.Fprintf(&b, "# %s\n\n| Result | Value |\n| --- | --- |\n| Complete | %t |\n| Correct | %t |\n| Exit code | %d |\n", markdownCell(v.Title), v.Complete, v.Correct, v.ExitCode)
-	if v.ObjectKey != "" {
-		fmt.Fprintf(&b, "| Object filter | %s &quot;%s&quot; |\n", markdownCell(v.ObjectType), markdownCell(v.ObjectKey))
-	}
-	b.WriteString("\n## Decision counts\n\n")
-	if len(v.Counts) == 0 {
-		b.WriteString("No decisions counted.\n")
-	} else {
-		b.WriteString("| Status | Count |\n| --- | ---: |\n")
-		for _, c := range v.Counts {
-			fmt.Fprintf(&b, "| %s | %d |\n", markdownCell(c.Status), c.Count)
-		}
-	}
-	b.WriteString("\n## Decisions\n\n")
-	if len(v.Decisions) == 0 {
-		b.WriteString("No decisions to display.\n")
-	} else {
-		b.WriteString("| Status | Type | Object | Rule | Reason |\n| --- | --- | --- | --- | --- |\n")
-		for _, d := range v.Decisions {
-			fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", markdownCell(d.Status), markdownCell(d.Type), markdownCell(d.Key), markdownCell(d.RuleID), markdownCell(d.Code))
-		}
-	}
-	b.WriteString("\n## Diagnostics\n\n")
-	if len(v.Diagnostics) == 0 {
-		b.WriteString("No diagnostics to display.\n")
-	} else {
-		b.WriteString("| Diagnostic | Rule | Type |\n| --- | --- | --- |\n")
-		for _, d := range v.Diagnostics {
-			fmt.Fprintf(&b, "| %s | %s | %s |\n", markdownCell(d.Code), markdownCell(d.RuleID), markdownCell(d.Type))
-		}
-	}
-	if v.UnusedOptional > 0 {
-		fmt.Fprintf(&b, "\nUnused optional rules: %d (details in JSON rule_usage).\n", v.UnusedOptional)
-	}
-	_, err := io.WriteString(w, b.String())
-	return err
-}
+// HTML writes an offline HTML report with expandable object groups and local filters.
+func (r Report) HTML(w io.Writer) error { return reportHTML.Execute(w, r.humanView()) }
 
-// Escape untrusted text so it stays inside a Markdown table cell as literal text.
+// Markdown writes a grouped Markdown report without configuration values.
+func (r Report) Markdown(w io.Writer) error { return reportMarkdown.Execute(w, r.humanView()) }
 func markdownCell(s string) string {
 	return strings.NewReplacer("\\", "\\\\", "|", "&#124;", "`", "\\`", "*", "\\*", "_", "\\_", "[", "\\[", "]", "\\]", "\r\n", "<br>", "\r", "<br>", "\n", "<br>").Replace(html.EscapeString(s))
 }
