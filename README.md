@@ -864,10 +864,14 @@ Built-in ISC profiles:
 | --- | --- |
 | `isc-identity-v2` | Supplies logical identities; compares all content and envelope metadata |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
-| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, and lifecycle-state `/identityCount` |
+| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
 All three include deployment structural expectations for envelope version/type.
-They do not ignore nested IDs, owners, arbitrary runtime tokens, or array order.
+The portable profile excludes those three generated metadata fields on every
+SOURCE schema array item in both drift and deployment modes, including with keyed
+schema matching. For example, `/schemas/2/modified` is excluded. Other nested IDs
+(such as `/schemas/2/attributes/0/schema/id`), owners, arbitrary runtime tokens,
+and array order remain comparable.
 Choose the portable profile explicitly when differences in generated IDs and
 these metadata fields should be excluded. A supplied policy without a profile
 must define its own identity strategies; no ISC profile is added implicitly.

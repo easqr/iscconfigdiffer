@@ -128,6 +128,9 @@ func ISCProfile(p v2.Policy) (v2.Profile, error) {
 			ignore(typ, "metadata", "/self/id", "physical-id")
 			for _, field := range []string{"id", "created", "modified"} {
 				ignore(typ, "content", "/"+field, field)
+				if typ == "SOURCE" {
+					ignore(typ, "content", "/schemas/*/"+field, "schema-"+field)
+				}
 			}
 			if typ == "LIFECYCLE_STATE" {
 				ignore(typ, "content", "/identityCount", "identity-count")

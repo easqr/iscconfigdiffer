@@ -191,18 +191,25 @@ the same active field as an expectation or hide a failed substitution.
   identity strategies, with all payload/envelope fields comparable in drift.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
-  `/created`, `/modified`, and lifecycle `/identityCount`.
+  `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
+  `/schemas/*/modified`, and lifecycle `/identityCount`.
 
 All three contain explicit deployment structural expectations for envelope
 `/version` and `/self/type`. Unknown envelope/payload fields remain comparable in
 drift and unverified in deployment without authority. These profiles do not strip
-nested IDs or delta tokens and do not infer reference paths or array sorting.
+other nested IDs or delta tokens and do not infer reference paths or array sorting.
+The three SOURCE schema metadata exclusions apply to every schema array item in
+both comparison modes and preserve exclusion provenance. They work with ordered
+or keyed arrays and leave schema attributes, nested reference IDs, and schema
+additions/removals comparable.
 ISC profile identity components are nonempty strings, following ISC domain
 constraints; generic neutral profiles may use typed scalar components.
 
 Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
 (`physical-id`, `jws-header`, `jws-signature`, `identity-count`, `id`, `created`,
-`modified`), and `isc.TYPE.envelope.version` / `isc.TYPE.envelope.self.type`.
+`modified`), plus `isc.SOURCE.schema-id`, `isc.SOURCE.schema-created`, and
+`isc.SOURCE.schema-modified` for schema metadata. Structural expectations use
+`isc.TYPE.envelope.version` / `isc.TYPE.envelope.self.type`.
 Unknown types with custom identities receive the same explicit metadata profile
 expansion. Profile digest covers that expansion; policy digest covers effective
 rules, replacements, profile selection and evidence.
