@@ -93,7 +93,7 @@ wildcards expand only from available structures.
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
 | `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
-| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, and `key_cases` only for keyed |
+| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, and `key_cases` only for keyed; optional `item_label` and `display_fields` for report context |
 | `sensitive` | Selector; conservative report redaction |
 
 Identity and pairing rules are unconditional: `modes` is not allowed. Other rules
@@ -269,7 +269,25 @@ Generic keyed collection rules can define `key_cases`, each containing a concret
 item-relative `when_path`, a nonnull scalar `when_value`, and a nonempty list of
 concrete `keys` pointers that replaces the whole default tuple for matching items.
 Cases must share one discriminator path and have distinct typed values. Missing
-or unmatched discriminators use default keys. `component_type` accepts `scalar`
+or unmatched discriminators use default keys.
+
+Collection annotations `item_label` and `display_fields:[{"label":...,"path":...}]`
+capture readable identifiers from each real ancestor array item into
+`Location.context`. Labels must be nonblank, display labels unique within a rule,
+and paths concrete and item-relative. Missing/null/blank/structured display values
+are skipped; annotations never change comparison validity or correspondence.
+Context entries contain a label, original item pointer and labelled scalar
+identifiers, ordered outermost to innermost. Values are resolved independently
+for each role, including explicit derivation `from` pointers. Absent counterparts
+are never assigned the other side's metadata.
+
+SOURCE provisioning policies declare name/usage/subtype context and their fields
+declare name context. HTML displays it beside each original JSON Pointer and
+supports searching it; Markdown provides a per-role context table. JSON retains
+structured context. Identifiers remain available with `--exclude-values`;
+`sensitive` redaction removes affected location and derivation context. As with
+object names and evidence, do not select secrets as display metadata.
+ `component_type` accepts `scalar`
 (the default) or `string` (nonblank strings only). All key components remain
 present and nonnull regardless of null/absent-property normalization.
 

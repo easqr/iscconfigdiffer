@@ -76,7 +76,11 @@ Object matching and artifacts:
 {{cell .Explanation}}
 
 Section: {{cell .Space}}
-
+{{if .HasContext}}
+| Role | Containing items |
+| --- | --- |
+{{range .Locations}}| {{cell .Role}} | {{if .ContextSummary}}{{cell .ContextSummary}}{{else}}No containing item available on this side{{end}} |
+{{end}}{{end}}
 | Role | Presence | JSON type | Path | Value | Artifact | ID |
 | --- | --- | --- | --- | --- | --- | --- |
 {{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{cell .Value}} | {{cell .Artifact}} | {{cell .ID}} |

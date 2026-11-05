@@ -480,6 +480,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if err := validateCollectionKeys(r); err != nil {
 			return nil, err
 		}
+		if err := validateCollectionDisplay(r); err != nil {
+			return nil, err
+		}
 	}
 	for _, r := range p.Sensitive {
 		if r.Type == "" || (space(r.Space) != "content" && space(r.Space) != "metadata") {

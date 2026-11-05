@@ -188,6 +188,19 @@ authority, evidence and expectation derivations explain policy decisions. Pointe
 prefixed with `/object`. Observed values are shown for each input, and expectation
 checks also show the independently computed expected value and target role.
 
+Provisioning findings include containing-item context for each input: policy name,
+usage type, subtype ID when present, and field name. For example, a long transform
+path can be accompanied by `Provisioning policy — Name: Enable Account Policy;
+Usage type: ENABLE → Field — Name: AC_NewParent`. The original full JSON Pointer
+is retained. Each side uses its own names and indices, including when policies or
+fields move or names differ. Missing items are not labelled using the other side's
+item. HTML search also finds these names. Markdown and JSON retain the same context.
+
+These names/types are report identity metadata and remain visible with
+`--exclude-values`, like object names and IDs. Explicit `sensitive` rules remove
+context along with other identity/provenance for affected types. Renderers use
+captured context and do not reopen the configuration files.
+
 Diagnostics distinguish required or blocking findings from unused optional rules.
 The latter are listed separately and do not themselves make a comparison fail.
 Policy and input hashes are available as provenance for identifying a particular
@@ -938,6 +951,9 @@ objects and arrays retain their current comparison semantics; transform array
 ordering is unchanged. Deployment still requires independent expectations for
 non-excluded member values.
 
+Policy and field labels are declared in the SOURCE profile's collection rules;
+the core differ does not recognize provisioning-specific paths or names.
+
 The built-in rules are `isc.SOURCE.provisioning-policies`,
 `isc.SOURCE.provisioning-fields`, `isc.SOURCE.provisioning-policy-id`,
 `isc.SOURCE.provisioning-policy-created`, `isc.SOURCE.provisioning-policy-modified`,
@@ -1075,6 +1091,13 @@ that matches no case uses the rule's default `keys`. Key pointers are concrete a
 item-relative. `component_type` defaults to `scalar`; `string` requires every key
 component to be a nonblank string, preserving the original spelling.
 
+Collection rules may also declare `item_label` and `display_fields` for readable
+report context. Each display field has a nonblank, unique `label` and a concrete
+item-relative `path`. Only present, nonblank scalar values are captured; absent,
+null, blank, or structured values are skipped. These annotations do not change
+matching or validation. Treat the selected fields as visible identity metadata,
+including when payload values are excluded. Sensitive redaction still applies.
+
 This policy shows the built-in provisioning key definition as an explicit
 replacement; the built-in field alignment remains active:
 
@@ -1091,6 +1114,12 @@ replacement; the built-in field alignment remains active:
       "path": "/provisioningPolicies",
       "mode": "keyed",
       "component_type": "string",
+      "item_label": "Provisioning policy",
+      "display_fields": [
+        {"label": "Name", "path": "/name"},
+        {"label": "Usage type", "path": "/usageType"},
+        {"label": "Subtype ID", "path": "/subtypeId"}
+      ],
       "keys": ["/usageType"],
       "key_cases": [
         {

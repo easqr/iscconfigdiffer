@@ -22,8 +22,12 @@ type humanInput struct {
 	Role   string
 	Fields []reportField
 }
-type humanLocation struct{ Role, State, Kind, Pointer, ID, Artifact, Value string }
+type humanLocation struct {
+	Role, State, Kind, Pointer, ID, Artifact, Value, ContextSummary string
+	Context                                                         []ItemContext
+}
 type humanDecision struct {
+	HasContext                                                    bool
 	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
 	Normalization                                                 string
 	ExpectedRole, ExpectedValue                                   string
@@ -53,6 +57,23 @@ type humanReport struct {
 	MissingObjects, ContainerDifferences, FieldDifferences int
 }
 
+func contextSummary(contexts []ItemContext) string {
+	parts := make([]string, 0, len(contexts))
+	for _, c := range contexts {
+		fields := make([]string, 0, len(c.Fields))
+		for _, f := range c.Fields {
+			fields = append(fields, f.Label+": "+f.Value)
+		}
+		text := c.Label
+		if len(fields) > 0 {
+			text += " — " + strings.Join(fields, "; ")
+		} else {
+			text += " at " + c.Pointer
+		}
+		parts = append(parts, text)
+	}
+	return strings.Join(parts, " → ")
+}
 func valueView(v *State) string {
 	if v == nil {
 		return "omitted"
@@ -90,7 +111,7 @@ func locationView(role string, loc Location) humanLocation {
 	if path == "" {
 		path = "(root)"
 	}
-	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: valueView(loc.Value)}
+	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: valueView(loc.Value), Context: loc.Context, ContextSummary: contextSummary(loc.Context)}
 }
 func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
 	out := humanDecision{Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
@@ -134,6 +155,7 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 	for _, role := range roles {
 		loc, ok := d.Locations[role]
 		if ok {
+			out.HasContext = out.HasContext || len(loc.Context) > 0
 			out.Locations = append(out.Locations, locationView(role, loc))
 		} else {
 			out.Locations = append(out.Locations, humanLocation{Role: role, State: "object unavailable", Pointer: "not available", Value: "not available"})
@@ -147,7 +169,7 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 	}
 	if d.Derivation != nil {
 		loc := locationView(d.Derivation.Role, d.Derivation.Location)
-		out.Derivation = []reportField{{"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}, {"Value", loc.Value}}
+		out.Derivation = []reportField{{"Context", loc.ContextSummary}, {"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}, {"Value", loc.Value}}
 	}
 	return out
 }

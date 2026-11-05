@@ -378,7 +378,7 @@ func (x *execution) record(f frame, status, code string, r Rule, authority strin
 			if f.space == "" {
 				present = true
 			}
-			d.Locations[x.roles[i]] = Location{ID: o.doc.ID, Artifact: o.doc.Path, Pointer: n.pointer, Present: present, ValueKind: valueKind(n.value, present), Value: x.slotValue(n)}
+			d.Locations[x.roles[i]] = Location{ID: o.doc.ID, Artifact: o.doc.Path, Pointer: n.pointer, Present: present, ValueKind: valueKind(n.value, present), Value: x.slotValue(n), Context: x.locationContext(o.doc, x.current.key, f.space, n.pointer)}
 			if f.space == "" {
 				loc := d.Locations[x.roles[i]]
 				loc.ValueKind = "document"
@@ -681,7 +681,7 @@ func (x *execution) expect(f frame, r Expectation) {
 				available = true
 			}
 			if origin := x.current.nodes[fromSide]; origin != nil {
-				x.derivation = &Derivation{Role: x.roles[fromSide], Type: origin.doc.Type, Location: Location{ID: origin.doc.ID, Artifact: origin.doc.Path, Pointer: n.pointer, Present: n.present, ValueKind: valueKind(n.value, n.present), Value: x.slotValue(n)}}
+				x.derivation = &Derivation{Role: x.roles[fromSide], Type: origin.doc.Type, Location: Location{ID: origin.doc.ID, Artifact: origin.doc.Path, Pointer: n.pointer, Present: n.present, ValueKind: valueKind(n.value, n.present), Value: x.slotValue(n), Context: x.locationContext(origin.doc, x.current.key, f.space, n.pointer)}}
 			}
 			want, present = n.value, n.present
 			if r.Operation == "reference_target" && available {

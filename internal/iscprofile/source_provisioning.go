@@ -15,6 +15,12 @@ func addSourceProvisioningRules(profile *v2.Profile, rule func(string) v2.Rule) 
 		Mode:          "keyed",
 		Keys:          []string{"/usageType"},
 		ComponentType: "string",
+		ItemLabel:     "Provisioning policy",
+		DisplayFields: []v2.DisplayField{
+			{Label: "Name", Path: "/name"},
+			{Label: "Usage type", Path: "/usageType"},
+			{Label: "Subtype ID", Path: "/subtypeId"},
+		},
 		KeyCases: []v2.CollectionKeyCase{{
 			WhenPath:  "/usageType",
 			WhenValue: json.RawMessage(`"CREATE_MACHINE_ACCOUNT"`),
@@ -27,6 +33,8 @@ func addSourceProvisioningRules(profile *v2.Profile, rule func(string) v2.Rule) 
 		Mode:          "keyed",
 		Keys:          []string{"/name"},
 		ComponentType: "string",
+		ItemLabel:     "Field",
+		DisplayFields: []v2.DisplayField{{Label: "Name", Path: "/name"}},
 	}
 	profile.Rules.Collections = append(profile.Rules.Collections, policies, fields)
 	for _, field := range []string{"id", "created", "modified"} {

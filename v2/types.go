@@ -55,6 +55,12 @@ type CollectionKeyCase struct {
 	WhenValue json.RawMessage `json:"when_value"`
 	Keys      []string        `json:"keys"`
 }
+
+// DisplayField declares a scalar collection-item identifier for report context.
+type DisplayField struct {
+	Label string `json:"label"`
+	Path  string `json:"path"`
+}
 type Collection struct {
 	Rule
 	Selector
@@ -62,6 +68,8 @@ type Collection struct {
 	Keys          []string            `json:"keys,omitempty"`
 	ComponentType string              `json:"component_type,omitempty"`
 	KeyCases      []CollectionKeyCase `json:"key_cases,omitempty"`
+	ItemLabel     string              `json:"item_label,omitempty"`
+	DisplayFields []DisplayField      `json:"display_fields,omitempty"`
 }
 type ValuePair struct {
 	Left  any `json:"left"`
@@ -174,13 +182,23 @@ type Request struct {
 	// ExcludeValues omits observed and expected values from report decisions.
 	ExcludeValues bool
 }
+type ContextField struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+type ItemContext struct {
+	Label   string         `json:"label"`
+	Pointer string         `json:"pointer"`
+	Fields  []ContextField `json:"fields,omitempty"`
+}
 type Location struct {
-	ID        string `json:"id"`
-	Artifact  string `json:"artifact"`
-	Pointer   string `json:"pointer"`
-	Present   bool   `json:"present"`
-	ValueKind string `json:"value_kind,omitempty"`
-	Value     *State `json:"value,omitempty"`
+	ID        string        `json:"id"`
+	Artifact  string        `json:"artifact"`
+	Pointer   string        `json:"pointer"`
+	Present   bool          `json:"present"`
+	ValueKind string        `json:"value_kind,omitempty"`
+	Value     *State        `json:"value,omitempty"`
+	Context   []ItemContext `json:"context,omitempty"`
 }
 type Decision struct {
 	Normalization string              `json:"normalization,omitempty"`

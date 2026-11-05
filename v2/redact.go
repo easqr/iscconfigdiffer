@@ -68,6 +68,7 @@ func (x *execution) redact() {
 			loc.ID = "[redacted]"
 			loc.Artifact = "[redacted]"
 			loc.Pointer = "[redacted]"
+			loc.Context = nil
 			if loc.Value != nil {
 				loc.Value = &State{State: "redacted"}
 			}
@@ -80,6 +81,7 @@ func (x *execution) redact() {
 			d.Derivation.Location.ID = "[redacted]"
 			d.Derivation.Location.Artifact = "[redacted]"
 			d.Derivation.Location.Pointer = "[redacted]"
+			d.Derivation.Location.Context = nil
 			if d.Derivation.Location.Value != nil {
 				d.Derivation.Location.Value = &State{State: "redacted"}
 			}
