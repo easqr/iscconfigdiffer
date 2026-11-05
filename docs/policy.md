@@ -172,6 +172,9 @@ explicit common type scope must be available in every supplied input. Default
 scope requires equal selected type sets in the two primary inputs; selected types
 with zero objects remain declared scope.
 
+For a worked explanation of intent, action checks, and partial-draft handling,
+see the [operations walkthrough](../README.md#deployment-operations-file).
+
 Deployment takes a strict operations JSON array:
 
 ```json
