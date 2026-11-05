@@ -229,11 +229,11 @@ This default follows the null/absent-property convention in the
 All three contain explicit deployment structural expectations for envelope
 `/version` and `/self/type`. Unknown envelope/payload fields remain comparable in
 drift and unverified in deployment without authority. These profiles do not strip
-other nested IDs or delta tokens and do not infer reference paths or array sorting.
+arbitrary nested IDs or delta tokens and do not infer reference paths or array sorting.
 The three SOURCE schema metadata exclusions apply to every schema array item in
 both comparison modes and preserve exclusion provenance. They work with ordered
-or keyed arrays and leave schema attributes, nested reference IDs, and schema
-additions/removals comparable.
+or keyed arrays. Attribute properties and schema additions/removals remain
+comparable, except for the explicit reference ID exclusion below.
 ISC profile identity components are nonempty strings, following ISC domain
 constraints; generic neutral profiles may use typed scalar components.
 
@@ -261,9 +261,11 @@ for comparison, and changes to native types remain data differences. Per-role
 original pointers and no inferred labels for absent items. Context applies to
 expectation derivations and follows existing omission/redaction behavior.
 
-Portable schema metadata exclusions are unchanged. Nested attribute schema
-reference IDs remain comparable, as do schema/attribute membership and other
-properties. No new exclusions or matching changes apply to other object types.
+Portable schema metadata exclusions are unchanged. All ISC profiles exclude
+`/schemas/*/attributes/*/schema/id` with rule
+`isc.SOURCE.schema-attribute-reference-id` in drift and deployment modes.
+Reference `name` and `type`, schema/attribute membership, and other properties
+remain comparable. No new exclusions or matching changes apply to other object types.
 Deployment member values require explicit expectations beneath the keyed arrays;
 parent collection rules do not grant authority.
 

@@ -44,7 +44,7 @@ func TestPortableSourceSchemaMetadataExclusions(t *testing.T) {
 					policy := p
 					if mode == "deployment" {
 						req.Operations = []v2.Operation{{Type: "SOURCE", Key: "Invented", Action: "update"}}
-						for i, path := range []string{"/name", "/schemas/*/name", "/schemas/*/attributes/*/name", "/schemas/*/attributes/*/schema/id"} {
+						for i, path := range []string{"/name", "/schemas/*/name", "/schemas/*/attributes/*/name"} {
 							policy.Expectations = append(policy.Expectations, v2.Expectation{Rule: rule(fmt.Sprintf("copy-%d", i)), Selector: v2.Selector{Type: "SOURCE", Path: path}, Operation: "copy_source", Authority: "invented-policy"})
 						}
 					}
@@ -73,8 +73,8 @@ func TestPortableSourceSchemaMetadataExclusions(t *testing.T) {
 					}
 					req.Right = schemaMetadataInput(t, "prod", "SOURCE", keyed, true)
 					r = compareTest(t, req, policy)
-					if r.ExitCode() != 1 {
-						t.Fatal("nested schema reference ID was hidden", r)
+					if r.ExitCode() != 0 {
+						t.Fatal("nested schema reference ID caused drift", r)
 					}
 				})
 			}

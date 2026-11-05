@@ -912,9 +912,10 @@ All three default to `null_equals_absent` for payload properties and include
 deployment structural expectations for envelope version/type.
 The portable profile excludes those three generated metadata fields on every
 SOURCE schema array item in both drift and deployment modes, including with keyed
-schema matching. For example, `/schemas/2/modified` is excluded. Other nested IDs
-(such as `/schemas/2/attributes/0/schema/id`), owners, arbitrary runtime tokens,
-and other array order remain comparable.
+schema matching. For example, `/schemas/2/modified` is excluded. All ISC profiles
+also exclude SOURCE attribute schema reference IDs at
+`/schemas/*/attributes/*/schema/id`; reference names and types remain comparable.
+Other nested IDs, owners, arbitrary runtime tokens, and other array order remain comparable.
 Choose the portable profile explicitly when differences in generated IDs and
 these metadata fields should be excluded. A supplied policy without a profile
 must define its own identity strategies; no ISC profile is added implicitly.
@@ -950,8 +951,10 @@ Existing custom rules at these paths must declare `replaces` with the correspond
 ID, or can be removed to use the built-ins. Replacements define their own
 `item_label` and `display_fields`; include these to retain readable context.
 Schema `id`, `created`, and `modified` exclusions remain specific to the portable
-profile. Nested references such as `/schemas/*/attributes/*/schema/id`, other
-attribute properties, and schema/attribute additions or removals remain comparable.
+profile. All ISC profiles exclude `/schemas/*/attributes/*/schema/id` using
+`isc.SOURCE.schema-attribute-reference-id`, so tenant-specific reference IDs do
+not cause differences. Reference `name` and `type`, other attribute properties,
+and schema/attribute additions or removals remain comparable.
 Deployment alignment still requires independent expectations for member values;
 use wildcard item selectors for assertions beneath these keyed arrays.
 

@@ -18,7 +18,7 @@ func schemaContextFixture(reverse bool) []any {
 		// Deliberately share nativeObjectType: it must not determine correspondence.
 		attributes := []any{}
 		for _, attr := range []string{"memberOf", "manager"} {
-			attributes = append(attributes, map[string]any{"name": attr, "type": "STRING", "schema": map[string]any{"id": "shared-reference", "name": "group"}})
+			attributes = append(attributes, map[string]any{"name": attr, "type": "STRING", "schema": map[string]any{"id": "shared-reference", "name": "group", "type": "SCHEMA"}})
 		}
 		if reverse {
 			attributes[0], attributes[1] = attributes[1], attributes[0]
@@ -35,7 +35,7 @@ func schemaContextInput(t *testing.T, env, typ string, schemas []any) snapshot.I
 	return input(t, env, []string{typ}, obj(typ, "same-source-id", "Invented", map[string]any{"schemas": schemas}))
 }
 func schemaContextExpectations() []v2.Expectation {
-	paths := []string{"/name", "/schemas/*/name", "/schemas/*/nativeObjectType", "/schemas/*/attributes/*/name", "/schemas/*/attributes/*/type", "/schemas/*/attributes/*/schema/id", "/schemas/*/attributes/*/schema/name"}
+	paths := []string{"/name", "/schemas/*/name", "/schemas/*/nativeObjectType", "/schemas/*/attributes/*/name", "/schemas/*/attributes/*/type", "/schemas/*/attributes/*/schema/type", "/schemas/*/attributes/*/schema/name"}
 	out := []v2.Expectation{}
 	for i, path := range paths {
 		out = append(out, v2.Expectation{Rule: rule(fmt.Sprintf("schema-copy-%d", i)), Selector: v2.Selector{Type: "SOURCE", Path: path}, Operation: "copy_source", Authority: "invented-release"})
@@ -56,9 +56,9 @@ func TestSourceSchemaAndAttributeAlignment(t *testing.T) {
 			}
 			found := false
 			for _, d := range r.Decisions {
-				if d.Locations["left"].Pointer == "/schemas/0/attributes/0/schema/id" {
+				if d.Locations["left"].Pointer == "/schemas/0/attributes/0/schema/name" {
 					found = true
-					if d.Locations["right"].Pointer != "/schemas/2/attributes/1/schema/id" || len(d.ItemKeys) != 2 {
+					if d.Locations["right"].Pointer != "/schemas/2/attributes/1/schema/name" || len(d.ItemKeys) != 2 {
 						t.Fatal("alignment changed original locations", d)
 					}
 				}
@@ -74,7 +74,7 @@ func TestSourceSchemaContextAndRedaction(t *testing.T) {
 		for _, omit := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/omit=%t", mode, omit), func(t *testing.T) {
 				right := schemaContextFixture(true)
-				right[2].(map[string]any)["attributes"].([]any)[1].(map[string]any)["schema"].(map[string]any)["id"] = "changed-reference-sentinel"
+				right[2].(map[string]any)["attributes"].([]any)[1].(map[string]any)["schema"].(map[string]any)["name"] = "changed-reference-sentinel"
 				req := Request{Mode: mode, Left: schemaContextInput(t, "dev", "SOURCE", schemaContextFixture(false)), Right: schemaContextInput(t, "prod", "SOURCE", right), ExcludeValues: omit}
 				p := portable()
 				if mode == "deployment" {
@@ -91,11 +91,11 @@ func TestSourceSchemaContextAndRedaction(t *testing.T) {
 				}
 				found := false
 				for _, d := range r.Decisions {
-					if d.Locations[lrole].Pointer != "/schemas/0/attributes/0/schema/id" {
+					if d.Locations[lrole].Pointer != "/schemas/0/attributes/0/schema/name" {
 						continue
 					}
 					found = true
-					if d.Locations[rrole].Pointer != "/schemas/2/attributes/1/schema/id" {
+					if d.Locations[rrole].Pointer != "/schemas/2/attributes/1/schema/name" {
 						t.Fatal(d)
 					}
 					for _, role := range []string{lrole, rrole} {
@@ -116,7 +116,7 @@ func TestSourceSchemaContextAndRedaction(t *testing.T) {
 					if err := render(&b); err != nil {
 						t.Fatal(err)
 					}
-					for _, text := range []string{"Schema", "account", "Native object type", "SharedNativeType", "Attribute", "memberOf", "/schemas/0/attributes/0/schema/id", "/schemas/2/attributes/1/schema/id"} {
+					for _, text := range []string{"Schema", "account", "Native object type", "SharedNativeType", "Attribute", "memberOf", "/schemas/0/attributes/0/schema/name", "/schemas/2/attributes/1/schema/name"} {
 						if !strings.Contains(b.String(), text) {
 							t.Fatal("human context missing", text)
 						}
@@ -221,5 +221,77 @@ func TestNativeObjectTypeAndSchemaMembershipRemainComparable(t *testing.T) {
 	req.Right = schemaContextInput(t, "prod", "ROLE", schemaContextFixture(true))
 	if r = compareTest(t, req, portable()); r.ExitCode() != 1 || r.RuleUsage["isc.SOURCE.schemas"] != 0 {
 		t.Fatal("schema rules applied to another type", r)
+	}
+}
+
+func TestSourceSchemaReferenceIDExclusion(t *testing.T) {
+	for _, profile := range []string{"isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"} {
+		for _, mode := range []string{"drift", "deployment"} {
+			t.Run(profile+"/"+mode, func(t *testing.T) {
+				right := schemaContextFixture(true)
+				ref := right[2].(map[string]any)["attributes"].([]any)[1].(map[string]any)["schema"].(map[string]any)
+				ref["id"] = "environment-specific-id"
+				p := v2.Policy{Version: 2, ID: "invented", Profile: profile}
+				req := Request{Mode: mode, Left: schemaContextInput(t, "dev", "SOURCE", schemaContextFixture(false)), Right: schemaContextInput(t, "prod", "SOURCE", right)}
+				if mode == "deployment" {
+					req.Operations = []v2.Operation{{Type: "SOURCE", Key: "Invented", Action: "update"}}
+					p.Expectations = schemaContextExpectations()
+					// Non-portable profiles retain generated schema metadata.
+					if profile != "isc-portable-v2" {
+						p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule("copy-envelope-id"), Selector: v2.Selector{Type: "SOURCE", Space: "metadata", Path: "/self/id"}, Operation: "copy_source", Authority: "invented-release"})
+						for _, field := range []string{"id", "created", "modified"} {
+							p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule("copy-schema-" + field), Selector: v2.Selector{Type: "SOURCE", Path: "/schemas/*/" + field}, Operation: "copy_source", Authority: "invented-release"})
+						}
+					}
+				}
+				r := compareTest(t, req, p)
+				if r.ExitCode() != 0 || r.RuleUsage["isc.SOURCE.schema-attribute-reference-id"] != 6 {
+					for _, d := range r.Decisions {
+						if d.Status == "unverified" {
+							t.Logf("unverified: space=%s locations=%v", d.Space, d.Locations)
+						}
+					}
+					t.Fatalf("reference ID exclusion: exit=%d counts=%v usage=%d", r.ExitCode(), r.Counts, r.RuleUsage["isc.SOURCE.schema-attribute-reference-id"])
+				}
+				found := false
+				for _, d := range r.Decisions {
+					if d.RuleID == "isc.SOURCE.schema-attribute-reference-id" {
+						found = true
+						if d.Status != "excluded" || d.Evidence == nil || d.Evidence.Kind != "isc-profile" {
+							t.Fatal("missing exclusion provenance", d)
+						}
+					}
+				}
+				if !found {
+					t.Fatal("missing exclusion decisions")
+				}
+				delete(ref, "id")
+				req.Right = schemaContextInput(t, "prod", "SOURCE", right)
+				if r = compareTest(t, req, p); r.ExitCode() != 0 {
+					t.Fatal("absent reference ID caused drift", r)
+				}
+				for _, field := range []string{"name", "type"} {
+					original := ref[field]
+					ref[field] = "changed-reference-" + field
+					req.Right = schemaContextInput(t, "prod", "SOURCE", right)
+					r = compareTest(t, req, p)
+					status := "different"
+					if mode == "deployment" {
+						status = "violation"
+					}
+					if r.ExitCode() != 1 || r.Counts[status] != 1 {
+						t.Fatalf("reference %s must remain comparable: exit=%d counts=%v", field, r.ExitCode(), r.Counts)
+					}
+					ref[field] = original
+				}
+			})
+		}
+	}
+	// The exclusion belongs to SOURCE profiles, not the generic differ or other types.
+	right := schemaContextFixture(false)
+	right[0].(map[string]any)["attributes"].([]any)[0].(map[string]any)["schema"].(map[string]any)["id"] = "changed-reference-id"
+	req := Request{Mode: "drift", Left: schemaContextInput(t, "dev", "ROLE", schemaContextFixture(false)), Right: schemaContextInput(t, "prod", "ROLE", right)}
+	if r := compareTest(t, req, portable()); r.ExitCode() != 1 || r.RuleUsage["isc.SOURCE.schema-attribute-reference-id"] != 0 {
+		t.Fatal("SOURCE exclusion leaked", r)
 	}
 }

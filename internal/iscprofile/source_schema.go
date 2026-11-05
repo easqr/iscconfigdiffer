@@ -26,6 +26,10 @@ func addSourceSchemaRules(profile *v2.Profile, rule func(string) v2.Rule) {
 			DisplayFields: []v2.DisplayField{{Label: "Name", Path: "/name"}},
 		},
 	)
+	profile.Rules.Ignores = append(profile.Rules.Ignores, v2.Ignore{
+		Rule:     rule("isc.SOURCE.schema-attribute-reference-id"),
+		Selector: v2.Selector{Type: "SOURCE", Path: "/schemas/*/attributes/*/schema/id"},
+	})
 	if profile.ID != "isc-portable-v2" {
 		return
 	}
