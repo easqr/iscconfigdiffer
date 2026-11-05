@@ -1069,7 +1069,7 @@ Built-in ISC profiles:
 | --- | --- |
 | `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment and connector-scoped AD/Entra alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
-| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
+| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, and lifecycle-state `/identityCount` |
 
 All three default to `null_equals_absent` for payload properties and include
 deployment structural expectations for envelope version/type.
@@ -1141,6 +1141,17 @@ replacing a disabled rule, or extending a disabled collection are errors. These
 are explicit choices, not file-order precedence. Reports retain shipped-pack
 versions/digests, rule evidence, extension provenance, replacements, and disabled
 IDs so a result can be traced to its effective policy.
+
+### SOURCE cache-update metadata
+
+The portable profile excludes `/connectorAttributes/cloudCacheUpdate` across
+all SOURCE connector types in drift and deployment. It is treated as operational
+cache-update metadata, rather than an environment-specific configuration value.
+The identity and envelope profiles continue comparing it normally.
+
+This rule is defined in `internal/iscprofile/packs/source-portable.json` with ID
+`isc.SOURCE.cloud-cache-update`. To restore ordinary comparison, add that ID to
+your policy's `disabled_rules` array. Other connector attributes remain comparable.
 
 ### SOURCE before-provisioning rule references
 

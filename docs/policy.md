@@ -330,7 +330,8 @@ common/SOURCE defaults. Unsupported arrays do not receive inferred semantics.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
   `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
-  `/schemas/*/modified`, and lifecycle `/identityCount`.
+  `/schemas/*/modified`, SOURCE `/connectorAttributes/cloudCacheUpdate`, and
+  lifecycle `/identityCount`.
 
 All three contain explicit deployment structural expectations for envelope
 `/version` and `/self/type`. Unknown envelope/payload fields remain comparable in
@@ -351,6 +352,21 @@ Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
 Unknown types with custom identities receive the same explicit metadata profile
 expansion. Profile digest covers that expansion; policy digest covers effective
 rules, replacements, profile selection and evidence.
+
+## SOURCE cache-update metadata
+
+`isc-portable-v2` supplies `isc.SOURCE.cloud-cache-update` from the
+`isc.source-portable` pack, excluding only content
+`/connectorAttributes/cloudCacheUpdate` for SOURCE objects in drift and
+deployment. It applies independently of connector classification, including
+unclassified sources. Identity/envelope profiles and other object types retain
+ordinary comparison. Adjacent connector attributes are not excluded.
+
+This is a portable comparison choice for operational cache-update metadata;
+it does not assert a documented cache refresh trigger or interval. Set
+`disabled_rules:["isc.SOURCE.cloud-cache-update"]` to restore normal comparison
+and deployment coverage requirements. Exclusion decisions retain pack evidence
+and the original pointer.
 
 ## SOURCE before-provisioning rule references
 

@@ -23,6 +23,11 @@
         "id": "isc.SOURCE.schema-modified",
         "type": "SOURCE",
         "path": "/schemas/*/modified"
+      },
+      {
+        "id": "isc.SOURCE.cloud-cache-update",
+        "type": "SOURCE",
+        "path": "/connectorAttributes/cloudCacheUpdate"
       }
     ]
   }
