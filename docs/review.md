@@ -20,6 +20,25 @@ No complete success is returned for unverified expectations, ambiguous identitie
 collection conflicts, or unused required rules. Known violations may be complete
 failures; completeness and correctness are distinct.
 
+## Root policy includes review
+
+The review fixed these file-composition gaps without changing comparison or
+precedence semantics:
+
+| Finding | Correction | Regression evidence |
+| --- | --- | --- |
+| Semantic errors without IDs blamed the root, while IDs such as `invalid` could match unrelated error words | Neutral compiler errors carry exact rule IDs; the adapter resolves and deduplicates their owning files. Invalid rule IDs and empty attribution kinds fail with file context during loading | `TestPolicyFragmentSemanticErrorsIdentifyOwner`, `TestPolicyGlobalErrorDoesNotMatchRuleIDWords`, `TestPolicyCrossFileConflictsRetainBothOwners`, `TestPolicyFragmentMalformedOwnershipMetadata` |
+| Symlinks followed by `..` could load a different file than the normalized name recorded in provenance | Normalize include paths before both reading and recording; aliases still fail duplicate-file checks | `TestPolicyFilePathsUseRecordedNormalizedNames` |
+| Root symlinks pointing outside the link's directory no longer loaded, including for single-file policies | Resolve the root link first and load includes relative to the target bundle | `TestPolicyRootSymlinkUsesTargetBundle` |
+| File-loading errors discarded their underlying filesystem cause | Wrap failures so library callers retain `errors.Is`/`errors.As` support | `TestPolicyFileErrorsPreserveFilesystemCause` |
+
+The existing composition tests cover flat/modular drift equivalence, approved and
+unapproved deployment expectations, replacement/disable precedence, strict
+fragment boundaries, path containment, alias rejection, file digests, report
+origins, relocation, and CLI use. File attribution remains separate from rule
+evidence and deployment authority. The core remains independent of the filesystem;
+comparison policy and report schemas remain unchanged.
+
 ## Intended limits
 
 Exporter-format projected drafts are the supported input boundary. Destination

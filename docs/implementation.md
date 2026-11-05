@@ -54,7 +54,12 @@ renderers display the recorded index without reopening files.
 `policy_files_test.go` and `TestCLIIncludedPolicy` cover composition equivalence,
 strict shapes, path containment and aliases, cross-file ID/scope conflicts,
 authority isolation, relocatable provenance, report origins, and the modular
-SOURCE/Entra/AD/TRANSFORM examples. Tenant exports are development checks only.
+SOURCE/Entra/AD/TRANSFORM examples. `policy_files_review_test.go` adds normalized
+path/provenance consistency, root-symlink compatibility, filesystem error causes,
+and exact semantic error ownership across rule categories and files. The neutral
+`v2.RuleError` carries IDs only; file attribution stays in the adapter. See the
+[review findings](review.md#root-policy-includes-review).
+Tenant exports are development checks only.
 
 ## Checks
 

@@ -25,7 +25,12 @@ are the public ISC entry points; the `v2` package provides the neutral core.
 Use `differ.LoadPolicy(path)` or CLI `--policy FILE` for a root policy containing
 `"includes": ["sources/active-directory.json", "transforms.json"]`.
 Includes are an optional array of explicit, nonblank, root-relative filenames.
-All files must remain inside the root directory, including symlink targets.
+Root-policy symlinks resolve to the target bundle before reading: includes use
+the target policy's directory and provenance uses its basename. Include paths
+are lexically normalized before reading, so the recorded path identifies the
+file actually opened, including when a symlink component precedes `..` in the
+authored name. All includes must remain inside the root directory, including
+symlink targets.
 Absolute/escaping paths, repeated files (including hard-link/symlink aliases),
 nonregular files, invalid/duplicate JSON properties, and unknown properties fail.
 There are no globs, recursive includes, directory scanning, or implicit overrides.
@@ -50,8 +55,14 @@ Composition appends arrays and then compiles once. Rule IDs are globally unique
 across categories and files. Repeated disabled IDs also fail. Include order does
 not confer precedence: normal conflict, specificity, replacement, and disabling
 rules still apply. File names do not confer scope; explicit selectors do.
-Compiler errors identify implicated files through rule IDs where available and
-otherwise identify the root file. Parsing and duplicate-ID errors name their files.
+Rule validation errors carry structured `*v2.RuleError` ownership, available via
+`errors.As`; file attribution uses those exact IDs rather than words in an error
+message. Cross-file conflicts identify both owners where known, and filenames
+are deduplicated. Policy-level errors identify the root. Parsing, invalid rule-ID,
+invalid attribution-kind, and duplicate-ID errors name their files during loading.
+Filesystem failures preserve their underlying causes for `errors.Is` and
+`errors.As`. `LoadPolicy` validates file structure and ownership metadata;
+`Compile` or `Compare` validates the full assembled policy.
 
 `LoadPolicy` adds attribution-only `Policy.Evidence` records, one per physical
 file, with `kind: "policy-file"`, a root-relative `record_id`, SHA-256 of actual

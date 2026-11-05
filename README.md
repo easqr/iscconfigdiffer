@@ -933,8 +933,11 @@ and fragment-level `evidence` are arrays of attribution records; individual rule
 evidence or deployment authority.
 
 Includes resolve relative to the **root policy directory**, never the command's
-working directory. They must stay inside that directory, including through
-symlinks. Absolute paths, parent-directory escapes, duplicate files (including
+working directory. A symlink to the root policy is supported: the loader resolves
+its target first, then uses the target policy's directory and basename for
+includes and provenance. Include paths are normalized before opening them
+(`./rules.json` and `folder/../rules.json` both identify `rules.json`). They must
+stay inside the root directory, including through symlinks. Absolute paths, parent-directory escapes, duplicate files (including
 aliases), directories, unknown properties, and duplicate JSON properties are
 rejected. Files must contain strict JSON, so comments are not supported.
 Fragments cannot include other fragments. There are no wildcard includes or
@@ -963,6 +966,12 @@ rules and collection mapping extensions. JSON retains each file's relative name,
 SHA-256 digest, role, rule IDs, and disabled IDs in `evidence` records with
 `kind: "policy-file"`. File evidence is visible metadata, even with
 `--exclude-values`; keep secrets out of filenames and evidence.
+
+Validation errors name the responsible rule and file; cross-file conflicts name
+the involved files. Library callers can use `errors.As` with `*v2.RuleError` to
+read the rule IDs and `errors.Is` to inspect underlying filesystem errors.
+Invalid rule IDs and attribution records with an empty `kind` are rejected during
+loading; call `Compile` or `Compare` to validate the full assembled policy.
 
 Policy and request digests include this provenance. Splitting a policy, editing
 file whitespace, or changing the manifest order changes those digests, even when

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -30,11 +31,17 @@ func LoadPolicy(path string) (Policy, error) {
 	var out Policy
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return out, fmt.Errorf("cannot locate policy %q", path)
+		return out, fmt.Errorf("cannot locate policy %q: %w", path, err)
+	}
+	// A root symlink selects the target bundle. Includes are contained within
+	// that policy's directory, independently of where the link was placed.
+	absolute, err = filepath.EvalSymlinks(absolute)
+	if err != nil {
+		return out, fmt.Errorf("cannot locate policy %q: %w", path, err)
 	}
 	root, err := os.OpenRoot(filepath.Dir(absolute))
 	if err != nil {
-		return out, fmt.Errorf("cannot read policy %q", path)
+		return out, fmt.Errorf("cannot read policy %q: %w", path, err)
 	}
 	defer root.Close()
 	type source struct {
@@ -50,21 +57,27 @@ func LoadPolicy(path string) (Policy, error) {
 		if !filepath.IsLocal(name) {
 			return s, fmt.Errorf("policy include %q must be relative and stay within the root directory", name)
 		}
+		// Read the same normalized path that is recorded in provenance. Cleaning
+		// only the record would misidentify files when symlinks precede "..".
+		name = filepath.Clean(name)
 		// Reject special files before opening, so a named pipe cannot block loading.
 		info, err := root.Stat(name)
 		if err != nil {
-			return s, fmt.Errorf("cannot read policy file %q", s.name)
+			return s, fmt.Errorf("cannot read policy file %q: %w", s.name, err)
 		}
 		if !info.Mode().IsRegular() {
 			return s, fmt.Errorf("policy file %q must be a regular file", s.name)
 		}
 		f, err := root.Open(name)
 		if err != nil {
-			return s, fmt.Errorf("cannot read policy file %q", s.name)
+			return s, fmt.Errorf("cannot read policy file %q: %w", s.name, err)
 		}
 		defer f.Close()
 		s.info, err = f.Stat()
-		if err != nil || !s.info.Mode().IsRegular() {
+		if err != nil {
+			return s, fmt.Errorf("cannot stat policy file %q: %w", s.name, err)
+		}
+		if !s.info.Mode().IsRegular() {
 			return s, fmt.Errorf("policy file %q must be a regular file", s.name)
 		}
 		for _, old := range sources {
@@ -74,7 +87,7 @@ func LoadPolicy(path string) (Policy, error) {
 		}
 		s.data, err = io.ReadAll(f)
 		if err != nil {
-			return s, fmt.Errorf("cannot read policy file %q", s.name)
+			return s, fmt.Errorf("cannot read policy file %q: %w", s.name, err)
 		}
 		value, err := v2.JSON(s.data)
 		if err != nil {
@@ -118,7 +131,12 @@ func LoadPolicy(path string) (Policy, error) {
 		if err != nil {
 			return Policy{}, err
 		}
+		keys := make([]string, 0, len(s.body))
 		for key := range s.body {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
 			if !fragmentFields[key] {
 				return Policy{}, fmt.Errorf("policy fragment %q: property %q is not a rule field; settings and includes belong in the root policy", s.name, key)
 			}
@@ -139,10 +157,18 @@ func LoadPolicy(path string) (Policy, error) {
 	for index, p := range policies {
 		source := sources[index]
 		ids := []string{}
+		for _, evidence := range p.Evidence {
+			if evidence.Kind == "" {
+				return Policy{}, fmt.Errorf("policy file %q: evidence kind required", source.name)
+			}
+		}
 		for _, field := range policyRuleFields {
 			cat := reflect.ValueOf(p).FieldByName(field)
 			for i := 0; i < cat.Len(); i++ {
 				id := cat.Index(i).FieldByName("Rule").Interface().(v2.Rule).ID
+				if !v2.ValidRuleID(id) {
+					return Policy{}, fmt.Errorf("policy file %q: invalid rule ID %q", source.name, id)
+				}
 				if previous, exists := seenRules[id]; exists {
 					return Policy{}, fmt.Errorf("duplicate rule ID %q in policy files %q and %q", id, previous, source.name)
 				}
@@ -155,6 +181,9 @@ func LoadPolicy(path string) (Policy, error) {
 			}
 		}
 		for _, id := range p.DisabledRules {
+			if !v2.ValidRuleID(id) {
+				return Policy{}, fmt.Errorf("policy file %q: invalid disabled rule ID %q", source.name, id)
+			}
 			if previous, exists := seenDisabled[id]; exists {
 				return Policy{}, fmt.Errorf("duplicate disabled rule ID %q in policy files %q and %q", id, previous, source.name)
 			}
@@ -183,13 +212,14 @@ func policyFileError(p Policy, err error) error {
 	if err == nil {
 		return nil
 	}
-	words := map[string]bool{}
-	for _, word := range strings.FieldsFunc(err.Error(), func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("_.:-", r))
-	}) {
-		words[word] = true
+	ids := map[string]bool{}
+	var ruleErr *v2.RuleError
+	if errors.As(err, &ruleErr) {
+		for _, id := range ruleErr.RuleIDs {
+			ids[id] = true
+		}
 	}
-	files := []string{}
+	fileSet := map[string]bool{}
 	root := ""
 	for _, e := range p.Evidence {
 		if e.Kind != "policy-file" {
@@ -199,14 +229,18 @@ func policyFileError(p Policy, err error) error {
 			root = e.RecordID
 		}
 		for _, id := range strings.Fields(e.Attributes["rule_ids"] + " " + e.Attributes["disabled_rules"]) {
-			if words[id] {
-				files = append(files, e.RecordID)
+			if ids[id] {
+				fileSet[e.RecordID] = true
 				break
 			}
 		}
 	}
-	if len(files) == 0 && root != "" {
-		files = []string{root}
+	if len(fileSet) == 0 && root != "" {
+		fileSet[root] = true
+	}
+	files := make([]string, 0, len(fileSet))
+	for file := range fileSet {
+		files = append(files, file)
 	}
 	if len(files) == 0 {
 		return err

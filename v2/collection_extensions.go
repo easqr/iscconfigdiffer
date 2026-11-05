@@ -9,25 +9,25 @@ func validateCollectionExtensions(p Policy, collections map[string]Collection, c
 	for i, extension := range p.CollectionMappings {
 		r, ok := collections[extension.Collection]
 		if !ok || r.Mode != "keyed" {
-			return fmt.Errorf("collection mapping %s requires an effective keyed collection", extension.ID)
+			return ruleError(fmt.Errorf("collection mapping %s requires an effective keyed collection", extension.ID), extension.ID, extension.Collection)
 		}
 		if extension.Replaces != "" || len(extension.KeyMappings) == 0 || r.Key != "" && extension.Key != "" && r.Key != extension.Key {
-			return fmt.Errorf("invalid collection mapping extension %s", extension.ID)
+			return ruleError(fmt.Errorf("invalid collection mapping extension %s", extension.ID), extension.ID, extension.Collection)
 		}
 		// Extension modes may restrict the collection, never reactivate it.
 		for _, mode := range []string{"drift", "deployment"} {
 			if (len(p.Modes) == 0 || contains(p.Modes, mode)) && active(extension.Rule, mode) && !active(r.Rule, mode) {
-				return fmt.Errorf("collection mapping %s exceeds collection modes", extension.ID)
+				return ruleError(fmt.Errorf("collection mapping %s exceeds collection modes", extension.ID), extension.ID, extension.Collection)
 			}
 		}
 		for _, previous := range p.CollectionMappings[:i] {
 			if previous.Collection == extension.Collection && (previous.Key == "" || extension.Key == "" || previous.Key == extension.Key) && coactive(previous.Rule, extension.Rule) {
-				return fmt.Errorf("overlapping collection mapping extensions: %s %s", previous.ID, extension.ID)
+				return ruleError(fmt.Errorf("overlapping collection mapping extensions: %s %s", previous.ID, extension.ID), previous.ID, extension.ID, extension.Collection)
 			}
 		}
 		r.KeyMappings = append(append([]CollectionKeyMapping{}, r.KeyMappings...), extension.KeyMappings...)
 		if err := validateCollectionKeys(r); err != nil {
-			return fmt.Errorf("collection mapping %s: %w", extension.ID, err)
+			return ruleError(fmt.Errorf("collection mapping %s: %w", extension.ID, err), extension.ID, extension.Collection)
 		}
 		sort.Slice(extension.KeyMappings, func(i, j int) bool { return extension.KeyMappings[i].Path < extension.KeyMappings[j].Path })
 	}

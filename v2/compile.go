@@ -162,7 +162,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	disabled := map[string]bool{}
 	for _, id := range p.DisabledRules {
 		if _, ok := profileIDs[id]; !ok || disabled[id] {
-			return nil, fmt.Errorf("disabled_rules requires unique shipped rule IDs: %s", id)
+			return nil, ruleError(fmt.Errorf("disabled_rules requires unique shipped rule IDs: %s", id), id)
 		}
 		disabled[id] = true
 	}
@@ -171,13 +171,13 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		for j := 0; j < cat.Len(); j++ {
 			r := ruleOf(cat.Index(j))
 			if !validID.MatchString(r.ID) || allIDs[r.ID] {
-				return nil, fmt.Errorf("invalid or duplicate rule ID: %s", r.ID)
+				return nil, ruleError(fmt.Errorf("invalid or duplicate rule ID: %s", r.ID), r.ID)
 			}
 			allIDs[r.ID] = true
 			if r.Replaces != "" {
 				ci, ok := profileIDs[r.Replaces]
 				if !ok || ci != i || replaced[r.Replaces] != "" || disabled[r.Replaces] {
-					return nil, fmt.Errorf("invalid replacement for rule %s", r.ID)
+					return nil, ruleError(fmt.Errorf("invalid replacement for rule %s", r.ID), r.ID, r.Replaces, replaced[r.Replaces])
 				}
 				replaced[r.Replaces] = r.ID
 			}
@@ -204,7 +204,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			p.References[i].Modes = []string{"drift"}
 		}
 		if contains(p.References[i].Modes, "deployment") {
-			return nil, errors.New("references are drift-only; use reference_target expectations for deployment")
+			return nil, ruleError(errors.New("references are drift-only; use reference_target expectations for deployment"), p.References[i].ID)
 		}
 	}
 	var claims []struct {
@@ -236,13 +236,13 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	}
 	claim := func(s Selector, kind, id string) error {
 		if s.Variant != "" && !validID.MatchString(s.Variant) {
-			return fmt.Errorf("invalid variant for rule %s", id)
+			return ruleError(fmt.Errorf("invalid variant for rule %s", id), id)
 		}
 		if s.Type == "" || (space(s.Space) != "content" && space(s.Space) != "metadata") {
-			return fmt.Errorf("invalid selector for rule %s", id)
+			return ruleError(fmt.Errorf("invalid selector for rule %s", id), id)
 		}
 		if _, e := pointer(s.Path); e != nil {
-			return fmt.Errorf("invalid selector for rule %s", id)
+			return ruleError(fmt.Errorf("invalid selector for rule %s", id), id)
 		}
 		for _, old := range claims {
 			if !overlap(old.s, s) {
@@ -256,7 +256,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			}
 			if kind == "collection" && old.kind == "collection" {
 				if !collectionContains(old.s, s, collectionsByID[old.id].Mode) && !collectionContains(s, old.s, collectionsByID[id].Mode) {
-					return fmt.Errorf("collection conflict: %s %s", old.id, id)
+					return ruleError(fmt.Errorf("collection conflict: %s %s", old.id, id), old.id, id)
 				}
 				continue
 			}
@@ -268,11 +268,11 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 					parentID = id
 				}
 				if !collectionContains(a, b, collectionsByID[parentID].Mode) {
-					return fmt.Errorf("collection/value conflict: %s %s", old.id, id)
+					return ruleError(fmt.Errorf("collection/value conflict: %s %s", old.id, id), old.id, id)
 				}
 				continue
 			}
-			return fmt.Errorf("rule conflict: %s %s", old.id, id)
+			return ruleError(fmt.Errorf("rule conflict: %s %s", old.id, id), old.id, id)
 		}
 		claims = append(claims, struct {
 			s        Selector
@@ -289,42 +289,42 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			seen := map[string]bool{}
 			for _, m := range r.Modes {
 				if (m != "drift" && m != "deployment") || seen[m] {
-					return nil, fmt.Errorf("invalid modes: %s", r.ID)
+					return nil, ruleError(fmt.Errorf("invalid modes: %s", r.ID), r.ID)
 				}
 				seen[m] = true
 			}
 			sort.Strings(r.Modes)
 			if r.Evidence != nil && r.Evidence.Kind == "" {
-				return nil, fmt.Errorf("invalid evidence: %s", r.ID)
+				return nil, ruleError(fmt.Errorf("invalid evidence: %s", r.ID), r.ID)
 			}
 		}
 	}
 	idents := map[string]Identity{}
 	for _, r := range p.Identities {
 		if r.ComponentType != "" && r.ComponentType != "scalar" && r.ComponentType != "string" {
-			return nil, errors.New("invalid identity component type")
+			return nil, ruleError(errors.New("invalid identity component type"), r.ID)
 		}
 		if r.Type == "" || idents[r.Type].ID != "" || len(r.Modes) > 0 {
-			return nil, errors.New("duplicate/conditional identity")
+			return nil, ruleError(errors.New("duplicate/conditional identity"), r.ID, idents[r.Type].ID)
 		}
 		if r.Strategy != "fields" && r.Strategy != "singleton" && r.Strategy != "dependent" {
-			return nil, errors.New("invalid identity strategy")
+			return nil, ruleError(errors.New("invalid identity strategy"), r.ID)
 		}
 		if r.Strategy == "fields" && len(r.Paths) == 0 {
-			return nil, errors.New("identity paths required")
+			return nil, ruleError(errors.New("identity paths required"), r.ID)
 		}
 		if r.Strategy == "singleton" && (len(r.Paths) > 0 || r.ParentType != "" || r.ParentPath != "" || r.ComponentType != "") {
-			return nil, errors.New("invalid singleton")
+			return nil, ruleError(errors.New("invalid singleton"), r.ID)
 		}
 		if r.Strategy == "dependent" && (r.ParentType == "" || !concrete(r.ParentPath) || r.ParentPath == "") {
-			return nil, errors.New("invalid identity dependency")
+			return nil, ruleError(errors.New("invalid identity dependency"), r.ID)
 		}
 		if r.Strategy != "dependent" && (r.ParentType != "" || r.ParentPath != "") {
-			return nil, errors.New("unexpected identity dependency")
+			return nil, ruleError(errors.New("unexpected identity dependency"), r.ID)
 		}
 		for _, path := range r.Paths {
 			if !concrete(path) {
-				return nil, errors.New("concrete identity path required")
+				return nil, ruleError(errors.New("concrete identity path required"), r.ID)
 			}
 		}
 		idents[r.Type] = r
@@ -333,7 +333,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	var visit func(string) error
 	visit = func(t string) error {
 		if vis[t] == 1 {
-			return errors.New("identity dependency cycle")
+			return ruleError(errors.New("identity dependency cycle"), idents[t].ID)
 		}
 		if vis[t] == 2 {
 			return nil
@@ -345,7 +345,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		vis[t] = 1
 		if r.Strategy == "dependent" {
 			if e := visit(r.ParentType); e != nil {
-				return e
+				return ruleError(e, r.ID)
 			}
 		}
 		vis[t] = 2
@@ -356,100 +356,100 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			return nil, e
 		}
 	}
-	endpoints := map[string]bool{}
+	endpoints := map[string]string{}
 	for _, r := range p.Pairings {
 		if r.Type == "" || r.LeftID == "" || r.RightID == "" || len(r.Modes) > 0 {
-			return nil, errors.New("invalid pairing")
+			return nil, ruleError(errors.New("invalid pairing"), r.ID)
 		}
 		for i, id := range []string{r.LeftID, r.RightID, r.BaselineID} {
 			if id == "" {
 				continue
 			}
 			k := fmt.Sprint(i) + physical(r.Type, id)
-			if endpoints[k] {
-				return nil, errors.New("conflicting pairing endpoint")
+			if endpoints[k] != "" {
+				return nil, ruleError(errors.New("conflicting pairing endpoint"), r.ID, endpoints[k])
 			}
-			endpoints[k] = true
+			endpoints[k] = r.ID
 		}
 	}
 	for _, r := range p.Ignores {
 		if e := claim(r.Selector, "ignore", r.ID); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 		if identityOverlap(r.Selector, idents) {
-			return nil, errors.New("ignore overlaps identity")
+			return nil, ruleError(errors.New("ignore overlaps identity"), r.ID)
 		}
 	}
 	for _, r := range p.Expectations {
 		if r.SourceEquals != nil {
 			if err := validateState(*r.SourceEquals); err != nil {
-				return nil, err
+				return nil, ruleError(err, r.ID)
 			}
 			if !reflect.DeepEqual(r.Modes, []string{"deployment"}) {
-				return nil, errors.New("source guard must be deployment-only")
+				return nil, ruleError(errors.New("source guard must be deployment-only"), r.ID)
 			}
 		}
 		if e := claim(r.Selector, "expectation", r.ID); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 		switch r.Operation {
 		case "literal":
 			if (r.Expected == nil) == (len(r.Values) == 0) {
-				return nil, errors.New("literal requires exactly one expected/values source")
+				return nil, ruleError(errors.New("literal requires exactly one expected/values source"), r.ID)
 			}
 		case "absent":
 			if r.Expected != nil || len(r.Values) > 0 {
-				return nil, errors.New("absent cannot carry values")
+				return nil, ruleError(errors.New("absent cannot carry values"), r.ID)
 			}
 		case "copy_source", "preserve_target", "reference_target":
 			if r.Expected != nil || len(r.Values) > 0 || r.From != nil && !concrete(*r.From) {
-				return nil, errors.New("invalid derived expectation")
+				return nil, ruleError(errors.New("invalid derived expectation"), r.ID)
 			}
 		default:
-			return nil, errors.New("invalid expectation operation")
+			return nil, ruleError(errors.New("invalid expectation operation"), r.ID)
 		}
 		if r.Operation == "reference_target" && r.TargetType == "" {
-			return nil, errors.New("target type required")
+			return nil, ruleError(errors.New("target type required"), r.ID)
 		}
 		if (r.Operation == "literal" || r.Operation == "absent") && (r.From != nil || r.TargetType != "") {
-			return nil, errors.New("unexpected derivation fields")
+			return nil, ruleError(errors.New("unexpected derivation fields"), r.ID)
 		}
 		if r.Operation != "reference_target" && r.TargetType != "" {
-			return nil, errors.New("unexpected target type")
+			return nil, ruleError(errors.New("unexpected target type"), r.ID)
 		}
 		if r.Expected != nil {
 			if e := validateState(*r.Expected); e != nil {
-				return nil, e
+				return nil, ruleError(e, r.ID)
 			}
 		}
 		for env, s := range r.Values {
 			if env == "" {
-				return nil, errors.New("empty expectation environment")
+				return nil, ruleError(errors.New("empty expectation environment"), r.ID)
 			}
 			if e := validateState(s); e != nil {
-				return nil, e
+				return nil, ruleError(e, r.ID)
 			}
 		}
 	}
 	for i := range p.Equivalences {
 		r := &p.Equivalences[i]
 		if e := claim(r.Selector, "equivalence", r.ID); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 		if identityOverlap(r.Selector, idents) {
-			return nil, errors.New("equivalence overlaps identity")
+			return nil, ruleError(errors.New("equivalence overlaps identity"), r.ID)
 		}
 		if contains(r.Modes, "deployment") {
-			return nil, errors.New("equivalence is drift-only")
+			return nil, ruleError(errors.New("equivalence is drift-only"), r.ID)
 		}
 		if r.LeftEnv == "" || r.RightEnv == "" || (len(r.Pairs) == 0) == (len(r.Groups) == 0) {
-			return nil, errors.New("equivalence context/cases required")
+			return nil, ruleError(errors.New("equivalence context/cases required"), r.ID)
 		}
 		seenL, seenR := map[string]bool{}, map[string]bool{}
 		for _, pair := range r.Pairs {
 			l, rr := valueKey(pair.Left), valueKey(pair.Right)
 			if seenL[l] || seenR[rr] || seenR[l] || seenL[rr] {
-				return nil, errors.New("ambiguous equivalence cases")
+				return nil, ruleError(errors.New("ambiguous equivalence cases"), r.ID)
 			}
 			seenL[l] = true
 			seenR[rr] = true
@@ -458,18 +458,18 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		seen := map[string]bool{}
 		for _, g := range r.Groups {
 			if len(g) < 2 {
-				return nil, errors.New("equivalence group needs environments")
+				return nil, ruleError(errors.New("equivalence group needs environments"), r.ID)
 			}
 			if _, ok := g[r.LeftEnv]; !ok {
-				return nil, errors.New("group environment missing")
+				return nil, ruleError(errors.New("group environment missing"), r.ID)
 			}
 			if _, ok := g[r.RightEnv]; !ok {
-				return nil, errors.New("group environment missing")
+				return nil, ruleError(errors.New("group environment missing"), r.ID)
 			}
 			for env, v := range g {
 				k := env + "/" + valueKey(v)
 				if env == "" || seen[k] {
-					return nil, errors.New("ambiguous equivalence group")
+					return nil, ruleError(errors.New("ambiguous equivalence group"), r.ID)
 				}
 				seen[k] = true
 			}
@@ -478,34 +478,34 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	}
 	for _, r := range p.References {
 		if e := claim(r.Selector, "reference", r.ID); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 		if r.TargetType == "" {
-			return nil, errors.New("reference target required")
+			return nil, ruleError(errors.New("reference target required"), r.ID)
 		}
 		seen := map[string]bool{}
 		for l, rr := range r.External {
 			if l == "" || rr == "" || seen[rr] {
-				return nil, errors.New("external references must be one-to-one")
+				return nil, ruleError(errors.New("external references must be one-to-one"), r.ID)
 			}
 			seen[rr] = true
 		}
 	}
 	for _, r := range p.Collections {
 		if e := claim(r.Selector, "collection", r.ID); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 		if r.Mode != "ordered" && r.Mode != "keyed" && r.Mode != "multiset" {
-			return nil, errors.New("invalid collection mode")
+			return nil, ruleError(errors.New("invalid collection mode"), r.ID)
 		}
 		if (r.Mode == "keyed") != (len(r.Keys) > 0) {
-			return nil, errors.New("keyed collection requires keys only")
+			return nil, ruleError(errors.New("keyed collection requires keys only"), r.ID)
 		}
 		if err := validateCollectionKeys(r); err != nil {
-			return nil, fmt.Errorf("collection %s: %w", r.ID, err)
+			return nil, ruleError(fmt.Errorf("collection %s: %w", r.ID, err), r.ID)
 		}
 		if err := validateCollectionDisplay(r); err != nil {
-			return nil, fmt.Errorf("collection %s: %w", r.ID, err)
+			return nil, ruleError(fmt.Errorf("collection %s: %w", r.ID, err), r.ID)
 		}
 	}
 	if err := validateCollectionExtensions(p, collectionsByID, coactive); err != nil {
@@ -516,13 +516,13 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	}
 	for _, r := range p.Sensitive {
 		if r.Variant != "" && !validID.MatchString(r.Variant) {
-			return nil, errors.New("invalid sensitive variant")
+			return nil, ruleError(errors.New("invalid sensitive variant"), r.ID)
 		}
 		if r.Type == "" || (space(r.Space) != "content" && space(r.Space) != "metadata") {
-			return nil, errors.New("invalid sensitive selector")
+			return nil, ruleError(errors.New("invalid sensitive selector"), r.ID)
 		}
 		if _, e := pointer(r.Path); e != nil {
-			return nil, e
+			return nil, ruleError(e, r.ID)
 		}
 	}
 	for _, r := range p.Collections {
@@ -531,7 +531,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		}
 		for _, other := range claims {
 			if other.id != r.ID && overlap(r.Selector, other.s) && coactive(r.Rule, rulesByID[other.id]) {
-				return nil, errors.New("multiset cannot contain field or collection rules")
+				return nil, ruleError(errors.New("multiset cannot contain field or collection rules"), r.ID, other.id)
 			}
 		}
 	}
@@ -552,7 +552,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 				for _, name := range []string{"Type", "Selector"} {
 					a, b := old.FieldByName(name), nv.FieldByName(name)
 					if a.IsValid() && b.IsValid() && !reflect.DeepEqual(a.Interface(), b.Interface()) {
-						return nil, errors.New("replacement changes ownership")
+						return nil, ruleError(errors.New("replacement changes ownership"), next, id)
 					}
 				}
 			}

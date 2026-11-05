@@ -65,10 +65,10 @@ func disjointItems(a, b *CollectionItemSelector) bool {
 func validateItemForms(p Policy) error {
 	for _, r := range p.Equivalences {
 		if r.Item != nil && r.Items != nil {
-			return errors.New("equivalence must use item or items, not both")
+			return ruleError(errors.New("equivalence must use item or items, not both"), r.ID)
 		}
 		if r.Items != nil && len(r.Items) == 0 {
-			return errors.New("equivalence items must be nonempty")
+			return ruleError(errors.New("equivalence items must be nonempty"), r.ID)
 		}
 	}
 	return nil
@@ -104,17 +104,17 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 		for i := range scopes {
 			scope := &scopes[i]
 			if seenCollections[scope.Collection] {
-				return fmt.Errorf("equivalence %s repeats a collection in items", r.ID)
+				return ruleError(fmt.Errorf("equivalence %s repeats a collection in items", r.ID), r.ID)
 			}
 			seenCollections[scope.Collection] = true
 			c, ok := collections[scope.Collection]
 			if !ok || c.Mode != "keyed" || !active(c.Rule, "drift") || !collectionContains(c.Selector, r.Selector, c.Mode) {
-				return fmt.Errorf("equivalence %s requires an ancestor effective keyed collection", r.ID)
+				return ruleError(fmt.Errorf("equivalence %s requires an ancestor effective keyed collection", r.ID), r.ID)
 			}
 			for _, previous := range scopes[:i] {
 				parent := collections[previous.Collection]
 				if !collectionContains(parent.Selector, c.Selector, parent.Mode) && !collectionContains(c.Selector, parent.Selector, c.Mode) {
-					return fmt.Errorf("equivalence %s items must form an ancestor chain", r.ID)
+					return ruleError(fmt.Errorf("equivalence %s items must form an ancestor chain", r.ID), r.ID)
 				}
 			}
 			complete := func(paths []string) bool {
@@ -134,7 +134,7 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 					seen[path] = CollectionItemKey{}
 				}
 				if len(seen) != len(paths) {
-					return errors.New("item scopes require distinct key component paths")
+					return ruleError(errors.New("item scopes require distinct key component paths"), r.ID)
 				}
 				for _, previous := range choices[:i] {
 					other := map[string]CollectionItemKey{}
@@ -142,7 +142,7 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 						other[path] = CollectionItemKey{}
 					}
 					if sameItemPaths(seen, other) && !slices.Equal(paths, previous) {
-						return errors.New("item scope key tuple order is ambiguous")
+						return ruleError(errors.New("item scope key tuple order is ambiguous"), r.ID)
 					}
 				}
 			}
@@ -151,7 +151,7 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 				validTuple = validTuple || complete(keyCase.Keys)
 			}
 			if len(scope.Keys) == 0 || !validTuple {
-				return fmt.Errorf("equivalence %s item requires a complete collection key tuple", r.ID)
+				return ruleError(fmt.Errorf("equivalence %s item requires a complete collection key tuple", r.ID), r.ID)
 			}
 			mappings := append([]CollectionKeyMapping{}, c.KeyMappings...)
 			for _, extension := range p.CollectionMappings {
@@ -161,11 +161,11 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 			}
 			for path, key := range scope.Keys {
 				if !concrete(path) || (key.Mapped != "") == (len(key.Value) > 0) {
-					return errors.New("item key requires exactly one mapped group or raw value")
+					return ruleError(errors.New("item key requires exactly one mapped group or raw value"), r.ID)
 				}
 				if key.Mapped != "" {
 					if strings.TrimSpace(key.Mapped) == "" {
-						return errors.New("item mapped group must be nonblank")
+						return ruleError(errors.New("item mapped group must be nonblank"), r.ID)
 					}
 					found := false
 					for _, mapping := range mappings {
@@ -177,17 +177,17 @@ func validateEquivalenceItems(p Policy, collections map[string]Collection) error
 						}
 					}
 					if !found {
-						return fmt.Errorf("equivalence %s references an unavailable mapping group", r.ID)
+						return ruleError(fmt.Errorf("equivalence %s references an unavailable mapping group", r.ID), r.ID)
 					}
 				} else {
 					value, err := JSON(key.Value)
 					if err != nil || !scalar(value) {
-						return errors.New("item raw key requires a nonnull scalar value")
+						return ruleError(errors.New("item raw key requires a nonnull scalar value"), r.ID)
 					}
 					if c.ComponentType == "string" {
 						s, ok := value.(string)
 						if !ok || strings.TrimSpace(s) == "" {
-							return errors.New("item raw key must be a nonblank string")
+							return ruleError(errors.New("item raw key must be a nonblank string"), r.ID)
 						}
 					}
 				}
