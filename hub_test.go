@@ -1,172 +1,43 @@
 package differ
 
 import (
-	"context"
 	"encoding/json"
-	exporter "github.com/elianderson/iscutilities/configexporter"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
 	"testing"
-	"time"
 )
 
-func hubJSON(path string, enabled bool) []byte {
-	b, _ := json.Marshal([]map[string]any{{"objectMappingId": "map-a", "objectType": "SOURCE", "jsonPath": path, "sourceValue": "dc=example,dc=com", "targetValue": "dc=example-dev,dc=com", "enabled": enabled, "created": "2025-01-01", "modified": "2025-01-02"}})
-	return b
-}
-func TestHubPathsAndImport(t *testing.T) {
-	for path, want := range map[string]string{"$": "/object", "$.owner.name": "/object/owner/name", `$['a/b']["~key"][0]`: "/object/a~1b/~0key/0", "$.items[*].name": "/object/items/*/name"} {
-		got, e := HubPointer(path)
-		if e != nil || got != want {
-			t.Fatal(path, got, e)
+func TestHubPointer(t *testing.T) {
+	for path, want := range map[string]string{"$": "", "$.owner.name": "/owner/name", `$['a/b']["~key"][0]`: "/a~1b/~0key/0", "$.items[*].name": "/items/*/name", "$.object.host": "/object/host"} {
+		got, err := HubPointer(path)
+		if err != nil || got != want {
+			t.Fatal(path, got, err)
 		}
 	}
 	for _, path := range []string{"owner.name", "$..name", "$.x[?(@.id)]", "$.x[0:2]", "$.x[1,2]", "$.*", "$['*']"} {
-		if _, e := HubPointer(path); e == nil {
-			t.Fatal(path)
+		if _, err := HubPointer(path); err == nil {
+			t.Fatal("unsupported path accepted", path)
 		}
-	}
-	ctx := HubContext{SourceTenant: "invented-prod", TargetTenant: "invented-sb", Provenance: "saved-fixture"}
-	rules, e := ImportHub(hubJSON("$.dn", true), ctx)
-	if e != nil || len(rules) != 1 || rules[0].Created != "2025-01-01" || rules[0].JSONPath != "$.dn" {
-		t.Fatal(rules, e)
-	}
-	if _, e = ImportHub(hubJSON("$..dn", true), ctx); e == nil {
-		t.Fatal("active unsupported expression dropped")
-	}
-	disabled, e := ImportHub(hubJSON("$..dn", false), ctx)
-	if e != nil || disabled[0].Enabled {
-		t.Fatal(disabled, e)
-	}
-	if _, e = ImportHub(hubJSON("$.dn", true), HubContext{}); e == nil {
-		t.Fatal("missing context accepted")
-	}
-	raw := strings.Replace(string(hubJSON("$.dn", true)), `"sourceValue":"dc=example,dc=com"`, `"sourceValue":123`, 1)
-	if _, e = ImportHub([]byte(raw), ctx); e == nil {
-		t.Fatal("inferred string type")
-	}
-	p := policy()
-	p.Hub = rules
-	a := input(t, "production", []string{"SOURCE"}, obj("SOURCE", "a", "S", map[string]any{"dn": "dc=example,dc=com"}))
-	b := input(t, "sandbox", []string{"SOURCE"}, obj("SOURCE", "b", "S", map[string]any{"dn": "dc=example-dev,dc=com"}))
-	// Tree provenance is deliberately absent; Hub context cannot be guessed from labels.
-	if runCompare(t, a, b, p).ExitCode() != 2 {
-		t.Fatal("missing Hub tenant context accepted")
-	}
-	withTenant := func(in map[string]any, tenant string) snapshot.Input {
-		raw, _ := json.Marshal(map[string]any{"tenant": tenant, "objects": []any{in}})
-		snap, e := exporter.Organize(tenant, exporter.Download{JobID: "fixture", Types: []string{"SOURCE"}, Raw: raw}, time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
-		if e != nil {
-			t.Fatal(e)
-		}
-		files := map[string][]byte{}
-		for _, artifact := range snap.Artifacts {
-			files[artifact.Path] = artifact.Data
-		}
-		files["manifest.json"], _ = json.Marshal(snap.Manifest)
-		input, e := snapshot.FromFiles(files, snapshot.Options{Mode: snapshot.SnapshotMode})
-		if e != nil {
-			t.Fatal(e)
-		}
-		return input
-	}
-	a = withTenant(obj("SOURCE", "a", "S", map[string]any{"dn": "dc=example,dc=com"}), ctx.SourceTenant)
-	b = withTenant(obj("SOURCE", "b", "S", map[string]any{"dn": "dc=example-dev,dc=com"}), ctx.TargetTenant)
-	if out := runCompare(t, a, b, p); out.ExitCode() != 0 {
-		t.Fatal(out)
-	}
-	// A Hub substitution is applicable only to its source/target value pair;
-	// unrelated equal values remain ordinary equality rather than assertions.
-	b = withTenant(obj("SOURCE", "b", "S", map[string]any{"dn": "wrong"}), ctx.TargetTenant)
-	if out := runCompare(t, a, b, p); out.ExitCode() != 1 {
-		t.Fatal(out)
-	}
-	p.Hub = append(rules, rules[0])
-	p.Hub[1].ID = "map-b"
-	if p.Validate() == nil {
-		t.Fatal("ambiguous conversion accepted")
-	}
-	p = policy()
-	p.Hub = disabled
-	if out := runCompare(t, a, b, p); out.ExitCode() != 1 {
-		t.Fatal(out)
-	}
-}
-func TestRuleOrderAndSensitiveProvenance(t *testing.T) {
-	l := input(t, "e", []string{"ROLE"}, obj("ROLE", "l", "SensitiveName", map[string]any{"a": 1, "b": 1}))
-	r := input(t, "e", []string{"ROLE"}, obj("ROLE", "r", "SensitiveName", map[string]any{"a": 2, "b": 2}))
-	p := policy()
-	p.Ignores = []Ignore{{ID: "b", Selector: Selector{Type: "ROLE", Path: "/object/b"}}, {ID: "a", Selector: Selector{Type: "ROLE", Path: "/object/a"}}}
-	first := runCompare(t, l, r, p)
-	p.Ignores[0], p.Ignores[1] = p.Ignores[1], p.Ignores[0]
-	second := runCompare(t, l, r, p)
-	if !reflect.DeepEqual(first, second) {
-		t.Fatal("rule ordering affected report")
-	}
-	p.Sensitive = []Sensitive{{ID: "secret-name", Selector: Selector{Type: "ROLE", Path: "/object/name"}}}
-	out := runCompare(t, l, r, p)
-	raw, _ := json.Marshal(out)
-	if strings.Contains(string(raw), "SensitiveName") || strings.Contains(string(raw), "id-6c") {
-		t.Fatal(string(raw))
 	}
 }
 
-func TestSensitiveDerivedIdentityAndDiagnostics(t *testing.T) {
-	in := input(t, "e", []string{"IDENTITY_PROFILE", "LIFECYCLE_STATE"}, obj("IDENTITY_PROFILE", "sensitive-physical-parent", "SecretParent", nil), obj("LIFECYCLE_STATE", "child", "State", map[string]any{"technicalName": "active", "identityProfileRef": map[string]any{"id": "sensitive-physical-parent"}}))
-	p := policy()
-	p.Sensitive = []Sensitive{{ID: "parent-secret", Selector: Selector{Type: "IDENTITY_PROFILE", Path: "/object/name"}}}
-	out := runCompare(t, in, in, p)
-	raw, _ := json.Marshal(out)
-	if strings.Contains(string(raw), "SecretParent") || strings.Contains(string(raw), "sensitive-physical-parent") {
-		t.Fatal("derived key exposed sensitive identity")
+func TestHubAmbiguityAndPayloadPaths(t *testing.T) {
+	opts := HubOptions{SourceTenant: "invented-source", TargetTenant: "invented-target", LeftEnvironment: "dev", RightEnvironment: "prod"}
+	record := func(id, path, source, target string) map[string]any {
+		return map[string]any{"objectMappingId": id, "objectType": "SOURCE", "jsonPath": path, "sourceValue": source, "targetValue": target, "enabled": true}
 	}
-	bad := input(t, "e", []string{"FUTURE"}, obj("FUTURE", "private-id", "", nil))
-	p = policy()
-	p.Sensitive = []Sensitive{{ID: "own-id", Selector: Selector{Type: "FUTURE", Path: "/self/id"}}}
-	out = runCompare(t, bad, bad, p)
-	raw, _ = json.Marshal(out)
-	if strings.Contains(string(raw), "private-id") || strings.Contains(string(raw), "id-707269") {
-		t.Fatal("diagnostic exposed sensitive provenance")
+	for _, records := range [][]map[string]any{{record("a", "$.host", "dev", "prod"), record("b", "$.host", "dev", "other")}, {record("a", "$.host", "dev", "middle"), record("b", "$.host", "middle", "prod")}, {record("a", "$.items[*].host", "dev", "prod"), record("b", "$.items[0].host", "other", "different")}, {record("a", "$.host", "dev", "prod"), record("a", "$.other", "x", "y")}} {
+		data, _ := json.Marshal(records)
+		if _, err := ImportHub(data, nil, opts); err == nil {
+			t.Fatal("ambiguous mappings accepted")
+		}
 	}
-}
-
-// This fixture exercises the public exporter boundary without a tenant, SDK
-// authentication, remote calls or reference-export files.
-type retrievedMappingAPI struct {
-	data   json.RawMessage
-	source string
-}
-
-func (a *retrievedMappingAPI) GetMappings(_ context.Context, source string) (exporter.MappingDownload, error) {
-	a.source = source
-	return exporter.MappingDownload{Data: a.data, APIOrigin: "https://invented-sb.example.invalid"}, nil
-}
-func TestRetrievedMappingBundleImportsOffline(t *testing.T) {
-	for _, enabled := range []bool{false, true} {
-		raw := hubJSON("$.dn", enabled)
-		api := &retrievedMappingAPI{data: raw}
-		saved, e := exporter.RetrieveMappings(context.Background(), api, exporter.MappingRequest{SourceOrg: "invented-prod", TargetTenant: "invented-sb", ExportJobID: "synthetic-job"})
-		if e != nil {
-			t.Fatal(e)
-		}
-		root := t.TempDir()
-		publication, e := (exporter.MappingFileStore{Directory: filepath.Join(root, "mappings"), ExportRoot: filepath.Join(root, "exports")}).Publish(context.Background(), saved)
-		if e != nil {
-			t.Fatal(e)
-		}
-		data, e := os.ReadFile(filepath.Join(publication.Directory, "mappings.json"))
-		if e != nil {
-			t.Fatal(e)
-		}
-		if api.source != "invented-prod" || string(data) != string(raw) || snapshot.Checksum(data) != publication.Provenance.SHA256 {
-			t.Fatal("retrieval bytes or context changed")
-		}
-		rules, e := ImportHub(data, HubContext{SourceTenant: publication.Provenance.SourceOrg, TargetTenant: publication.Provenance.TargetTenant, Provenance: "sha256:" + publication.Provenance.SHA256})
-		if e != nil || len(rules) != 1 || rules[0].Enabled != enabled || rules[0].SourceTenant != "invented-prod" || rules[0].TargetTenant != "invented-sb" || rules[0].Created != "2025-01-01" {
-			t.Fatal("retrieved mapping did not survive offline handoff", e)
-		}
+	data, _ := json.Marshal([]map[string]any{record("a", "$.host", "dev-a", "prod-a"), record("b", "$.host", "dev-b", "prod-b")})
+	result, err := ImportHub(data, nil, opts)
+	if err != nil || len(result.Equivalences) != 1 || len(result.Equivalences[0].Pairs) != 2 {
+		t.Fatal(result, err)
+	}
+	data, _ = json.Marshal([]map[string]any{record("a", "$.object.host", "dev", "prod")})
+	result, err = ImportHub(data, nil, opts)
+	if err != nil || result.Equivalences[0].Path != "/object/host" {
+		t.Fatal("payload member was stripped", result, err)
 	}
 }

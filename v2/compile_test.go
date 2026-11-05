@@ -49,7 +49,7 @@ func TestStrictCompiler(t *testing.T) {
 	}
 }
 func TestProfilesReplacementsAndDigest(t *testing.T) {
-	profile := Profile{ID: "generic-v1", Rules: Policy{Identities: testPolicy().Identities, Ignores: []Ignore{{Rule: testRule("metadata"), Selector: Selector{Type: "THING", Space: "metadata", Path: "/generated"}}}}}
+	profile := Profile{ID: "generic-v2", Rules: Policy{Identities: testPolicy().Identities, Ignores: []Ignore{{Rule: testRule("metadata"), Selector: Selector{Type: "THING", Space: "metadata", Path: "/generated"}}}}}
 	p := Policy{Version: 2, ID: "p", Profile: profile.ID}
 	p.Ignores = []Ignore{{Rule: Rule{ID: "custom", Replaces: "metadata", Modes: []string{"drift"}}, Selector: Selector{Type: "THING", Space: "metadata", Path: "/generated"}}}
 	c, e := Compile(p, profile)

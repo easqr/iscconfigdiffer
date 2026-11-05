@@ -1,16 +1,19 @@
+// Package differ compares validated ISC configuration inputs offline.
 package differ
 
 import (
 	"errors"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
 	"github.com/elianderson/iscutilities/configexporter/snapshot"
 )
 
-// V2Request keeps validated ISC storage inputs outside the neutral engine.
+// Request keeps validated ISC storage inputs outside the neutral engine.
 // Left/Right mean source/actual when Mode is deployment.
-type V2Request struct {
+type Request struct {
 	Mode            string
 	Left, Right     snapshot.Input
 	Baseline        *snapshot.Input
@@ -19,16 +22,19 @@ type V2Request struct {
 	IncludeMatching bool
 }
 
-func DefaultV2Policy() v2.Policy {
-	return v2.Policy{Version: 2, ID: "default-v2", Profile: "isc-envelope-v2"}
+func DefaultPolicy() v2.Policy {
+	return v2.Policy{Version: 2, ID: "default", Profile: "isc-envelope-v2"}
 }
 func AdaptSnapshot(in snapshot.Input) (v2.Input, error) {
 	in, e := snapshot.Clone(in)
 	if e != nil {
 		return v2.Input{}, e
 	}
-	s := summary(in)
-	out := v2.Input{Label: in.Label, Environment: in.Environment, Tenant: in.Manifest.Tenant, ContentHash: in.ContentHash, ManifestHash: in.ManifestHash, JobID: in.Manifest.JobID, Completed: s.Completed, ReadMode: string(in.Mode), Types: append([]string{}, in.Manifest.Types...), Documents: []v2.Document{}}
+	completed := ""
+	if !in.Manifest.Completed.IsZero() {
+		completed = in.Manifest.Completed.Format(time.RFC3339Nano)
+	}
+	out := v2.Input{Label: in.Label, Environment: in.Environment, Tenant: in.Manifest.Tenant, ContentHash: in.ContentHash, ManifestHash: in.ManifestHash, JobID: in.Manifest.JobID, Completed: completed, ReadMode: string(in.Mode), Types: append([]string{}, in.Manifest.Types...), Documents: []v2.Document{}}
 	for _, o := range in.Objects {
 		metadata := map[string]any{}
 		for k, v := range o.Envelope {
@@ -40,7 +46,7 @@ func AdaptSnapshot(in snapshot.Input) (v2.Input, error) {
 	}
 	return out, nil
 }
-func CompareV2(r V2Request, p v2.Policy) (v2.Report, error) {
+func Compare(r Request, p v2.Policy) (v2.Report, error) {
 	var report v2.Report
 	left, e := AdaptSnapshot(r.Left)
 	if e != nil {
@@ -58,13 +64,13 @@ func CompareV2(r V2Request, p v2.Policy) (v2.Report, error) {
 		}
 		req.Baseline = &b
 	}
-	c, e := CompileV2(p)
+	c, e := Compile(p)
 	if e != nil {
 		return report, e
 	}
 	return v2.Run(req, c)
 }
-func CompileV2(p v2.Policy) (*v2.Compiled, error) {
+func Compile(p v2.Policy) (*v2.Compiled, error) {
 	if p.Profile == "" {
 		return v2.Compile(p)
 	}
@@ -94,7 +100,7 @@ func ISCProfile(p v2.Policy) (v2.Profile, error) {
 		}
 		profile.Rules.Identities = append(profile.Rules.Identities, v2.Identity{Rule: rule("isc.identity." + typ), Type: typ, Strategy: strategy, Paths: paths, ComponentType: componentType})
 	}
-	for _, typ := range named {
+	for _, typ := range namedTypes {
 		addIdentity(typ, "fields", "/name")
 	}
 	for _, typ := range []string{"ACCESS_REQUEST_CONFIG", "AUTH_ORG"} {
@@ -129,8 +135,25 @@ func ISCProfile(p v2.Policy) (v2.Profile, error) {
 		for _, path := range []string{"/version", "/self/type"} {
 			r := rule("isc." + typ + ".envelope" + strings.ReplaceAll(path, "/", "."))
 			r.Modes = []string{"deployment"}
-			profile.Rules.Expectations = append(profile.Rules.Expectations, v2.Expectation{Rule: r, Selector: v2.Selector{Type: typ, Space: "metadata", Path: path}, Operation: "copy_source", Authority: "isc-envelope-v1-structure"})
+			profile.Rules.Expectations = append(profile.Rules.Expectations, v2.Expectation{Rule: r, Selector: v2.Selector{Type: typ, Space: "metadata", Path: path}, Operation: "copy_source", Authority: "isc-envelope-structure"})
 		}
 	}
 	return profile, nil
+}
+
+// Policy and Report use the current comparison schema.
+type Policy = v2.Policy
+type Report = v2.Report
+
+func DecodePolicy(data []byte) (Policy, error) { return v2.Decode(data) }
+
+var namedTypes = strings.Fields("ACCESS_PROFILE CAMPAIGN_FILTER CONNECTOR_RULE FORM_DEFINITION GOVERNANCE_GROUP IDENTITY_OBJECT_CONFIG IDENTITY_PROFILE PASSWORD_POLICY PASSWORD_SYNC_GROUP PUBLIC_IDENTITIES_CONFIG ROLE RULE SEGMENT SERVICE_DESK_INTEGRATION SOD_POLICY SOURCE SPS_PARAMETER TAG TRANSFORM TRIGGER_SUBSCRIPTION WORKFLOW")
+
+func sortedKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for key := range m {
+		out = append(out, key)
+	}
+	sort.Strings(out)
+	return out
 }

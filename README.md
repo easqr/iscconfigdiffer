@@ -105,7 +105,7 @@ JSON
 ./bin/isc-configdiffer --mode drift \
   --left "$demo_dir/dev" --left-mode tree --left-types SOURCE --left-env dev \
   --right "$demo_dir/prod" --right-mode tree --right-types SOURCE --right-env prod \
-  --policy examples/policy-v2-drift.json
+  --policy examples/policy-drift.json
 ```
 
 The comparison completes successfully with exit code `0`. Objects match by their
@@ -128,7 +128,7 @@ snapshot-root/
     id-726f6c652d31.json
 ```
 
-Every object file is a version-1 envelope containing `self.type`, `self.id`, and
+Every object file uses the exporter envelope containing `self.type`, `self.id`, and
 an object-valued `object` payload, as shown in the quick start. The canonical
 filename is `TYPE/id-<lowercase hexadecimal UTF-8 ID>.json`: ID `a` becomes
 `SOURCE/id-61.json`. If the payload includes `id`, it must equal `self.id`.
@@ -172,7 +172,7 @@ manifest and excluded version-control administration directories.
   --left /data/dev --left-mode snapshot --left-env dev \
   --right /data/prod --right-mode snapshot --right-env prod \
   --scope SOURCE \
-  --policy examples/policy-v2-drift.json \
+  --policy examples/policy-drift.json \
   --format json > drift-report.json
 ```
 
@@ -189,8 +189,8 @@ in a manifest and must match the labels used in your policy.
   --actual /data/draft --actual-mode tree --actual-types SOURCE --actual-env prod \
   --baseline /data/prod --baseline-mode snapshot --baseline-env prod \
   --scope SOURCE \
-  --operations examples/operations-v2.json \
-  --policy examples/policy-v2-deployment.json \
+  --operations examples/operations.json \
+  --policy examples/policy-deployment.json \
   --format json > deployment-report.json
 ```
 
@@ -213,19 +213,18 @@ impact analysis and authorization gates are outside this tool's scope.
 
 ## CLI options
 
-For the v2 flag listing, run `./bin/isc-configdiffer --mode drift --help`.
+For the flag listing, run `./bin/isc-configdiffer --mode drift --help`.
 The current CLI returns `2` after displaying help. All filenames and directories
 are resolved relative to the current working directory unless absolute.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--mode` | Legacy execution if omitted | `drift` or `deployment`; use explicitly for v2 |
-| `--policy FILE` | Built-in `default-v2` / `isc-envelope-v2` in v2 mode | Read a policy JSON file; v2 drift can translate supported v1 policies |
+| `--mode` | `drift` | `drift` or `deployment` |
+| `--policy FILE` | Built-in `default` / `isc-envelope-v2` | Read a comparison policy JSON file using schema `2` |
 | `--scope TYPES` | Full declared type set; primary sets must match | Explicit comma-separated type subset available in all inputs |
 | `--format` | `text` | `text` or `json` |
-| `--matching` | `false` | Include ordinary equal leaves in v2; does not affect result counts or exit status |
+| `--matching` | `false` | Include ordinary equal leaves in reports; does not affect result counts or exit status |
 | `--operations FILE` | None | Required deployment operation list; invalid in drift mode |
-| `--translate-policy FILE` | None | Translate a v1 policy to v2 JSON on stdout; cannot be combined with other flags |
 
 For each role, replace `<role>` in the following options:
 
@@ -268,13 +267,13 @@ arbitrary; their JSON schema determines their purpose.
 | --- | --- | --- |
 | `manifest.json` and object envelopes | Exporter, or a correctly structured edited tree | Comparison input data and provenance |
 | Policy, e.g. `portable-policy.json` | You | Matching, normalization, equivalence, and expectations; pass with `--policy` |
-| `examples/policy-v2-drift.json` | Included example | Approved hostname equivalence for `dev` to `prod` |
-| `examples/policy-v2-deployment.json` | Included example | Field-by-field deployment expectations |
-| `examples/operations-v2.json` | Included example to adapt | Intended objects/actions for deployment; pass with `--operations` |
+| `examples/policy-drift.json` | Included example | Approved hostname equivalence for `dev` to `prod` |
+| `examples/policy-deployment.json` | Included example | Field-by-field deployment expectations |
+| `examples/operations.json` | Included example to adapt | Intended objects/actions for deployment; pass with `--operations` |
 | `mappings.json` | Saved Hub response or exporter mapping retrieval | Optional vendor mapping input; pass the file or its bundle with `--hub` |
 | Mapping `provenance.json` | Exporter mapping retrieval | Validates a bundle's integrity and records retrieval context |
 | Deployment evidence JSON | You | Authority attribution for Hub deployment promotion |
-| `examples/policy.json` | Legacy example | Version-1 policy using envelope-relative paths |
+| `examples/policy.json` | Included minimal example | Portable comparison using the current policy schema |
 
 Exporter authentication files such as `config.json` and `exporter.json` belong to
 `configexporter`; `configdiffer` does not read them.
@@ -287,7 +286,7 @@ unknown properties, or case-insensitive property aliases. Policy/rule IDs contai
 must be unique across all categories. Values retain JSON types; strings are not
 converted to numbers or booleans, and missing values differ from `null`.
 
-A minimal v2 policy, suitable as `portable-policy.json`, is:
+A minimal comparison policy, suitable as `portable-policy.json`, is:
 
 ```json
 {
@@ -302,7 +301,7 @@ profile's exclusions. It does not add environment-specific hostname equivalence.
 
 | Root property | Meaning |
 | --- | --- |
-| `version` | Required `2` for the new policy schema |
+| `version` | Required `2` for the comparison policy schema |
 | `id` | Required stable policy identifier |
 | `profile` | Optional named ISC identity/metadata profile |
 | `modes` | Optional allowed comparison modes, e.g. `["drift"]` |
@@ -334,7 +333,7 @@ for the named-type list.
 ### Selectors, rule options, and precedence
 
 Value rules select a `type`, a JSON Pointer `path`, and optionally one exact object
-logical `key`. In v2, paths are **payload-relative**:
+logical `key`. Policy paths are **payload-relative**:
 
 | Selector | Meaning |
 | --- | --- |
@@ -361,7 +360,7 @@ Every rule includes `id`. Optional common fields are:
 File order never determines precedence. Conflicting active rules, including an
 ignore that could hide an expectation, are rejected. To override a profile rule,
 name its ID with `replaces`; adding another overlapping rule is not an override.
-Profile rule IDs are documented in the [v2 contract](docs/policy-v2.md#isc-profiles).
+Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-profiles).
 
 ### Equivalence: approved drift differences
 
@@ -384,7 +383,7 @@ The included drift example contains this category:
 }
 ```
 
-This is a **fragment to merge into a full v2 policy**, not a standalone policy.
+This is a **fragment to merge into a full policy**, not a standalone policy.
 `pairs` are directional, apply to the specified environments, and compare typed
 whole values. Reversing the command does not reverse a pair automatically.
 Alternatively, use `groups` instead of `pairs` for explicitly symmetric
@@ -572,29 +571,10 @@ expectations instead of automatic promotion. Do not duplicate an imported rule's
 field with another active value rule. No parity with undocumented Hub global
 substitution rules is assumed.
 
-### Legacy v1 policies
-
-Invocations without `--mode` use the original v1 CLI and report schema. The
-included [`examples/policy.json`](examples/policy.json) is a v1 policy: its payload
-paths start with `/object`, its profiles end in `-v1`, and expectations use direct
-environment-to-value maps rather than tagged v2 states.
-
-Migrate a supported policy explicitly:
-
-```sh
-./bin/isc-configdiffer --translate-policy examples/policy.json > policy-v2.json
-```
-
-Translation produces a drift-only policy. V2 drift execution also accepts
-supported v1 policies via `--policy`; deployment requires an authored v2 policy.
-Translation fails visibly for unsupported semantics. Use wildcard selectors under
-keyed arrays. Consult the [v1 contract](docs/contracts.md) when maintaining legacy
-policies; do not mix v1 envelope paths with v2 payload paths.
-
 ## Use as a Go library
 
 The root package is named `differ`. This function compares two validated snapshots
-using a v2 policy file; its environment labels match the included drift example:
+using a policy file; its environment labels match the included drift example:
 
 ```go
 package example
@@ -629,7 +609,7 @@ func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
     if err != nil {
         return empty, err
     }
-    return differ.CompareV2(differ.V2Request{
+    return differ.Compare(differ.Request{
         Mode: "drift", Left: left, Right: right,
     }, policy)
 }
@@ -637,7 +617,7 @@ func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
 
 Handle the returned error before consuming the report. Then use
 `report.ExitCode()`, `report.Text(writer)`, or `json.NewEncoder(writer).Encode(report)`.
-For deployment, `V2Request.Left` is the source, `Right` is the actual draft,
+For deployment, `Request.Left` is the source, `Right` is the actual draft,
 `Baseline` is an optional `*snapshot.Input`, and `Operations` is a
 `[]v2.Operation`.
 
@@ -646,8 +626,8 @@ validation as the disk reader. Construct validated inputs with `Read` or
 `FromFiles`; the ISC adapter rejects arbitrary or mutated `snapshot.Input`
 structures. Comparison operates on detached representations. For neutral document
 formats, use `v2.Compile` and `v2.Run` with your own profiles and adapters; use
-`differ.CompileV2` or `CompareV2` to expand built-in ISC profiles. Original v1
-`differ.Compare` and `DecodePolicy` remain available.
+`differ.Compile` or `Compare` to expand built-in ISC profiles. The root package also exposes `DecodePolicy` and aliases for the current `Policy`
+and `Report` types.
 
 For a separate consuming Go module, replacement directives in a dependency's
 `go.mod` are not inherited. Until published versions are used, add replacements
@@ -680,7 +660,7 @@ produce an incomplete diagnostic report on stdout and still exit `2`.
 | `1` | Complete with known differences or expectation violations |
 | `2` | Invalid input/policy/request, incomplete or unverified comparison, or output failure |
 
-A report's `complete` flag and correctness are separate. V2 `correct` is false
+A report's `complete` flag and correctness are separate. `correct` is false
 whenever the result is incomplete. Reports include effective scope, input hashes,
 policy/profile/request digests, matching decisions, concrete per-input locations,
 applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
@@ -727,7 +707,7 @@ contracts. Automated fixtures use invented data and temporary directories; they
 do not require credentials or tenant exports. Format changed Go files with
 `gofmt` and check whitespace with `git diff --check`.
 
-- [V2 policy and report contract](docs/policy-v2.md): exact fields, semantics, and adapter boundaries.
-- [V1 input and policy contract](docs/contracts.md): snapshot format and legacy behavior.
+- [Policy and report contract](docs/policy.md): exact fields, semantics, and adapter boundaries.
+- [Export input contract](docs/contracts.md): snapshot format and validated readers.
 - [Exporter mapping retrieval](../configexporter/docs/MAPPINGS.md): optional retrieval and bundle provenance.
-- [Implementation record](docs/v2-implementation.md) and [correctness review](docs/v2-review.md): acceptance evidence and compatibility notes.
+- [Implementation record](docs/implementation.md) and [correctness review](docs/review.md): acceptance evidence and compatibility notes.

@@ -4,45 +4,24 @@ V2 is an offline, vendor-neutral compiler and comparison engine in `v2/`. The ro
 package adapts validated ISC snapshots and Configuration Hub artifacts. Production
 comparison code imports neither exporter authentication nor a generated SDK.
 
-## Entry points and compatibility
+## Library entry points
 
 * `v2.Decode`, `v2.Compile`, `v2.Run`: neutral policy/documents.
 * `differ.AdaptSnapshot`: validates and detaches `snapshot.Input`, preserving
   provenance and unknown fields. Payload becomes `content`; envelope fields other
   than `object` become `metadata`.
-* `differ.CompileV2` and `differ.CompareV2`: ISC profiles and validated storage.
-* `differ.TranslateV1`: explicit drift migration; it never grants deployment
-  authority to legacy equivalence rules.
-* `differ.ImportHubV2` / `ReadHubV2`: offline array/bundle adapters.
+* `differ.Compile` and `differ.Compare`: ISC profiles and validated storage.
+* `differ.ImportHub` / `ReadHub`: offline array/bundle adapters.
 
-Existing `DecodePolicy`, `Compare`, v1 report JSON, and CLI invocations without
-`--mode` retain their schema and valid supported behavior. Correctness fixes prevent
-external mappings from overriding established reference correspondence and reject
-unsafe positional selectors beneath keyed arrays. Use wildcard item selectors
-there; see the [seven-slice review](v2-review.md) for compatibility details.
-New CLI execution requires `--mode drift`
-or `--mode deployment`; it emits report version 2. V1 policies may be translated
-automatically for explicit drift execution, or migrated separately:
-
-```sh
-isc-configdiffer --translate-policy /policies/legacy.json > /policies/v2.json
-```
-
-The translator preserves assertions, exact matching, references, keyed arrays,
-exclusions and directional Hub relationships. V2 provides corrected aligned-item
-evaluation and more conservative sensitive provenance handling; v1 report counts
-are not converted into v2 decision counts. Envelope-root reference/collection
-rules and metadata-based identities require the legacy executor or a manually
-authored v2 policy. Translation fails explicitly for unsupported semantics.
-Legacy Hub translation requires left/right environment bindings in the policy.
-Root envelope assertions split into content and metadata assertions. Generated
-IDs must still meet v2's ID contract; no silent truncation is performed.
+The CLI and library use one comparison engine and policy/report schema `2`.
+The CLI defaults to drift mode; select `--mode deployment` for draft validation.
+Policies use payload-relative selectors. `DecodePolicy`, `Compile`, and `Compare`
+are the public ISC entry points; the `v2` package provides the neutral core.
 
 ## Schema
 
 The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`, and rule arrays.
-Root `modes` restricts permitted comparison modes; migrated policies are explicitly
-restricted to drift. An omitted mode restriction permits both execution modes.
+Root `modes` restricts permitted comparison modes; an omitted restriction permits both execution modes.
 JSON is strict: exact property spelling, no unknown properties or duplicate keys,
 valid UTF-8, no trailing JSON, and exact numbers. Policy/rule IDs use 1–200 ASCII
 letters/digits and `_ . : -`, beginning with a letter/digit. Required JSON
@@ -175,7 +154,7 @@ All three contain explicit deployment structural expectations for envelope
 `/version` and `/self/type`. Unknown envelope/payload fields remain comparable in
 drift and unverified in deployment without authority. These profiles do not strip
 nested IDs or delta tokens and do not infer reference paths or array sorting.
-ISC profile identity components are nonempty strings, preserving the v1 domain
+ISC profile identity components are nonempty strings, following ISC domain
 constraints; generic neutral profiles may use typed scalar components.
 
 Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
@@ -216,20 +195,19 @@ still be verified by independent expectations.
 isc-configdiffer --mode drift \
   --left /data/dev --left-mode snapshot --left-env dev \
   --right /data/prod --right-mode snapshot --right-env prod \
-  --policy examples/policy-v2-drift.json --scope SOURCE --format json
+  --policy examples/policy-drift.json --scope SOURCE --format json
 
 isc-configdiffer --mode deployment \
   --source /data/dev --source-mode snapshot --source-env dev \
   --actual /data/draft --actual-mode tree --actual-types SOURCE --actual-env prod \
   --baseline /data/prod --baseline-mode snapshot --baseline-env prod \
-  --operations examples/operations-v2.json \
-  --policy examples/policy-v2-deployment.json --scope SOURCE --format json
+  --operations examples/operations.json \
+  --policy examples/policy-deployment.json --scope SOURCE --format json
 ```
 
 Tree mode without a manifest needs the role's `--*-types`. Role-specific labels
 use `--*-label`. `--matching` includes ordinary equal leaves; it does not change
-counts, completeness, request digest, or policy decisions. A v2 policy requires
-explicit new-mode execution. Legacy deployment policies are rejected.
+counts, completeness, request digest, or policy decisions. The same policy schema is used in both comparison modes.
 
 Only exporter-format projected drafts are supported. Native proprietary draft
 files need a separately inspected adapter; no format or substitution semantics
@@ -296,8 +274,8 @@ Exit 2: invalid input/policy/request, incomplete/unverified comparison, or outpu
 failure. `correct` is false whenever incomplete. No unverified result can pass.
 Inputs, policies, profiles, and reports are detached; compiled plans can be reused
 concurrently. Policy order and permitted collection reordering do not change
-comparison semantics. The CLI preserves v1 output behavior when `--mode` is absent.
+comparison semantics. Omitting `--mode` selects drift and still produces report schema `2`.
 
 Automated verification uses invented data only. Both module test suites, race
 tests, vet, build and formatting checks are required before marking the seven
-slices complete. See [implementation evidence](v2-implementation.md).
+slices complete. See [implementation evidence](implementation.md).

@@ -1,34 +1,48 @@
 # Implementation and acceptance record
 
-Development completed locally on 2026-11-02. Implementation and validation involved no pushes, live exports, tenant mutation, or remote service. Pre-existing exporter `.vscode/` and `config-dev.json` were not read or edited.
+The module has one comparison implementation: the neutral `v2` engine, with ISC
+snapshot and optional Configuration Hub adapters in the root `differ` package.
+Policies and reports use schema `2`. Exporter manifests/envelopes retain their
+independent storage-format numbers.
 
-| Slice | Implemented | Acceptance evidence |
+| Slice | Implemented behavior | Verification |
 | --- | --- | --- |
-| 1. Shared contracts | SDK-free exporter `snapshot` models/parser/path helpers/reader; compatible root aliases and wrappers | Existing exporter external consumer, exporter CLI tests, all standalone builds |
-| 2. Input readers | Explicit snapshot/tree modes; arbitrary independent roots; pinned root handle; memory byte input; current inventory hashes and historical provenance | Synthetic scope/zero types, checksum/count, JSON/UTF-8, schema/version/path, own-ID conflict, nested-link, root replacement, tree deletion/addition, unmanaged/admin files tests |
-| 3. Matching | Exact named and composite keys, dependency correspondence, singleton cardinality, reserved explicit pairings | Different IDs, repeated lifecycle names under two parents, parent/source correspondence, renames, duplicate/unknown identities, unresolved dependencies, missing object counted once |
-| 4. Structure | Recursive comparison, unknown fields, absent/null/type/value, exact numbers, ordered arrays, scoped ignores | Synthetic structural, large integer/decimal equivalence, nested-ID preservation and array-order tests |
-| 5. Directional expectations | Typed per-environment values; independent applicability; explicit bindings; conflict and required-unused checks | Full 4-environment-pair × 6-value × 6-value matrix, including incorrectly equal values, reversed sides, same environments, missing/null/empty; null expectation and strict policy shape tests |
-| 6. References/collections | Declared references via correspondence, explicit external mappings, keyed arrays with unique scalar/composite keys | Equivalent/wrong/unresolved targets, explicit external targets, reordered keyed items, duplicate collection keys, ordinary arrays remain ordered |
-| 7. Reports/CLI/Hub | Versioned deterministic JSON/text, reconciled counts, output omission/redaction, all exit codes, offline mapping import | Matching presentation independence, repeatability, rule-order independence, sensitive identity provenance, CLI 0/1/2, supported/rejected Hub paths, enabled/disabled/context/ambiguity/string-type tests |
-| 8. Documentation/manual checks | Reader/policy/report contracts, CLI/library usage, synthetic policy example, release caveat | Synthetic exporter Organize → FileStore → snapshot/tree readers → differ end-to-end test; read-only manual validation of the two reference snapshots |
+| 1 Policy compiler | Strict JSON, typed states, profile expansion/replacement, conflicts, deterministic digests | `v2/compile_test.go`, `v2/review_test.go` |
+| 2 ISC adapters | Validated detached snapshot/tree inputs, ISC profiles, string identity components | `adapter_test.go`, `compare_test.go`, `review_test.go` |
+| 3 Matching and arrays | Logical identities, explicit pairings, dependencies, nested keyed arrays, ordered/multiset semantics | Neutral engine and root adapter tests |
+| 4 Drift | Typed equivalence and assertions, explicit exclusions, references, retained decisions | `v2/run_test.go`, `v2/regression_test.go` |
+| 5 Deployment | Independent expectations, projected draft validation, explicit operations and baseline evidence | Neutral and root deployment tests |
+| 6 Hub adapter | Offline arrays/bundles, supported JSONPath, ambiguity/context/integrity checks, explicit promotion | `hub_test.go`, `adapter_test.go`, CLI integration tests |
+| 7 CLI/reporting | One parser, drift default, explicit deployment, report schema `2`, redaction and provenance | `cmd/isc-configdiffer/main_test.go`, review regression tests |
 
-Final verification commands for **each module**: formatting check, `go test ./...`, `go vet ./...`, `go test -race ./...`, and `go build ./...`. Standalone binaries built to `/private/tmp/isc-configdiffer` and `/private/tmp/isc-exporter`. The differ imports only the SDK-free shared package in production; its synthetic compatibility test imports exporter root. No Go workspace is required.
+Synthetic tests cover exporter organization/publication to validated readers and
+comparison, plus mapping retrieval/publication to offline import. No tenant
+exports, credentials or network services are fixtures. Current examples are
+compiled and executed in `TestDocumentedExamples`.
 
-Manual development validation read the authorized reference snapshots only. Both validated against schema/envelope version 1, their selected scope, checksum and count inventories. Self-comparison was complete without drift; cross-comparison was complete with drift and counts reconciling to both inventories. These observations are not automated assertions. No tenant payloads, tenant-derived policies, or tenant-specific report artifacts were copied into either repository. Every automated fixture is invented and uses temporary directories or memory.
+## Checks
 
-## Decisions and limits
+Run `go test ./...`, `go test -race ./...`, `go vet ./...`, and `go build ./...`
+in both sibling modules. Check formatting with `gofmt` and whitespace with
+`git diff --check`. See [the review record](review.md) for correctness findings.
 
-* Reports omit all raw payload/expected values in both formats; sensitive identity selectors also hide logical/physical identity. This is intentionally more conservative than selective value printing. Names and IDs remain visible as provenance unless a corresponding sensitive identity selector masks them.
-* Literal selectors can assert missing values; wildcard selectors require concrete structural expansion. Optional unused rules remain visible; required unused selectors make the report incomplete. Objects missing entirely are reported once, rather than treated as empty payloads.
-* Exact matching is intentionally conservative. New object types or missing named keys require explicit identity policy. Explicit pairing does not waive logical-key validation or ignore name drift. Identity dependencies require corresponding parents available in the effective scope.
-* Edited trees must be quiescent while read. Directory handles pin roots, and rereads/inventory checks detect changes, but the reader does not claim a cryptographic or adversarial filesystem transaction. Use immutable exporter generations for strong coherence.
-* Keyed-array pointers use the left physical item index where available, otherwise the right physical index. Use wildcard policy paths for per-item rules below keyed collections. Collection selectors cannot overlap each other.
-* Configuration Hub import supports a documented JSONPath subset and string values only. Unsupported active expressions fail; unsupported disabled mappings remain inert with provenance. No proprietary comparison parity or access to built-in substitutions is assumed.
-* The relative exporter module replacement is a **local development dependency**, not a publishable release configuration. Publish/tag the exporter shared package first, pin a real version, remove the replace, and verify independent checkout builds before release.
+The single-engine consolidation was verified on 2026-11-04: tests, race tests,
+vet and builds passed in both modules. The README quick start, default drift
+report schema, JSON examples, documentation links and library example were also
+checked. All example policies use schema `2`.
 
-## Subsequent slice: optional mapping retrieval (implemented)
+## Boundaries
 
-Initially deferred from the differ release, then implemented in configexporter under the user's separate retrieval request. The pinned Go SDK v2.7.106 `api_v2026.ConfigurationHubAPIService.GetObjectMappings(ctx, sourceOrg).Execute()` performs the optional read. An explicit `-retrieve-mappings` action reuses native SDK configuration/authentication, the existing V2026 client, adapter gate and GET retries. The SDK retains per-version token caches.
-
-Original mapping bytes and checksum-bound source/target, API origin/endpoint, retrieval ID/time, count and optional operator-supplied export-job correlation are saved together in a new separate bundle directory. Ordinary exports and their permissions/payloads are unchanged. Retrieval does not run an export, backup action, cleanup or tenant mutation. Synthetic exporter tests cover the SDK/CLI/storage path, and `TestRetrievedMappingBundleImportsOffline` verifies retrieval → publication → strict offline import, preserving both enabled and disabled status. No live retrieval was performed. See [exporter mapping retrieval](../../configexporter/docs/MAPPINGS.md) for usage, permissions, provenance and limitations.
+* Inputs and policies are detached; compiled plans support concurrent reuse.
+* Only exporter-format projected drafts are supported. Native proprietary draft
+  formats require a separately inspected adapter.
+* Baseline-derived references and explicit delete validation require baseline
+  evidence; the actual draft never supplies its own expected destination ID.
+* Hub multi-case groups work for drift and require authored deployment
+  expectations instead of automatic promotion.
+* Counts distinguish decision units from object groups and do not claim leaf
+  coverage percentages for whole-subtree assertions or exclusions.
+* No deployment, remediation, destination-impact analysis or authorization gate
+  is implemented. SDK/authentication stay in the exporter.
+* The sibling-module replacement is a development setup; publication needs real
+  dependency versions and independently verified external builds.
