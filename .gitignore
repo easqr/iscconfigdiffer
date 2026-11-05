@@ -2,3 +2,4 @@ policy.json
 
 # Generated CLI reports
 /reports/
+/bin/
