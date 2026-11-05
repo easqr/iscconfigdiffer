@@ -455,7 +455,8 @@ common/SOURCE defaults. Unsupported arrays do not receive inferred semantics.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
   `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
-  `/schemas/*/modified`, SOURCE `/connectorAttributes/cloudCacheUpdate`, and
+  `/schemas/*/modified`, SOURCE `/connectorAttributes/cloudCacheUpdate`,
+  `/connectorAttributes/since`, and
   lifecycle `/identityCount`.
 
 All three contain explicit deployment structural expectations for envelope
@@ -492,6 +493,19 @@ it does not assert a documented cache refresh trigger or interval. Set
 `disabled_rules:["isc.SOURCE.cloud-cache-update"]` to restore normal comparison
 and deployment coverage requirements. Exclusion decisions retain pack evidence
 and the original pointer.
+
+## SOURCE health-check timing metadata
+
+`isc-portable-v2` supplies `isc.SOURCE.health-since` from `isc.source-portable`,
+excluding only content `/connectorAttributes/since` in drift and deployment for
+all SOURCE connectors, including unclassified sources. Identity/envelope profiles
+and other object types retain ordinary comparison. Top-level `/since`, health
+and status values, aggregation cursors, and unrelated nested fields are unchanged.
+
+The field is treated as operational health/status timing metadata. This policy
+choice does not assert a refresh trigger for the nested timestamp. Exclusion
+provenance retains the pack and original pointer. Listing the rule ID in
+`disabled_rules` restores normal comparison and deployment authority requirements.
 
 ## SOURCE before-provisioning rule references
 

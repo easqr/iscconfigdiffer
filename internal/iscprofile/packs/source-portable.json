@@ -28,6 +28,11 @@
         "id": "isc.SOURCE.cloud-cache-update",
         "type": "SOURCE",
         "path": "/connectorAttributes/cloudCacheUpdate"
+      },
+      {
+        "id": "isc.SOURCE.health-since",
+        "type": "SOURCE",
+        "path": "/connectorAttributes/since"
       }
     ]
   }

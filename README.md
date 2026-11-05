@@ -1144,7 +1144,7 @@ Built-in ISC profiles:
 | --- | --- |
 | `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment and connector-scoped AD/Entra alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
-| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, and lifecycle-state `/identityCount` |
+| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, `/connectorAttributes/since`, and lifecycle-state `/identityCount` |
 
 All three default to `null_equals_absent` for payload properties and include
 deployment structural expectations for envelope version/type.
@@ -1227,6 +1227,19 @@ The identity and envelope profiles continue comparing it normally.
 This rule is defined in `internal/iscprofile/packs/source-portable.json` with ID
 `isc.SOURCE.cloud-cache-update`. To restore ordinary comparison, add that ID to
 your policy's `disabled_rules` array. Other connector attributes remain comparable.
+
+### SOURCE health-check timing metadata
+
+The portable profile excludes `/connectorAttributes/since` across SOURCE
+connector types in drift and deployment, treating it as operational health/status
+timing metadata. Identity and envelope profiles continue comparing it normally.
+The rule does not exclude health/status values, aggregation cursors, a top-level
+`/since`, or other similarly named fields.
+
+The declaration is in `internal/iscprofile/packs/source-portable.json`, with rule
+ID `isc.SOURCE.health-since`. Add that ID to `disabled_rules` to restore ordinary
+comparison and deployment coverage requirements. This comparison choice does not
+assume that the nested timestamp is updated on every health check.
 
 ### SOURCE before-provisioning rule references
 
