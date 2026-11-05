@@ -152,9 +152,16 @@ machine-readable report.
 
 Reports are saved in `./reports`, relative to the directory where you run the
 command. The directory is created automatically. The default filename is the
-policy's `id` plus `.txt` for text or `.json` for JSON. For example, a policy with
+policy's `id` plus `.html` (the default), `.md` for Markdown, or `.json` for JSON.
+For example, a policy with
 `"id": "source-drift"` produces `reports/source-drift.json` with `--format json`.
-Without `--policy`, the built-in policy uses `default.txt` or `default.json`.
+Without `--policy`, the built-in policy uses `default.html`, `default.md`, or
+`default.json`.
+
+HTML reports are self-contained documents that open locally in a browser without
+network access. Use `--format md` for a Markdown document, or `--format json` for
+structured processing. HTML and Markdown present the same result, decision counts,
+decisions, and diagnostics; choosing a format does not change comparison results.
 
 Use `--output-dir /data/comparison-reports` to choose another directory and
 `--output-file ad-only.json` to override the exact filename:
@@ -195,7 +202,7 @@ applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
 `equivalent`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
 `conflict`. Decision counts are not object counts or percentage leaf coverage.
 
-Actual and expected payload values are omitted in both output formats. Names,
+Actual and expected payload values are omitted in all output formats. Names,
 IDs, labels, and declared evidence may be visible as provenance. `sensitive`
 selectors conservatively hide identity/provenance for the selected object type
 and dependent types; put no secrets in labels or evidence metadata. `--matching`
@@ -747,9 +754,9 @@ are resolved relative to the current working directory unless absolute.
 | `--policy FILE` | Built-in `default` / `isc-envelope-v2` | Read a comparison policy JSON file using schema `2` |
 | `--scope TYPES` | Full declared type set; primary sets must match | Explicit comma-separated type subset available in all inputs |
 | `--name KEY` | All objects | Exact logical name/key within one explicit `--scope` type |
-| `--format` | `text` | `text` or `json` |
+| `--format` | `html` | `html`, `md` (Markdown), or `json` |
 | `--output-dir DIRECTORY` | `reports` | Report directory relative to the working directory; created if needed |
-| `--output-file NAME` | Policy ID plus `.txt` or `.json` | Exact filename within the output directory; existing reports are replaced |
+| `--output-file NAME` | Policy ID plus `.html`, `.md`, or `.json` | Exact filename within the output directory; existing reports are replaced |
 | `--matching` | `false` | Include ordinary equal leaves in reports; does not affect result counts or exit status |
 | `--operations FILE` | None | Required deployment operation list; invalid in drift mode |
 
@@ -1014,7 +1021,8 @@ func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
 ```
 
 Handle the returned error before consuming the report. Then use
-`report.ExitCode()`, `report.Text(writer)`, or `json.NewEncoder(writer).Encode(report)`.
+`report.ExitCode()`, `report.HTML(writer)`, `report.Markdown(writer)`, or
+`json.NewEncoder(writer).Encode(report)`.
 For deployment, `Request.Left` is the source, `Right` is the actual draft,
 `Baseline` is an optional `*snapshot.Input`, and `Operations` is a
 `[]v2.Operation`.

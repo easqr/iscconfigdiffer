@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"maps"
 	"reflect"
 	"sort"
@@ -856,40 +854,4 @@ func valueKind(v any, present bool) string {
 		return "array"
 	}
 	return "unknown"
-}
-func (r Report) Text(w io.Writer) error {
-	if _, e := fmt.Fprintf(w, "Comparison v2 (%s): complete=%t correct=%t exit=%d\n", r.Mode, r.Complete, r.Correct, r.ExitCode()); e != nil {
-		return e
-	}
-	if r.ObjectKey != "" && len(r.Scope) == 1 {
-		if _, e := fmt.Fprintf(w, "Object filter: %s %q\n", r.Scope[0], r.ObjectKey); e != nil {
-			return e
-		}
-	}
-	for _, status := range keys(r.Counts) {
-		if _, e := fmt.Fprintf(w, "%s: %d\n", status, r.Counts[status]); e != nil {
-			return e
-		}
-	}
-	for _, d := range r.Decisions {
-		if _, e := fmt.Fprintf(w, "%s %s %q rule=%q %s\n", d.Status, d.Type, d.Key, d.RuleID, d.Code); e != nil {
-			return e
-		}
-	}
-	unused := 0
-	for _, d := range r.Diagnostics {
-		if d.Code == "unused rule" && !d.Required {
-			unused++
-			continue
-		}
-		if _, e := fmt.Fprintf(w, "diagnostic: %s rule=%q type=%q\n", d.Code, d.RuleID, d.Type); e != nil {
-			return e
-		}
-	}
-	if unused > 0 {
-		if _, e := fmt.Fprintf(w, "unused optional rules: %d (details in JSON rule_usage)\n", unused); e != nil {
-			return e
-		}
-	}
-	return nil
 }

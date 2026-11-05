@@ -21,9 +21,10 @@ func TestReportOutputDefaultsAndOverrides(t *testing.T) {
 		extra []string
 		path  string
 	}{
-		{"built-in default", nil, "reports/default.txt"},
+		{"built-in default", nil, "reports/default.html"},
+		{"policy id HTML", []string{"--policy", policy}, "reports/source-drift.html"},
 		{"policy id", []string{"--policy", policy, "--format", "json"}, "reports/source-drift.json"},
-		{"directory", []string{"--policy", policy, "--output-dir", "nested/results"}, "nested/results/source-drift.txt"},
+		{"directory", []string{"--policy", policy, "--output-dir", "nested/results", "--format", "md"}, "nested/results/source-drift.md"},
 		{"exact override", []string{"--output-dir", "custom", "--output-file", "comparison.data", "--format", "json"}, "custom/comparison.data"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,6 +35,12 @@ func TestReportOutputDefaultsAndOverrides(t *testing.T) {
 			saved, err := os.ReadFile(tc.path)
 			if err != nil || len(saved) == 0 {
 				t.Fatal("saved report is missing or empty", err)
+			}
+			if strings.HasSuffix(tc.path, ".html") && !strings.Contains(string(saved), "<!doctype html>") {
+				t.Fatal("not an HTML document")
+			}
+			if strings.HasSuffix(tc.path, ".md") && !strings.HasPrefix(string(saved), "# Comparison") {
+				t.Fatal("not a Markdown document")
 			}
 			if strings.Contains(tc.path, "json") || strings.HasSuffix(tc.path, ".data") {
 				var r v2.Report
@@ -82,7 +89,7 @@ func TestReportOutputIncompleteAndFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, extra := range [][]string{
-		{"--output-dir", ""}, {"--output-file", ""}, {"--output-file", "../escape.json"},
+		{"--format", "text"}, {"--format", "unknown"}, {"--output-dir", ""}, {"--output-file", ""}, {"--output-file", "../escape.json"},
 		{"--output-file", "/absolute.json"}, {"--output-file", `nested\report.json`}, {"--output-file", "."}, {"--output-file", ".."},
 		{"--output-dir", "blocked"}, {"--output-dir", "destination", "--output-file", "existing"},
 	} {

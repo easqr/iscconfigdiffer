@@ -31,9 +31,9 @@ func run(args []string, errOut io.Writer) int {
 	source, actual, baseline := addInput(f, "source"), addInput(f, "actual"), addInput(f, "baseline")
 	policyPath := f.String("policy", "", "comparison policy JSON file")
 
-	format := f.String("format", "text", "text or json")
+	format := f.String("format", "html", "html, md, or json")
 	outputDir := f.String("output-dir", "reports", "report output directory (relative to working directory)")
-	outputFile := f.String("output-file", "", "report filename override (default: policy ID plus .txt or .json)")
+	outputFile := f.String("output-file", "", "report filename override (default: policy ID plus .html, .md, or .json)")
 	scope := f.String("scope", "", "explicit common type scope")
 	name := f.String("name", "", "exact logical object name/key within one explicit scope type")
 	matching := f.Bool("matching", false, "include ordinary equal leaves")
@@ -71,8 +71,8 @@ func run(args []string, errOut io.Writer) int {
 	if f.NArg() != 0 {
 		return bad("unexpected arguments")
 	}
-	if (*mode != "drift" && *mode != "deployment") || (*format != "json" && *format != "text") {
-		return bad("valid drift/deployment mode and text/json format required")
+	if (*mode != "drift" && *mode != "deployment") || (*format != "json" && *format != "html" && *format != "md") {
+		return bad("valid drift/deployment mode and html/md/json format required")
 	}
 	if *mode == "deployment" {
 		if *left.dir != "" || *right.dir != "" {
@@ -192,23 +192,22 @@ func run(args []string, errOut io.Writer) int {
 	}
 	report.Diagnostics = append(report.Diagnostics, adapterDiagnostics...)
 	var rendered bytes.Buffer
-	if *format == "json" {
+	switch *format {
+	case "json":
 		enc := json.NewEncoder(&rendered)
 		enc.SetIndent("", "  ")
 		e = enc.Encode(report)
-	} else {
-		e = report.Text(&rendered)
+	case "md":
+		e = report.Markdown(&rendered)
+	case "html":
+		e = report.HTML(&rendered)
 	}
 	if e != nil {
 		return bad("cannot write report")
 	}
 	filename := *outputFile
 	if filename == "" {
-		ext := ".txt"
-		if *format == "json" {
-			ext = ".json"
-		}
-		filename = p.ID + ext
+		filename = p.ID + "." + *format
 	}
 	if e = saveReport(*outputDir, filename, rendered.Bytes()); e != nil {
 		return fail(fmt.Errorf("cannot save report: %w", e))

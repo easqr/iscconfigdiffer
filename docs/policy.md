@@ -21,11 +21,16 @@ are the public ISC entry points; the `v2` package provides the neutral core.
 ## CLI report files
 
 The CLI saves every produced report under `--output-dir` (default `reports` in
-the working directory) as `<policy-id>.txt` or `<policy-id>.json`, according to
-`--format`. The built-in policy ID is `default`. `--output-file` overrides the
+the working directory) as `<policy-id>.html` by default. Select `--format md` for
+`<policy-id>.md` or `--format json` for `<policy-id>.json`. HTML documents are
+self-contained and require no network access. Markdown and HTML carry the same
+human report content. The library exposes `Report.HTML` and `Report.Markdown`;
+JSON serialization is unchanged. The built-in policy ID is `default`.
+`--output-file` overrides the
 exact filename, without directory components; it does not alter the format.
 Directories are created as needed. Existing reports are replaced after the new
-report has been fully written. Report contents are written only to files; standard output remains empty.
+report has been fully written. Report contents are written only to files;
+standard output remains empty.
 Output failures return exit `2`. Incomplete comparison reports are saved too;
 invalid requests that never produce a report do not create one. The library's
 report API does not write files automatically.
