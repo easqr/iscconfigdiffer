@@ -1144,7 +1144,7 @@ Built-in ISC profiles:
 | --- | --- |
 | `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment and connector-scoped AD/Entra alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
-| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, `/connectorAttributes/since`, and lifecycle-state `/identityCount` |
+| `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, `/owner/id`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, `/connectorAttributes/since`, and lifecycle-state `/identityCount` |
 
 All three default to `null_equals_absent` for payload properties and include
 deployment structural expectations for envelope version/type.
@@ -1240,6 +1240,30 @@ The declaration is in `internal/iscprofile/packs/source-portable.json`, with rul
 ID `isc.SOURCE.health-since`. Add that ID to `disabled_rules` to restore ordinary
 comparison and deployment coverage requirements. This comparison choice does not
 assume that the nested timestamp is updated on every health check.
+
+### Owner references across configuration types
+
+The common portable pack excludes `/owner/id` for every configuration type,
+including custom types with declared identities. Owner `name`, `type`, and other
+fields remain comparable. Identity/envelope profiles still compare owner IDs.
+The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
+`isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
+comparison for that type. This is a common portable rule, not an AD-specific or
+implementation-specific mapping.
+
+### SOURCE correlation references
+
+All ISC profiles exclude these exact SOURCE paths in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/correlationConfigDetails/id` | `isc.SOURCE.correlation-config-details-id` |
+| `/managerCorrelationRule/id` | `isc.SOURCE.manager-correlation-rule-id` |
+
+These declarations live in `internal/iscprofile/packs/source.json` and apply to
+all SOURCE connector types. Names, types, correlation details, and other fields
+remain comparable. The same paths on other configuration types are unchanged.
+Use `disabled_rules` to restore comparison for an individual exclusion.
 
 ### SOURCE before-provisioning rule references
 

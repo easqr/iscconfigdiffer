@@ -454,7 +454,7 @@ common/SOURCE defaults. Unsupported arrays do not receive inferred semantics.
   alignment, and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
-  `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
+  `/created`, `/modified`, `/owner/id`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
   `/schemas/*/modified`, SOURCE `/connectorAttributes/cloudCacheUpdate`,
   `/connectorAttributes/since`, and
   lifecycle `/identityCount`.
@@ -506,6 +506,28 @@ The field is treated as operational health/status timing metadata. This policy
 choice does not assert a refresh trigger for the nested timestamp. Exclusion
 provenance retains the pack and original pointer. Listing the rule ID in
 `disabled_rules` restores normal comparison and deployment authority requirements.
+
+## Common portable owner references
+
+`isc.portable` declares `isc.$TYPE.owner-id` at content `/owner/id`, expanding
+for all registered configuration types and implementation-declared identity types.
+It applies in drift and deployment only under `isc-portable-v2`. Identity and
+envelope profiles retain owner ID comparison. Owner name, type, and other fields
+within the exported reference remain ordinary comparable values; no other nested IDs are
+excluded by this rule. Reports attribute it to the common portable pack.
+Disable the concrete expanded rule ID (for example `isc.ROLE.owner-id`) to restore
+normal comparison/deployment coverage for that type.
+
+## SOURCE correlation reference IDs
+
+All ISC profiles supply `isc.SOURCE.correlation-config-details-id` at
+`/correlationConfigDetails/id` and `isc.SOURCE.manager-correlation-rule-id` at
+`/managerCorrelationRule/id`. Both are declared in the SOURCE pack, independent
+of connector classification, and apply in drift and deployment. Only the direct
+IDs are excluded; reference name/type and remaining correlation configuration
+retain normal comparison and authority requirements. Other object types are
+unchanged. Each rule can be explicitly disabled through `disabled_rules`, and
+exclusion provenance retains the rule, pack, and original pointer.
 
 ## SOURCE before-provisioning rule references
 

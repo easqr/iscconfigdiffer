@@ -34,6 +34,11 @@
         "id": "isc.LIFECYCLE_STATE.identity-count",
         "type": "LIFECYCLE_STATE",
         "path": "/identityCount"
+      },
+      {
+        "id": "isc.$TYPE.owner-id",
+        "type": "$TYPE",
+        "path": "/owner/id"
       }
     ]
   }

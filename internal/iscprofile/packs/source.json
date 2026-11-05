@@ -142,6 +142,16 @@
         "id": "isc.SOURCE.provisioning-field-modified",
         "type": "SOURCE",
         "path": "/provisioningPolicies/*/fields/*/modified"
+      },
+      {
+        "id": "isc.SOURCE.correlation-config-details-id",
+        "type": "SOURCE",
+        "path": "/correlationConfigDetails/id"
+      },
+      {
+        "id": "isc.SOURCE.manager-correlation-rule-id",
+        "type": "SOURCE",
+        "path": "/managerCorrelationRule/id"
       }
     ]
   }
