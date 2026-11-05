@@ -19,19 +19,255 @@ adapters.
 
 ## Contents
 
-- [Configure environment-specific mappings](#configure-environment-specific-mappings)
-- [Which files do I need?](#which-files-do-i-need)
-- [Deployment operations file](#deployment-operations-file)
 - [Build and install](#build-and-install)
 - [Quick start](#quick-start)
-- [Input format and scope](#input-format-and-scope)
-- [Compare exports and validate drafts](#compare-exports-and-validate-drafts)
-- [CLI options](#cli-options)
-- [Configuration files](#configuration-files)
-- [Use as a Go library](#use-as-a-go-library)
 - [Reports and exit codes](#reports-and-exit-codes)
+- [Input format and scope](#input-format-and-scope)
+- [Which files do I need?](#which-files-do-i-need)
+- [Configure environment-specific mappings](#configure-environment-specific-mappings)
+- [Deployment validation](#deployment-validation)
+- [Configuration Hub mapping files and evidence](#configuration-hub-mapping-files-and-evidence)
+- [CLI options](#cli-options)
+- [Configuration reference](#configuration-reference)
+- [Use as a Go library](#use-as-a-go-library)
 - [Troubleshooting](#troubleshooting)
 - [Development and further documentation](#development-and-further-documentation)
+
+## Build and install
+
+Use **Go 1.27.2 or newer**, as required by `go.mod`. The current development setup
+requires the sibling `configexporter` module, which provides the SDK-free snapshot
+reader:
+
+```text
+iscutilities/
+  configdiffer/       # this module
+  configexporter/     # includes the snapshot/ package
+```
+
+From `configdiffer`:
+
+```sh
+mkdir -p bin
+go build -o ./bin/isc-configdiffer ./cmd/isc-configdiffer
+```
+
+Use `./bin/isc-configdiffer` in the examples below. To install the CLI into
+`GOBIN` (or the default `GOPATH/bin`), run:
+
+```sh
+go install ./cmd/isc-configdiffer
+```
+
+The current `go.mod` requires `configexporter v0.0.0` and replaces it with
+`../configexporter`. A `go.work` file is unnecessary. A standalone versioned
+installation requires publishing a real exporter version and replacing that local
+dependency first; `go install ...@latest` is not the installation procedure for
+this checkout.
+
+## Quick start
+
+Run the examples from the `configdiffer` module directory, using the executable
+built in the previous section.
+
+### Compare existing exports
+
+If you already have two complete exports from `configexporter`, point the CLI at
+their roots. Each root should contain its generated `manifest.json`; `snapshot`
+mode validates that exported inventory before comparing it.
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left /data/dev --left-mode snapshot --left-env dev \
+  --right /data/prod --right-mode snapshot --right-env prod \
+  --scope SOURCE \
+  --policy examples/policy.json \
+  --format json > drift-report.json
+```
+
+Replace `/data/dev` and `/data/prod` with your export directories. This command
+compares all `SOURCE` objects and writes a report to `drift-report.json`.
+`examples/policy.json` supplies ISC matching and standard metadata exclusions;
+it contains no environment-specific value mappings, so different hostnames and
+other environment values will appear as differences. Omit `--scope SOURCE` to
+compare all declared types when both exports declare the same type set.
+
+An exit code of `1` means the comparison found differences. Read the report as
+explained in the next section; then add approved environment mappings using the
+walkthrough later in this guide.
+
+### Try with invented sample data
+
+This example creates two invented, manifest-free configuration trees in a
+temporary directory. Run these commands from the module directory in the same
+shell after building the CLI:
+
+```sh
+demo_dir=$(mktemp -d)
+mkdir -p "$demo_dir/dev/SOURCE" "$demo_dir/prod/SOURCE"
+
+cat > "$demo_dir/dev/SOURCE/id-61.json" <<'JSON'
+{
+  "version": 1,
+  "self": {"type": "SOURCE", "id": "a"},
+  "object": {
+    "id": "a",
+    "name": "Invented Directory",
+    "connectorAttributes": {
+      "host": "directory-dev.example.invalid",
+      "timeout": 60
+    }
+  }
+}
+JSON
+
+cat > "$demo_dir/prod/SOURCE/id-62.json" <<'JSON'
+{
+  "version": 1,
+  "self": {"type": "SOURCE", "id": "b"},
+  "object": {
+    "id": "b",
+    "name": "Invented Directory",
+    "connectorAttributes": {
+      "host": "directory-prod.example.invalid",
+      "timeout": 60
+    }
+  }
+}
+JSON
+
+./bin/isc-configdiffer --mode drift \
+  --left "$demo_dir/dev" --left-mode tree --left-types SOURCE --left-env dev \
+  --right "$demo_dir/prod" --right-mode tree --right-types SOURCE --right-env prod \
+  --policy examples/policy-drift.json
+```
+
+The comparison completes successfully with exit code `0`. Objects match by their
+name, the policy permits the two hostnames, and the portable profile excludes
+physical IDs. Change the production `timeout` to `90` and rerun the command to
+see an unexpected difference and exit code `1`. Add `--format json` to obtain a
+machine-readable report.
+
+## Reports and exit codes
+
+Text and JSON reports go to standard output; input/policy/request errors go to
+standard error. Use `--format json > report.json` for automation. A comparison can
+produce an incomplete diagnostic report on stdout and still exit `2`.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Complete and correct; no unexpected drift or violations |
+| `1` | Complete with known differences or expectation violations |
+| `2` | Invalid input/policy/request, incomplete or unverified comparison, or output failure |
+
+A report's `complete` flag and correctness are separate. `correct` is false
+whenever the result is incomplete. Reports include effective scope, input hashes,
+policy/profile/request digests, matching decisions, concrete per-input locations,
+applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
+`equivalent`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
+`conflict`. Decision counts are not object counts or percentage leaf coverage.
+
+Actual and expected payload values are omitted in both output formats. Names,
+IDs, labels, and declared evidence may be visible as provenance. `sensitive`
+selectors conservatively hide identity/provenance for the selected object type
+and dependent types; put no secrets in labels or evidence metadata. `--matching`
+adds ordinary equal leaves; policy decisions remain visible without it.
+
+Exit `1` is an expected result when drift is found. If using a shell with
+`set -e` or a CI runner, handle exit `1` separately from exit `2` when collecting
+reports.
+
+## Input format and scope
+
+Inputs use the format produced by the sibling
+[`configexporter`](../configexporter/README.md) module:
+
+```text
+snapshot-root/
+  manifest.json
+  SOURCE/
+    id-61.json
+  ROLE/
+    id-726f6c652d31.json
+```
+
+Every object file uses the exporter envelope containing `self.type`, `self.id`, and
+an object-valued `object` payload. The quick-start files illustrate this envelope.
+The canonical
+filename is `TYPE/id-<lowercase hexadecimal UTF-8 ID>.json`: ID `a` becomes
+`SOURCE/id-61.json`. If the payload includes `id`, it must equal `self.id`.
+Arbitrary JSON payload files or filenames are not accepted.
+
+Each input independently chooses a **reading mode**:
+
+| Reading mode | Manifest | Behavior |
+| --- | --- | --- |
+| `snapshot` | Required | Reads manifest-listed artifacts and validates checksums, counts, scope, paths, and envelopes |
+| `tree` | Optional | Inventories current object files, including edits, additions, and deletions; manifest checksums/counts are historical provenance |
+
+Comparison mode (`--mode drift` or `deployment`) and reading mode
+(`--left-mode snapshot`, for example) are separate choices.
+
+The exporter generates `manifest.json`; it records schema version, tenant/job,
+completion time, selected types, counts, artifact hashes, and publication changes.
+A supplied manifest must remain structurally valid, including in tree mode. For a
+manifest-free tree, declare its available types with `--<role>-types SOURCE,ROLE`,
+even when a declared type currently contains zero objects. Do not combine that
+flag with a manifest. Comma-separated lists must contain exact type names without
+extra spaces.
+
+Without `--scope`, the primary inputs must declare the same type set. Use
+`--scope SOURCE,ROLE` to compare a subset that is declared by every supplied input,
+including a deployment baseline. An unavailable type is not treated as an empty
+inventory.
+
+Roots can be separate directories or root symlinks. Nested links and special
+files are rejected. Keep editable trees unchanged while they are being read.
+**Keep policies, operations, mappings, and unrelated JSON outside configuration
+roots**: tree mode expects configuration `.json` artifacts there, apart from its
+manifest and excluded version-control administration directories.
+
+## Which files do I need?
+
+For ordinary environment-aware drift, your **policy file is the only file you
+write for configuration**. The exports are generated input data. The deployment
+and Hub files are needed only for their corresponding workflows.
+
+| Workflow | Files you author | Inputs generated elsewhere | Options |
+| --- | --- | --- | --- |
+| Compare environments with your own approved mappings | One policy containing `equivalences` (start from `examples/policy-drift.json`) | Left and right configuration exports | `--mode drift --policy FILE` plus input paths/environments |
+| Compare literally after standard metadata handling | A minimal policy (such as `examples/policy.json`) | Left and right exports | `--mode drift --policy FILE` |
+| Validate a projected deployment draft | One expectation policy (start from `examples/policy-deployment.json`) and one operation list (adapt `examples/operations.json`) | Source export, actual draft, optional target baseline | `--mode deployment --policy FILE --operations FILE` |
+| Use mappings already saved from Configuration Hub | One comparison policy without overlapping value rules | Exports and optional Hub mapping array/bundle | Add `--hub PATH`; tenant context is required for a bare array |
+| Promote saved Hub mappings into deployment expectations | Expectation policy, operation list, and an attribution/evidence JSON file | Source/draft/baseline and Hub mappings | Add `--hub-deployment-authority` and `--hub-deployment-evidence` |
+
+File roles are different even though all use JSON:
+
+- **Policy:** instructions for interpreting and comparing objects. Mappings go in
+  `equivalences`; required values go in `expectations`; other arrays control
+  matching, references, collections, exclusions, and report redaction. You can
+  combine nonconflicting categories in one policy.
+- **Operations:** deployment-only list of intended objects and `create`, `update`,
+  or `delete` actions. It contains no environment value mappings. See the
+  [operations walkthrough](#deployment-operations-file) for what each action checks.
+- **Hub mappings:** an optional vendor-format mapping export. It is an alternative
+  source of mapping rules to authoring all equivalences yourself; do not duplicate
+  the same active fields in both sources.
+- **`manifest.json`:** exporter-generated inventory and integrity/provenance data
+  inside a configuration export. It contains no comparison policy.
+- **Mapping `provenance.json`:** exporter-generated context/checksum metadata next
+  to `mappings.json`, used only when importing that mapping bundle.
+- **Deployment evidence:** your declared attribution for promoting Hub mappings;
+  it contains no mapping values and is not required for ordinary drift.
+
+The CLI reads **one** policy path supplied with `--policy`. It does not discover,
+merge, or load the other example files automatically. `policy.json` is just a
+filename; it has no special behavior. Store your own policies outside export
+roots. `configdiffer` also does not use the exporter's authentication/settings
+files (`config.json` or `exporter.json`).
+
+Continue with the mapping walkthrough for routine drift comparisons. For draft
+validation, use the deployment section and its operation-list instructions.
 
 ## Configure environment-specific mappings
 
@@ -114,7 +350,7 @@ mapping does not establish object correspondence.
 
 ### 3. Assign environments to the two inputs and run
 
-After [building the CLI](#build-and-install), compare your actual export roots:
+Using the executable built earlier, compare your actual export roots:
 
 ```sh
 ./bin/isc-configdiffer --mode drift \
@@ -192,200 +428,10 @@ correct hostname on each side:
 
 Put this object in the policy's `expectations` array **instead of** the hostname
 `equivalences` rule. Both cannot own the same active field. The
-[configuration reference](#configuration-files) below explains the other rule
+[configuration reference](#configuration-reference) below explains the other rule
 categories; you can leave them out until needed.
 
-## Which files do I need?
-
-For ordinary environment-aware drift, your **policy file is the only file you
-write for configuration**. The exports are generated input data. The deployment
-and Hub files below are needed only for those workflows.
-
-| Workflow | Files you author | Inputs generated elsewhere | Options |
-| --- | --- | --- | --- |
-| Compare environments with your own approved mappings | One policy containing `equivalences` (start from `examples/policy-drift.json`) | Left and right configuration exports | `--mode drift --policy FILE` plus input paths/environments |
-| Compare literally after standard metadata handling | A minimal policy (such as `examples/policy.json`) | Left and right exports | `--mode drift --policy FILE` |
-| Validate a projected deployment draft | One expectation policy (start from `examples/policy-deployment.json`) and one operation list (adapt `examples/operations.json`) | Source export, actual draft, optional target baseline | `--mode deployment --policy FILE --operations FILE` |
-| Use mappings already saved from Configuration Hub | One comparison policy without overlapping value rules | Exports and optional Hub mapping array/bundle | Add `--hub PATH`; tenant context is required for a bare array |
-| Promote saved Hub mappings into deployment expectations | Expectation policy, operation list, and an attribution/evidence JSON file | Source/draft/baseline and Hub mappings | Add `--hub-deployment-authority` and `--hub-deployment-evidence` |
-
-File roles are different even though all use JSON:
-
-- **Policy:** instructions for interpreting and comparing objects. Mappings go in
-  `equivalences`; required values go in `expectations`; other arrays control
-  matching, references, collections, exclusions, and report redaction. You can
-  combine nonconflicting categories in one policy.
-- **Operations:** deployment-only list of intended objects and `create`, `update`,
-  or `delete` actions. It contains no environment value mappings. See the
-  [operations walkthrough](#deployment-operations-file) for what each action checks.
-- **Hub mappings:** an optional vendor-format mapping export. It is an alternative
-  source of mapping rules to authoring all equivalences yourself; do not duplicate
-  the same active fields in both sources.
-- **`manifest.json`:** exporter-generated inventory and integrity/provenance data
-  inside a configuration export. It contains no comparison policy.
-- **Mapping `provenance.json`:** exporter-generated context/checksum metadata next
-  to `mappings.json`, used only when importing that mapping bundle.
-- **Deployment evidence:** your declared attribution for promoting Hub mappings;
-  it contains no mapping values and is not required for ordinary drift.
-
-The CLI reads **one** policy path supplied with `--policy`. It does not discover,
-merge, or load the other example files automatically. `policy.json` is just a
-filename; it has no special behavior. Store your own policies outside export
-roots. `configdiffer` also does not use the exporter's authentication/settings
-files (`config.json` or `exporter.json`).
-
-## Build and install
-
-Use **Go 1.27.2 or newer**, as required by `go.mod`. The current development setup
-requires the sibling `configexporter` module, which provides the SDK-free snapshot
-reader:
-
-```text
-iscutilities/
-  configdiffer/       # this module
-  configexporter/     # includes the snapshot/ package
-```
-
-From `configdiffer`:
-
-```sh
-mkdir -p bin
-go build -o ./bin/isc-configdiffer ./cmd/isc-configdiffer
-```
-
-Use `./bin/isc-configdiffer` in the examples below. To install the CLI into
-`GOBIN` (or the default `GOPATH/bin`), run:
-
-```sh
-go install ./cmd/isc-configdiffer
-```
-
-The current `go.mod` requires `configexporter v0.0.0` and replaces it with
-`../configexporter`. A `go.work` file is unnecessary. A standalone versioned
-installation requires publishing a real exporter version and replacing that local
-dependency first; `go install ...@latest` is not the installation procedure for
-this checkout.
-
-## Quick start
-
-This example creates two invented, manifest-free configuration trees in a
-temporary directory. Run these commands from the module directory in the same
-shell after building the CLI:
-
-```sh
-demo_dir=$(mktemp -d)
-mkdir -p "$demo_dir/dev/SOURCE" "$demo_dir/prod/SOURCE"
-
-cat > "$demo_dir/dev/SOURCE/id-61.json" <<'JSON'
-{
-  "version": 1,
-  "self": {"type": "SOURCE", "id": "a"},
-  "object": {
-    "id": "a",
-    "name": "Invented Directory",
-    "connectorAttributes": {
-      "host": "directory-dev.example.invalid",
-      "timeout": 60
-    }
-  }
-}
-JSON
-
-cat > "$demo_dir/prod/SOURCE/id-62.json" <<'JSON'
-{
-  "version": 1,
-  "self": {"type": "SOURCE", "id": "b"},
-  "object": {
-    "id": "b",
-    "name": "Invented Directory",
-    "connectorAttributes": {
-      "host": "directory-prod.example.invalid",
-      "timeout": 60
-    }
-  }
-}
-JSON
-
-./bin/isc-configdiffer --mode drift \
-  --left "$demo_dir/dev" --left-mode tree --left-types SOURCE --left-env dev \
-  --right "$demo_dir/prod" --right-mode tree --right-types SOURCE --right-env prod \
-  --policy examples/policy-drift.json
-```
-
-The comparison completes successfully with exit code `0`. Objects match by their
-name, the policy permits the two hostnames, and the portable profile excludes
-physical IDs. Change the production `timeout` to `90` and rerun the command to
-see an unexpected difference and exit code `1`. Add `--format json` to obtain a
-machine-readable report.
-
-## Input format and scope
-
-Inputs use the format produced by the sibling
-[`configexporter`](../configexporter/README.md) module:
-
-```text
-snapshot-root/
-  manifest.json
-  SOURCE/
-    id-61.json
-  ROLE/
-    id-726f6c652d31.json
-```
-
-Every object file uses the exporter envelope containing `self.type`, `self.id`, and
-an object-valued `object` payload, as shown in the quick start. The canonical
-filename is `TYPE/id-<lowercase hexadecimal UTF-8 ID>.json`: ID `a` becomes
-`SOURCE/id-61.json`. If the payload includes `id`, it must equal `self.id`.
-Arbitrary JSON payload files or filenames are not accepted.
-
-Each input independently chooses a **reading mode**:
-
-| Reading mode | Manifest | Behavior |
-| --- | --- | --- |
-| `snapshot` | Required | Reads manifest-listed artifacts and validates checksums, counts, scope, paths, and envelopes |
-| `tree` | Optional | Inventories current object files, including edits, additions, and deletions; manifest checksums/counts are historical provenance |
-
-Comparison mode (`--mode drift` or `deployment`) and reading mode
-(`--left-mode snapshot`, for example) are separate choices.
-
-The exporter generates `manifest.json`; it records schema version, tenant/job,
-completion time, selected types, counts, artifact hashes, and publication changes.
-A supplied manifest must remain structurally valid, including in tree mode. For a
-manifest-free tree, declare its available types with `--<role>-types SOURCE,ROLE`,
-even when a declared type currently contains zero objects. Do not combine that
-flag with a manifest. Comma-separated lists must contain exact type names without
-extra spaces.
-
-Without `--scope`, the primary inputs must declare the same type set. Use
-`--scope SOURCE,ROLE` to compare a subset that is declared by every supplied input,
-including a deployment baseline. An unavailable type is not treated as an empty
-inventory.
-
-Roots can be separate directories or root symlinks. Nested links and special
-files are rejected. Keep editable trees unchanged while they are being read.
-**Keep policies, operations, mappings, and unrelated JSON outside configuration
-roots**: tree mode expects configuration `.json` artifacts there, apart from its
-manifest and excluded version-control administration directories.
-
-## Compare exports and validate drafts
-
-### Drift between snapshots
-
-```sh
-./bin/isc-configdiffer --mode drift \
-  --left /data/dev --left-mode snapshot --left-env dev \
-  --right /data/prod --right-mode snapshot --right-env prod \
-  --scope SOURCE \
-  --policy examples/policy-drift.json \
-  --format json > drift-report.json
-```
-
-Use `tree` for an edited working copy and `snapshot` for an immutable export; the
-two sides can use different reading modes. Environment labels such as `dev` and
-`prod` are policy lookup keys. They are distinct from the tenant identity recorded
-in a manifest and must match the labels used in your policy.
-
-### Deployment validation
+## Deployment validation
 
 ```sh
 ./bin/isc-configdiffer --mode deployment \
@@ -414,6 +460,223 @@ A baseline is optional for independently specified or source-derived values.
 Without a baseline, create/update content can be checked but destination existence
 is not established. The actual draft is never locally substituted. Full deployment
 impact analysis and authorization gates are outside this tool's scope.
+
+### Deployment operations file
+
+**`operations.json` declares which configuration objects belong to the deployment
+you are validating, and whether each is intended to be created, updated, or
+deleted.** It is required with `--mode deployment`. For normal drift comparison,
+leave it out; drift mode does not accept `--operations`.
+
+The files answer different questions:
+
+| Setting/file | Question it answers |
+| --- | --- |
+| `--scope SOURCE,ROLE` | Which object types are available for this comparison? |
+| `--operations operations.json` | Which individual objects are in this deployment, and what action is intended for each? |
+| `--policy policy.json` | What values and states should those objects have? |
+| `--baseline /data/prod` | What objects and values existed in the destination before the deployment? |
+
+The operation list supplies your declared intent. The tool validates the supplied
+source, projected draft, and baseline against that intent; it does not generate
+a deployment plan, apply changes, or establish an external approval.
+
+#### A worked update example
+
+Suppose you are deploying the source `Invented Directory` from development to
+production. Save this as your operations file, or use the included
+[`examples/operations.json`](examples/operations.json):
+
+```json
+[
+  {"type":"SOURCE","key":"Invented Directory","action":"update"}
+]
+```
+
+This entry selects the **whole source object**, not one changed field. It means:
+
+1. Match the source and actual draft objects identified as `Invented Directory`.
+2. When a baseline is supplied, check that the corresponding destination object
+   already exists; otherwise an `update` is inconsistent with that baseline.
+3. Check the draft object's content using the expectation policy. For example,
+   the policy may require the production hostname, copy the source timeout, and
+   preserve a target-specific value from the baseline.
+
+The operation entry contains no hostname, replacement value, or JSON field path.
+Those belong in the policy. Even a change to just one field uses one `update`
+entry for the object; the rest of its relevant content still needs expectations
+or explicit exclusions. Listing an object does not automatically verify its
+values or authorize every difference inside it.
+
+Use the operation file together with the expectation policy:
+
+```sh
+./bin/isc-configdiffer --mode deployment \
+  --source /data/dev --source-mode snapshot --source-env dev \
+  --actual /data/draft --actual-mode tree --actual-types SOURCE --actual-env prod \
+  --baseline /data/prod --baseline-mode snapshot --baseline-env prod \
+  --scope SOURCE \
+  --operations examples/operations.json \
+  --policy examples/policy-deployment.json \
+  --format json > deployment-report.json
+```
+
+`--actual` is the projected configuration being checked; `--baseline` is the
+independently captured destination export. For this example the baseline must
+contain `Invented Directory`, and the actual input must contain its projected
+updated object. The included policy covers the fields described in the
+[deployment validation example](#deployment-validation); adapt it to your data.
+
+#### Fields and actions
+
+The file is a plain JSON array. Each entry has exactly these required fields:
+
+| Field | Meaning |
+| --- | --- |
+| `type` | Exact exported object type, such as `SOURCE` or `ROLE` |
+| `key` | Logical object identity, usually its exact `object.name`; use the source key for an explicitly renamed pairing |
+| `action` | One of `create`, `update`, or `delete` |
+
+Use the logical key produced by the identity strategy. For standard named ISC
+objects this is `object.name`, rather than `self.id`. A filename, wildcard, or
+JSON Pointer does not select an object here.
+Composite string identities use a JSON tuple encoded as a string, for example
+`"[\"request\",\"en_US\",\"EMAIL\"]"` for a notification template. Singleton
+identities use `"singleton"`. For a baseline-only deletion, use the baseline
+object's logical key. Matching still uses the policy's identity and pairing rules.
+
+| Action | Source and actual inputs | Destination baseline check |
+| --- | --- | --- |
+| `create` | Both must contain the corresponding object for content validation | If supplied, it must not contain that object; an existing target is a violation |
+| `update` | Both must contain the corresponding object for content validation | If supplied, it must contain that object; an absent target is a violation |
+| `delete` | The actual draft must omit the object; the source object may be present or absent | Required to verify deletion; it must contain the object |
+
+A baseline is optional for independently established create/update content
+expectations. Without it, the tool cannot establish whether the object already
+exists at the destination. `preserve_target` and baseline-derived reference rules
+still need baseline evidence even when the action is `create` or `update`.
+
+A `delete` validates projected absence. It does not issue a delete request or
+attest that a proprietary draft encodes a remote deletion instruction. If a
+`reference_target` expectation resolves to an object marked for deletion, it
+reports a violation rather than verifying the old reference against the baseline.
+
+For illustration, a deployment containing several actions could use:
+
+```json
+[
+  {"type":"SOURCE","key":"Invented Directory","action":"update"},
+  {"type":"ROLE","key":"New Finance Access","action":"create"},
+  {"type":"ROLE","key":"Retired Finance Access","action":"delete"}
+]
+```
+
+For that list, declare `SOURCE` and `ROLE` in the input scopes and comparison
+scope. The actual input would contain the updated source and new role and omit
+the retired role. The baseline would contain the source and retired role and omit
+the new role. Author policy expectations for the new role too; the supplied
+source-only example policy is not enough to validate this illustrative deployment.
+
+#### What happens when objects are missing or unlisted?
+
+The explicit list lets you validate a partial draft without treating every object
+omitted from that draft as a deletion:
+
+| Situation | Result |
+| --- | --- |
+| Source/baseline object is not listed and is absent from the draft | Outside the operation comparison; no deletion is inferred |
+| Draft contains an object not listed in operations | `unverified` because it is outside the declared deployment intent |
+| Listed `create`/`update` has a matched group but lacks a source or actual object | `violation` for the missing object |
+| Listed object cannot be identified in any supplied input | `unverified`; the requested action cannot be validated |
+| Listed `delete` object remains in the draft | `violation` |
+| Listed `delete` has no corresponding baseline object | `unverified` |
+| Listed object matches, but its values lack authoritative expectations | Its uncovered values are `unverified` |
+
+Unlisted source/baseline objects can still provide matching and reference context;
+their content is not automatically subjected to deployment expectations. Every
+object in the supplied draft must be listed, including an unchanged object if it
+is present there. Provide the projected objects intended for this validation
+rather than an unrelated full destination export as the actual input.
+
+The list must be nonempty, each `(type, key)` pair must occur once, and each type
+must be available in the declared comparison scope. You cannot list the same
+object once as `delete` and again as `create`. File order does not specify an
+execution sequence. `operations.json` is an arbitrary filename: pass its path
+explicitly, keep it outside export roots, and maintain it alongside the policy
+for the deployment being reviewed.
+
+## Configuration Hub mapping files and evidence
+
+The optional adapter accepts either a bare JSON array or a separate exporter
+bundle:
+
+```text
+mapping-bundle/
+  mappings.json
+  provenance.json
+```
+
+A bare `mappings.json` contains saved Hub records such as:
+
+```json
+[
+  {
+    "objectMappingId": "invented-host-map",
+    "objectType": "SOURCE",
+    "jsonPath": "$.connectorAttributes.host",
+    "sourceValue": "directory-dev.example.invalid",
+    "targetValue": "directory-prod.example.invalid",
+    "enabled": true
+  }
+]
+```
+
+Optional `created` and `modified` fields retain mapping timestamps. Unlike policy
+pointers, Hub `jsonPath` uses payload-relative JSONPath. Supported syntax includes
+`$`, `.member`, quoted bracket members, `[0]`, and `[*]`; recursive descent,
+filters, slices, and scripts are unsupported. Values remain strings. Unsupported
+active semantics fail import; disabled mappings stay inert evidence.
+
+The exporter creates the bundle's `provenance.json`, recording schema, retrieval
+ID/time, source organization, target tenant, API origin/version/endpoint, record
+count, SHA-256 of `mappings.json`, and optional export-job correlation. Keep the
+original files together; their context and checksum are validated on import.
+The sidecar is distinct from a configuration snapshot manifest. See the
+[exporter mapping guide](../configexporter/docs/MAPPINGS.md) for retrieval.
+
+To import a bundle, use a portable policy without a competing hostname rule:
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left /data/dev --left-mode snapshot --left-env dev \
+  --right /data/prod --right-mode snapshot --right-env prod \
+  --policy /policies/portable-policy.json \
+  --hub /data/mapping-bundle --format json
+```
+
+For a bare array, additionally provide `--hub-source-tenant` and
+`--hub-target-tenant`. They must agree with the manifest tenants; labels alone do
+not establish tenant identity. A manifest-free tree cannot supply this evidence.
+The `default` source group requires `--hub-default-source-tenant REAL-SOURCE`.
+Mappings remain directional, and importing one does not establish object pairing.
+
+Deployment promotion additionally requires `--hub-deployment-authority` and
+`--hub-deployment-evidence`. The latter names a JSON file such as:
+
+```json
+{
+  "kind": "approved-policy",
+  "record_id": "release-1",
+  "attributes": {"review": "configuration-change-review"}
+}
+```
+
+`kind` is required; `record_id`, `digest`, and string-valued `attributes` are
+optional. Use meaningful references for your own process. Promotion creates
+source-guarded expectations. Multi-case groups require authored deployment
+expectations instead of automatic promotion. Do not duplicate an imported rule's
+field with another active value rule. No parity with undocumented Hub global
+substitution rules is assumed.
 
 ## CLI options
 
@@ -461,26 +724,12 @@ Optional Configuration Hub flags:
 The other Hub flags require `--hub`. Deployment Hub import requires both authority and
 evidence flags. Neither is used to perform a remote approval operation.
 
-## Configuration files
+## Configuration reference
 
-There is no automatically discovered CLI configuration file. Pass every policy,
-operation list, mapping input, or evidence file explicitly. Their filenames are
-arbitrary; their JSON schema determines their purpose.
-
-| File | Who supplies it | Use |
-| --- | --- | --- |
-| `manifest.json` and object envelopes | Exporter, or a correctly structured edited tree | Comparison input data and provenance |
-| Policy, e.g. `portable-policy.json` | You | Matching, normalization, equivalence, and expectations; pass with `--policy` |
-| `examples/policy-drift.json` | Included example | Approved hostname equivalence for `dev` to `prod` |
-| `examples/policy-deployment.json` | Included example | Field-by-field deployment expectations |
-| `examples/operations.json` | Included example to adapt | Intended objects/actions for deployment; pass with `--operations` |
-| `mappings.json` | Saved Hub response or exporter mapping retrieval | Optional vendor mapping input; pass the file or its bundle with `--hub` |
-| Mapping `provenance.json` | Exporter mapping retrieval | Validates a bundle's integrity and records retrieval context |
-| Deployment evidence JSON | You | Authority attribution for Hub deployment promotion |
-| `examples/policy.json` | Included minimal example | Matching and standard metadata exclusions only; **no environment mappings** |
-
-Exporter authentication files such as `config.json` and `exporter.json` belong to
-`configexporter`; `configdiffer` does not read them.
+This section describes the policy syntax and rule categories used by the drift
+and deployment workflows above. The file-selection overview explains which files
+each workflow requires; all user-authored paths are passed explicitly. Policy
+filenames are arbitrary, and `--policy` selects one file.
 
 ### Policy syntax and profiles
 
@@ -660,223 +909,6 @@ such as `"replaces":"isc.identity.SOURCE"`. Pairing renamed objects does not hid
 the name difference. Reference IDs are resolved only at declared paths; IDs are
 not stripped globally.
 
-### Deployment operations file
-
-**`operations.json` declares which configuration objects belong to the deployment
-you are validating, and whether each is intended to be created, updated, or
-deleted.** It is required with `--mode deployment`. For normal drift comparison,
-leave it out; drift mode does not accept `--operations`.
-
-The files answer different questions:
-
-| Setting/file | Question it answers |
-| --- | --- |
-| `--scope SOURCE,ROLE` | Which object types are available for this comparison? |
-| `--operations operations.json` | Which individual objects are in this deployment, and what action is intended for each? |
-| `--policy policy.json` | What values and states should those objects have? |
-| `--baseline /data/prod` | What objects and values existed in the destination before the deployment? |
-
-The operation list supplies your declared intent. The tool validates the supplied
-source, projected draft, and baseline against that intent; it does not generate
-a deployment plan, apply changes, or establish an external approval.
-
-#### A worked update example
-
-Suppose you are deploying the source `Invented Directory` from development to
-production. Save this as your operations file, or use the included
-[`examples/operations.json`](examples/operations.json):
-
-```json
-[
-  {"type":"SOURCE","key":"Invented Directory","action":"update"}
-]
-```
-
-This entry selects the **whole source object**, not one changed field. It means:
-
-1. Match the source and actual draft objects identified as `Invented Directory`.
-2. When a baseline is supplied, check that the corresponding destination object
-   already exists; otherwise an `update` is inconsistent with that baseline.
-3. Check the draft object's content using the expectation policy. For example,
-   the policy may require the production hostname, copy the source timeout, and
-   preserve a target-specific value from the baseline.
-
-The operation entry contains no hostname, replacement value, or JSON field path.
-Those belong in the policy. Even a change to just one field uses one `update`
-entry for the object; the rest of its relevant content still needs expectations
-or explicit exclusions. Listing an object does not automatically verify its
-values or authorize every difference inside it.
-
-Use the operation file together with the expectation policy:
-
-```sh
-./bin/isc-configdiffer --mode deployment \
-  --source /data/dev --source-mode snapshot --source-env dev \
-  --actual /data/draft --actual-mode tree --actual-types SOURCE --actual-env prod \
-  --baseline /data/prod --baseline-mode snapshot --baseline-env prod \
-  --scope SOURCE \
-  --operations examples/operations.json \
-  --policy examples/policy-deployment.json \
-  --format json > deployment-report.json
-```
-
-`--actual` is the projected configuration being checked; `--baseline` is the
-independently captured destination export. For this example the baseline must
-contain `Invented Directory`, and the actual input must contain its projected
-updated object. The included policy covers the fields described in the
-[deployment validation example](#deployment-validation); adapt it to your data.
-
-#### Fields and actions
-
-The file is a plain JSON array. Each entry has exactly these required fields:
-
-| Field | Meaning |
-| --- | --- |
-| `type` | Exact exported object type, such as `SOURCE` or `ROLE` |
-| `key` | Logical object identity, usually its exact `object.name`; use the source key for an explicitly renamed pairing |
-| `action` | One of `create`, `update`, or `delete` |
-
-Use the logical key produced by the identity strategy. For standard named ISC
-objects this is `object.name`, rather than `self.id`. A filename, wildcard, or
-JSON Pointer does not select an object here.
-Composite string identities use a JSON tuple encoded as a string, for example
-`"[\"request\",\"en_US\",\"EMAIL\"]"` for a notification template. Singleton
-identities use `"singleton"`. For a baseline-only deletion, use the baseline
-object's logical key. Matching still uses the policy's identity and pairing rules.
-
-| Action | Source and actual inputs | Destination baseline check |
-| --- | --- | --- |
-| `create` | Both must contain the corresponding object for content validation | If supplied, it must not contain that object; an existing target is a violation |
-| `update` | Both must contain the corresponding object for content validation | If supplied, it must contain that object; an absent target is a violation |
-| `delete` | The actual draft must omit the object; the source object may be present or absent | Required to verify deletion; it must contain the object |
-
-A baseline is optional for independently established create/update content
-expectations. Without it, the tool cannot establish whether the object already
-exists at the destination. `preserve_target` and baseline-derived reference rules
-still need baseline evidence even when the action is `create` or `update`.
-
-A `delete` validates projected absence. It does not issue a delete request or
-attest that a proprietary draft encodes a remote deletion instruction. If a
-`reference_target` expectation resolves to an object marked for deletion, it
-reports a violation rather than verifying the old reference against the baseline.
-
-For illustration, a deployment containing several actions could use:
-
-```json
-[
-  {"type":"SOURCE","key":"Invented Directory","action":"update"},
-  {"type":"ROLE","key":"New Finance Access","action":"create"},
-  {"type":"ROLE","key":"Retired Finance Access","action":"delete"}
-]
-```
-
-For that list, declare `SOURCE` and `ROLE` in the input scopes and comparison
-scope. The actual input would contain the updated source and new role and omit
-the retired role. The baseline would contain the source and retired role and omit
-the new role. Author policy expectations for the new role too; the supplied
-source-only example policy is not enough to validate this illustrative deployment.
-
-#### What happens when objects are missing or unlisted?
-
-The explicit list lets you validate a partial draft without treating every object
-omitted from that draft as a deletion:
-
-| Situation | Result |
-| --- | --- |
-| Source/baseline object is not listed and is absent from the draft | Outside the operation comparison; no deletion is inferred |
-| Draft contains an object not listed in operations | `unverified` because it is outside the declared deployment intent |
-| Listed `create`/`update` has a matched group but lacks a source or actual object | `violation` for the missing object |
-| Listed object cannot be identified in any supplied input | `unverified`; the requested action cannot be validated |
-| Listed `delete` object remains in the draft | `violation` |
-| Listed `delete` has no corresponding baseline object | `unverified` |
-| Listed object matches, but its values lack authoritative expectations | Its uncovered values are `unverified` |
-
-Unlisted source/baseline objects can still provide matching and reference context;
-their content is not automatically subjected to deployment expectations. Every
-object in the supplied draft must be listed, including an unchanged object if it
-is present there. Provide the projected objects intended for this validation
-rather than an unrelated full destination export as the actual input.
-
-The list must be nonempty, each `(type, key)` pair must occur once, and each type
-must be available in the declared comparison scope. You cannot list the same
-object once as `delete` and again as `create`. File order does not specify an
-execution sequence. `operations.json` is an arbitrary filename: pass its path
-explicitly, keep it outside export roots, and maintain it alongside the policy
-for the deployment being reviewed.
-
-### Configuration Hub mapping files and evidence
-
-The optional adapter accepts either a bare JSON array or a separate exporter
-bundle:
-
-```text
-mapping-bundle/
-  mappings.json
-  provenance.json
-```
-
-A bare `mappings.json` contains saved Hub records such as:
-
-```json
-[
-  {
-    "objectMappingId": "invented-host-map",
-    "objectType": "SOURCE",
-    "jsonPath": "$.connectorAttributes.host",
-    "sourceValue": "directory-dev.example.invalid",
-    "targetValue": "directory-prod.example.invalid",
-    "enabled": true
-  }
-]
-```
-
-Optional `created` and `modified` fields retain mapping timestamps. Unlike policy
-pointers, Hub `jsonPath` uses payload-relative JSONPath. Supported syntax includes
-`$`, `.member`, quoted bracket members, `[0]`, and `[*]`; recursive descent,
-filters, slices, and scripts are unsupported. Values remain strings. Unsupported
-active semantics fail import; disabled mappings stay inert evidence.
-
-The exporter creates the bundle's `provenance.json`, recording schema, retrieval
-ID/time, source organization, target tenant, API origin/version/endpoint, record
-count, SHA-256 of `mappings.json`, and optional export-job correlation. Keep the
-original files together; their context and checksum are validated on import.
-The sidecar is distinct from a configuration snapshot manifest. See the
-[exporter mapping guide](../configexporter/docs/MAPPINGS.md) for retrieval.
-
-To import a bundle, use a portable policy without a competing hostname rule:
-
-```sh
-./bin/isc-configdiffer --mode drift \
-  --left /data/dev --left-mode snapshot --left-env dev \
-  --right /data/prod --right-mode snapshot --right-env prod \
-  --policy /policies/portable-policy.json \
-  --hub /data/mapping-bundle --format json
-```
-
-For a bare array, additionally provide `--hub-source-tenant` and
-`--hub-target-tenant`. They must agree with the manifest tenants; labels alone do
-not establish tenant identity. A manifest-free tree cannot supply this evidence.
-The `default` source group requires `--hub-default-source-tenant REAL-SOURCE`.
-Mappings remain directional, and importing one does not establish object pairing.
-
-Deployment promotion additionally requires `--hub-deployment-authority` and
-`--hub-deployment-evidence`. The latter names a JSON file such as:
-
-```json
-{
-  "kind": "approved-policy",
-  "record_id": "release-1",
-  "attributes": {"review": "configuration-change-review"}
-}
-```
-
-`kind` is required; `record_id`, `digest`, and string-valued `attributes` are
-optional. Use meaningful references for your own process. Promotion creates
-source-guarded expectations. Multi-case groups require authored deployment
-expectations instead of automatic promotion. Do not duplicate an imported rule's
-field with another active value rule. No parity with undocumented Hub global
-substitution rules is assumed.
-
 ## Use as a Go library
 
 The root package is named `differ`. This function compares two validated snapshots
@@ -954,31 +986,6 @@ replace github.com/elianderson/iscutilities/configexporter => /path/to/iscutilit
 These entries go below your application's own `module` declaration. Run
 `go mod tidy` after adding imports.
 
-## Reports and exit codes
-
-Text and JSON reports go to standard output; input/policy/request errors go to
-standard error. Use `--format json > report.json` for automation. A comparison can
-produce an incomplete diagnostic report on stdout and still exit `2`.
-
-| Exit code | Meaning |
-| --- | --- |
-| `0` | Complete and correct; no unexpected drift or violations |
-| `1` | Complete with known differences or expectation violations |
-| `2` | Invalid input/policy/request, incomplete or unverified comparison, or output failure |
-
-A report's `complete` flag and correctness are separate. `correct` is false
-whenever the result is incomplete. Reports include effective scope, input hashes,
-policy/profile/request digests, matching decisions, concrete per-input locations,
-applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
-`equivalent`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
-`conflict`. Decision counts are not object counts or percentage leaf coverage.
-
-Actual and expected payload values are omitted in both output formats. Names,
-IDs, labels, and declared evidence may be visible as provenance. `sensitive`
-selectors conservatively hide identity/provenance for the selected object type
-and dependent types; put no secrets in labels or evidence metadata. `--matching`
-adds ordinary equal leaves; policy decisions remain visible without it.
-
 ## Troubleshooting
 
 | Symptom | What to check |
@@ -992,10 +999,6 @@ adds ordinary equal leaves; policy decisions remain visible without it.
 | Unused required selector | Check type, object key, path, available collection items, and rule mode |
 | Deployment remains unverified | Inspect uncovered fields, authority/evidence, environment values, baseline availability, and reference correspondence |
 | Hub context mismatch | Check source/target direction, resolved environments, manifest tenants, and explicit `default` binding |
-
-Exit `1` is an expected result when drift is found. If using a shell with
-`set -e` or a CI runner, handle exit `1` separately from exit `2` when collecting
-reports.
 
 ## Development and further documentation
 
