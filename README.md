@@ -890,7 +890,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities; compares all content and envelope metadata |
+| `isc-identity-v2` | Supplies logical identities and SOURCE provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
@@ -900,7 +900,7 @@ The portable profile excludes those three generated metadata fields on every
 SOURCE schema array item in both drift and deployment modes, including with keyed
 schema matching. For example, `/schemas/2/modified` is excluded. Other nested IDs
 (such as `/schemas/2/attributes/0/schema/id`), owners, arbitrary runtime tokens,
-and array order remain comparable.
+and other array order remain comparable.
 Choose the portable profile explicitly when differences in generated IDs and
 these metadata fields should be excluded. A supplied policy without a profile
 must define its own identity strategies; no ISC profile is added implicitly.
@@ -911,6 +911,41 @@ include their parent identity profile; attribute-sync configurations use their
 parent source. `ACCESS_REQUEST_CONFIG` and `AUTH_ORG` are singletons. Ambiguous
 identities do not pass. See the [identity contract](docs/contracts.md#scope-and-identities)
 for the named-type list.
+
+### SOURCE provisioning policies
+
+All ISC profiles automatically align `/provisioningPolicies` by `usageType`.
+For `CREATE_MACHINE_ACCOUNT`, the key is the pair `(usageType, subtypeId)`, following
+SailPoint's subtype-specific policy model. Each policy's `fields` array aligns by
+`name`. Policy/field array order does not produce drift.
+
+Usage types, required subtype IDs, and field names must be nonblank strings.
+Duplicate ordinary usage types, duplicate machine usage/subtype pairs, duplicate
+field names, and missing/invalid key components produce conflicts and exit `2`.
+Different subtype IDs remain different identities; cross-environment subtype-ID
+mapping is not inferred from policy names.
+
+All ISC profiles exclude `id`, `created`, and `modified` directly on each
+provisioning policy and field:
+
+| Item | Excluded paths |
+| --- | --- |
+| Policy | `/provisioningPolicies/*/id`, `/provisioningPolicies/*/created`, `/provisioningPolicies/*/modified` |
+| Field | `/provisioningPolicies/*/fields/*/id`, `/provisioningPolicies/*/fields/*/created`, `/provisioningPolicies/*/fields/*/modified` |
+
+Other properties, additions/removals, and nested IDs remain comparable. Transform
+objects and arrays retain their current comparison semantics; transform array
+ordering is unchanged. Deployment still requires independent expectations for
+non-excluded member values.
+
+The built-in rules are `isc.SOURCE.provisioning-policies`,
+`isc.SOURCE.provisioning-fields`, `isc.SOURCE.provisioning-policy-id`,
+`isc.SOURCE.provisioning-policy-created`, `isc.SOURCE.provisioning-policy-modified`,
+and the corresponding `isc.SOURCE.provisioning-field-*` exclusions. A custom
+collection at either built-in path must explicitly use `replaces` with its rule ID.
+
+See [the provisioning policy API](https://developer.sailpoint.com/docs/api/create-provisioning-policy-v-2/)
+and [subtype policy documentation](https://developer.sailpoint.com/docs/api/create-source-subtype-provisioning-policy-v-2/).
 
 ### Selectors, rule options, and precedence
 
@@ -1031,6 +1066,43 @@ Multisets ignore order while retaining duplicate counts. Nested keyed arrays are
 supported. Do not sort workflow choices or transform inputs without an explicit
 semantic reason. Declared ordering normalization alone does not verify deployment
 member values.
+
+Keyed collections can select a complete alternative key tuple with `key_cases`.
+Each case has a concrete item-relative `when_path`, a nonnull scalar `when_value`,
+and a nonempty `keys` array. All cases in one rule must use the same discriminator
+path and have distinct typed values; this avoids first-match precedence. An item
+that matches no case uses the rule's default `keys`. Key pointers are concrete and
+item-relative. `component_type` defaults to `scalar`; `string` requires every key
+component to be a nonblank string, preserving the original spelling.
+
+This policy shows the built-in provisioning key definition as an explicit
+replacement; the built-in field alignment remains active:
+
+```json
+{
+  "version": 2,
+  "id": "custom-provisioning-alignment",
+  "profile": "isc-portable-v2",
+  "collections": [
+    {
+      "id": "provisioning-by-usage-and-subtype",
+      "replaces": "isc.SOURCE.provisioning-policies",
+      "type": "SOURCE",
+      "path": "/provisioningPolicies",
+      "mode": "keyed",
+      "component_type": "string",
+      "keys": ["/usageType"],
+      "key_cases": [
+        {
+          "when_path": "/usageType",
+          "when_value": "CREATE_MACHINE_ACCOUNT",
+          "keys": ["/usageType", "/subtypeId"]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ISC profile identity components are nonempty strings. Unknown object types need
 an identity rule. Overriding a built-in identity requires an explicit replacement,

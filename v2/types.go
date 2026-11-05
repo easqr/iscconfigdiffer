@@ -50,11 +50,18 @@ type Sensitive struct {
 	Rule
 	Selector
 }
+type CollectionKeyCase struct {
+	WhenPath  string          `json:"when_path"`
+	WhenValue json.RawMessage `json:"when_value"`
+	Keys      []string        `json:"keys"`
+}
 type Collection struct {
 	Rule
 	Selector
-	Mode string   `json:"mode"`
-	Keys []string `json:"keys,omitempty"`
+	Mode          string              `json:"mode"`
+	Keys          []string            `json:"keys,omitempty"`
+	ComponentType string              `json:"component_type,omitempty"`
+	KeyCases      []CollectionKeyCase `json:"key_cases,omitempty"`
 }
 type ValuePair struct {
 	Left  any `json:"left"`

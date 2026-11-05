@@ -93,7 +93,7 @@ wildcards expand only from available structures.
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
 | `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
-| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys` only for keyed |
+| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, and `key_cases` only for keyed |
 | `sensitive` | Selector; conservative report redaction |
 
 Identity and pairing rules are unconditional: `modes` is not allowed. Other rules
@@ -219,7 +219,8 @@ This default follows the null/absent-property convention in the
 ## ISC profiles
 
 * `isc-identity-v2`: existing named, composite, parent-qualified and singleton
-  identity strategies, with all payload/envelope fields comparable in drift.
+  identity strategies plus SOURCE provisioning alignment and generated
+  provisioning policy/field metadata exclusions. Other fields remain comparable.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
   `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
@@ -244,6 +245,41 @@ Rule IDs are `isc.identity.TYPE` for identity, `isc.TYPE.FIELD` for exclusions
 Unknown types with custom identities receive the same explicit metadata profile
 expansion. Profile digest covers that expansion; policy digest covers effective
 rules, replacements, profile selection and evidence.
+
+## SOURCE provisioning policy rules
+
+All ISC profiles declare keyed collections for `/provisioningPolicies` and
+`/provisioningPolicies/*/fields`. Default policy keys are `/usageType`; a
+`CREATE_MACHINE_ACCOUNT` policy instead uses `/usageType` and `/subtypeId`.
+Fields use `/name`. Components must be nonblank strings. Duplicate or missing
+keys fail with a conflict; policy display names and policy/field physical IDs do
+not determine alignment. Subtype IDs are used as exported; matching different
+subtype IDs across tenants requires an explicitly configured logical key.
+
+The built-in collection IDs are `isc.SOURCE.provisioning-policies` and
+`isc.SOURCE.provisioning-fields`. Metadata exclusions are
+`isc.SOURCE.provisioning-policy-{id,created,modified}` and
+`isc.SOURCE.provisioning-field-{id,created,modified}` at their direct item paths.
+These operate in both modes and all ISC profiles. Other nested IDs and transform
+array ordering remain comparable. Keyed alignment does not grant deployment
+member-value authority. Explicit replacements retain the existing same-category,
+same-selector ownership requirements.
+
+Generic keyed collection rules can define `key_cases`, each containing a concrete
+item-relative `when_path`, a nonnull scalar `when_value`, and a nonempty list of
+concrete `keys` pointers that replaces the whole default tuple for matching items.
+Cases must share one discriminator path and have distinct typed values. Missing
+or unmatched discriminators use default keys. `component_type` accepts `scalar`
+(the default) or `string` (nonblank strings only). All key components remain
+present and nonnull regardless of null/absent-property normalization.
+
+The neutral engine interprets these declarations without SOURCE-specific code.
+ISC profile assembly lives in `internal/iscprofile`; SOURCE schema and
+provisioning providers are separate files. Existing public `ISCProfile` and
+`Compile` entry points remain unchanged.
+
+Sources: [provisioning policy creation](https://developer.sailpoint.com/docs/api/create-provisioning-policy-v-2/)
+and [subtype provisioning policies](https://developer.sailpoint.com/docs/api/create-source-subtype-provisioning-policy-v-2/).
 
 ## Requests, operations and CLI
 

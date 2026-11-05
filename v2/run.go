@@ -817,16 +817,11 @@ func (x *execution) arrays(f frame, r Collection) {
 		all := map[string]bool{}
 		for side, arr := range a {
 			for i, v := range arr {
-				parts := []any{}
-				for _, p := range r.Keys {
-					key, ok := get(v, p)
-					if !ok || !scalar(key) {
-						x.record(f, "conflict", "collection key unavailable", r.Rule, "")
-						return
-					}
-					parts = append(parts, key)
+				k, err := collectionKey(v, r)
+				if err != nil {
+					x.record(f, "conflict", err.Error(), r.Rule, "")
+					return
 				}
-				k := valueKey(parts)
 				if _, ok := idx[side][k]; ok {
 					x.record(f, "conflict", "duplicate collection key", r.Rule, "")
 					return

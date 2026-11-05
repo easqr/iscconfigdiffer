@@ -477,10 +477,8 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if (r.Mode == "keyed") != (len(r.Keys) > 0) {
 			return nil, errors.New("keyed collection requires keys only")
 		}
-		for _, k := range r.Keys {
-			if !concrete(k) {
-				return nil, errors.New("concrete collection key required")
-			}
+		if err := validateCollectionKeys(r); err != nil {
+			return nil, err
 		}
 	}
 	for _, r := range p.Sensitive {
