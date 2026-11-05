@@ -93,7 +93,7 @@ wildcards expand only from available structures.
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
 | `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
-| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, and `key_cases` only for keyed; optional `item_label` and `display_fields` for report context |
+| `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, `key_cases`, and `key_mappings` only for keyed; optional `item_label` and `display_fields` for report context |
 | `sensitive` | Selector; conservative report redaction |
 
 Identity and pairing rules are unconditional: `modes` is not allowed. Other rules
@@ -115,6 +115,61 @@ objects; each group explicitly establishes symmetric equivalence among its
 environments. Do not combine pairs/groups. Cases must be unambiguous. There is no
 substring replacement, substitution chaining, inferred transitivity or coercion.
 Several disjoint cases belong in one rule; overlapping rule ownership is rejected.
+
+### Collection key mappings
+
+A keyed collection may declare `key_mappings`, an array of:
+
+```json
+{
+  "path": "/forestName",
+  "groups": [
+    {
+      "key": "corporate-forest",
+      "values": {"dev":"dev.example.invalid","prod":"prod.example.invalid"}
+    }
+  ]
+}
+```
+
+`path` is a concrete item-relative pointer present in the collection's default
+`keys` or a `key_cases` tuple. Each path has at most one mapping. Each mapping
+requires at least one group; group keys are unique nonblank strings within that
+mapping. A group requires at least two named environments, each contributing one
+nonnull scalar value. `component_type:"string"` also requires every mapped value
+to be a nonblank string. Within one path/environment, a typed value may belong
+to only one group. Invalid or ambiguous policies fail compilation. Mapping and
+group order have no meaning; effective policy digests cover sorted definitions.
+
+After selecting the item's complete key tuple, each mapped component resolves
+using the input's explicit Environment (including policy bindings). This applies
+to source, actual, and optional baseline in deployment. A mapping for an inactive
+conditional key component does not apply. When an active component has mappings,
+a missing or unlisted environment produces a conflict; the tool does not infer
+environments from tenant names, directory names, role, or observed values.
+
+A listed value becomes a tagged logical group identity for alignment only.
+Unlisted values use a separately tagged raw value and exact typed matching. There
+is no coercion, case folding, chaining, or inferred transitivity. Group keys cannot
+collide with raw values. An environment's declared value must match exactly;
+a value mapped in a different environment is not implicitly accepted. Duplicate
+resolved item tuples produce conflicts; mapping never merges duplicate entries.
+Mappings are local to the selected collection and each parent object/array; they
+do not rename root objects, affect references elsewhere, or establish value
+comparison rules.
+
+Original documents, values, paths, display context, and expectation derivations
+are retained. The collection decision records key mapping/order alignment with
+its rule ID, replacement and evidence; child item identities use hashes of the
+resolved typed tuples. Explicit sensitive redaction and value omission retain
+their existing behavior. Mapping changes are bound into policy/request digests.
+
+Collection alignment supplies neither drift equivalence nor deployment authority.
+Use a separate drift `equivalences` rule at the aligned value path to accept an
+intentional difference. Deployment needs independent authoritative expectations;
+`copy_source` still requires the raw source value and `preserve_target` still
+requires the aligned baseline value. Profile replacement ownership, selector
+conflict handling, and mode restrictions are unchanged.
 
 ### Expectations
 
@@ -219,8 +274,8 @@ This default follows the null/absent-property convention in the
 ## ISC profiles
 
 * `isc-identity-v2`: existing named, composite, parent-qualified and singleton
-  identity strategies plus SOURCE schema/attribute and provisioning alignment,
-  and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
+  identity strategies plus SOURCE schema/attribute, AD forest, and provisioning
+  alignment, and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
 * `isc-envelope-v2`: identities plus envelope JWS header/signature exclusions.
 * `isc-portable-v2`: additionally excludes envelope `/self/id`, content `/id`,
   `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`,
@@ -273,6 +328,26 @@ Custom collection rules at these paths require explicit same-category,
 same-selector `replaces`. Replacements supply their own display annotations.
 The SOURCE provider is `internal/iscprofile/source_schema.go`; the neutral engine
 and renderers use existing generic collection and context capabilities.
+
+## SOURCE Active Directory forest rules
+
+All ISC profiles supply `isc.SOURCE.ad-forests` at
+`/connectorAttributes/forestSettings`, keyed by the nonblank string `/forestName`.
+Names must be unique within a source for comparison. This is an explicit differ
+requirement, not a documented guarantee of ISC validation. Entries are unordered;
+other settings remain comparable. The rule displays Forest / Name context using
+each input's original forest name and pointer. Missing counterparts receive no
+inferred forest labels. No rules are added for domain settings, server lists,
+credentials, or other connector configuration paths.
+
+The SOURCE Active Directory provider is `internal/iscprofile/source_ad.go`. It
+supplies no tenant-specific mappings or equivalences. To add mappings, explicitly
+replace the collection with the same selector, retaining `item_label` and
+`display_fields` if readable context is wanted. Because the built-in has no
+object key, replacements retain that scope; each source/parent array remains
+independent. Value equivalences can be source-key scoped. See the complete
+[drift example](../examples/policy-drift.json) and
+[README walkthrough](../README.md#forest-names-that-differ-between-environments).
 
 ## SOURCE provisioning policy rules
 

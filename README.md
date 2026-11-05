@@ -553,6 +553,101 @@ Put this object in the policy's `expectations` array **instead of** the hostname
 [configuration reference](#configuration-reference) below explains the other rule
 categories; you can leave them out until needed.
 
+### Forest names that differ between environments
+
+A forest's name identifies its entry in
+`/connectorAttributes/forestSettings`. All ISC profiles match this array by
+`forestName` and show a Forest name beside each item's original JSON Pointer.
+Names must be nonblank strings and unique within each source. This is a differ
+validation requirement; it is not a claim that ISC rejects duplicate names.
+
+When development and production use different forest names, configure **both**:
+
+1. A collection `key_mappings` group to align the two forest entries.
+2. An `equivalences` group to accept their different names during drift comparison.
+
+This complete policy shows that combination:
+
+```json
+{
+  "version": 2,
+  "id": "directory-forest-drift",
+  "profile": "isc-portable-v2",
+  "collections": [
+    {
+      "id": "directory-forests",
+      "replaces": "isc.SOURCE.ad-forests",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/forestSettings",
+      "mode": "keyed",
+      "keys": ["/forestName"],
+      "component_type": "string",
+      "item_label": "Forest",
+      "display_fields": [{"label":"Name","path":"/forestName"}],
+      "key_mappings": [
+        {
+          "path": "/forestName",
+          "groups": [
+            {
+              "key": "corporate-forest",
+              "values": {
+                "dev": "dev.example.invalid",
+                "prod": "prod.example.invalid"
+              }
+            }
+          ]
+        }
+      ],
+      "evidence": {"kind":"approved-policy","record_id":"environment-forests"}
+    }
+  ],
+  "equivalences": [
+    {
+      "id": "directory-forest-names",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/forestSettings/*/forestName",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {"dev":"dev.example.invalid","prod":"prod.example.invalid"}
+      ],
+      "evidence": {"kind":"approved-policy","record_id":"environment-forests"}
+    }
+  ]
+}
+```
+
+Replace `Invented Directory` and the environment values with your source name and
+forest names. Run with `--left-env dev --right-env prod`, or use policy bindings.
+The same combination, alongside a hostname equivalence, is in
+[`examples/policy-drift.json`](examples/policy-drift.json).
+
+`corporate-forest` is a policy-defined logical identity, not a hostname written
+into either export. Add another group for another corresponding forest. Matching
+is exact and case-sensitive. Unmapped forest names use exact matching; no DNS
+case conversion, prefix substitution, or mapping chains are inferred.
+
+The collection replaces the profile's rule for this path across SOURCE objects,
+so it retains the built-in selector without a source `key`. Forest entries are
+always matched within their parent source; they cannot match entries in another
+source. The equivalence is scoped to `Invented Directory`. With a neutral policy
+that has no ISC profile, a custom collection can also declare an exact source
+`key` because there is no built-in rule to replace.
+
+Mapped names in one input and raw names in the other are distinct identities,
+even if their strings happen to be equal. Duplicate or invalid forest names,
+ambiguous mappings, or missing/unlisted input environments cannot produce a
+successful comparison. Other forest settings, additions, and removals remain
+comparable. Domain settings and other references to forest names need their own
+rules; this configuration does not implicitly map them.
+
+Reports preserve each input's actual forest name and array index, and identify
+the collection mapping rule and its evidence. The mapping aligns entries in
+both drift and deployment. It does not itself accept different name values or
+verify a deployment: deployment still needs an independent destination-name
+expectation, such as a literal value or `preserve_target` with a baseline.
+
 ## Deployment validation
 
 ```sh
@@ -904,7 +999,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
+| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute and AD forest alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
@@ -1091,7 +1186,7 @@ The other policy arrays use the following syntax:
 | `identities` | `type`, `strategy` (`fields`, `singleton`, `dependent`); `paths` for fields; `parent_type`/`parent_path` for dependencies; optional `component_type` (`scalar` or `string`) |
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id`; explicitly relate physical objects; deployment interprets left/right as source/actual |
 | `references` | Selector plus `target_type`, optional one-to-one `external` ID map; compare references through object correspondence in drift |
-| `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys`, `component_type`, and `key_cases` for keyed arrays; optional `item_label` and `display_fields` for report context |
+| `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys`, `component_type`, `key_cases`, and `key_mappings` for keyed arrays; optional `item_label` and `display_fields` for report context |
 | `ignores` | Selector; explicitly exclude that subtree from comparison |
 | `sensitive` | Selector; conservatively redact values, object identity and physical provenance in reports |
 
@@ -1136,6 +1231,13 @@ path and have distinct typed values; this avoids first-match precedence. An item
 that matches no case uses the rule's default `keys`. Key pointers are concrete and
 item-relative. `component_type` defaults to `scalar`; `string` requires every key
 component to be a nonblank string, preserving the original spelling.
+
+Keyed collections can also declare environment-specific `key_mappings` for one
+or more key components. Each mapping specifies a concrete item-relative key
+`path` and `groups` of logical `key` plus environment-indexed `values`. It changes
+correspondence only; see the [forest mapping example](#forest-names-that-differ-between-environments)
+for a complete policy and the [policy contract](docs/policy.md#collection-key-mappings)
+for validation and fallback behavior.
 
 Collection rules may also declare `item_label` and `display_fields` for readable
 report context. Each display field has a nonblank, unique `label` and a concrete

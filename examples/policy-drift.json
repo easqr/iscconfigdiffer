@@ -20,6 +20,62 @@
         "record_id": "environment-hosts"
       },
       "key": "Invented Directory"
+    },
+    {
+      "id": "directory-forest-names",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/connectorAttributes/forestSettings/*/forestName",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "dev.example.invalid",
+          "prod": "prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-forests"
+      }
+    }
+  ],
+  "collections": [
+    {
+      "id": "directory-forests",
+      "replaces": "isc.SOURCE.ad-forests",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/forestSettings",
+      "mode": "keyed",
+      "keys": [
+        "/forestName"
+      ],
+      "component_type": "string",
+      "item_label": "Forest",
+      "display_fields": [
+        {
+          "label": "Name",
+          "path": "/forestName"
+        }
+      ],
+      "key_mappings": [
+        {
+          "path": "/forestName",
+          "groups": [
+            {
+              "key": "corporate-forest",
+              "values": {
+                "dev": "dev.example.invalid",
+                "prod": "prod.example.invalid"
+              }
+            }
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-forests"
+      }
     }
   ]
 }

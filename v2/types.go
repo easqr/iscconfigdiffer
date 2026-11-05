@@ -56,6 +56,17 @@ type CollectionKeyCase struct {
 	Keys      []string        `json:"keys"`
 }
 
+// CollectionKeyMapping aligns one key component through explicit environment
+// values. It does not change observed values or establish value equivalence.
+type CollectionKeyMapping struct {
+	Path   string                      `json:"path"`
+	Groups []CollectionKeyMappingGroup `json:"groups"`
+}
+type CollectionKeyMappingGroup struct {
+	Key    string         `json:"key"`
+	Values map[string]any `json:"values"`
+}
+
 // DisplayField declares a scalar collection-item identifier for report context.
 type DisplayField struct {
 	Label string `json:"label"`
@@ -64,12 +75,13 @@ type DisplayField struct {
 type Collection struct {
 	Rule
 	Selector
-	Mode          string              `json:"mode"`
-	Keys          []string            `json:"keys,omitempty"`
-	ComponentType string              `json:"component_type,omitempty"`
-	KeyCases      []CollectionKeyCase `json:"key_cases,omitempty"`
-	ItemLabel     string              `json:"item_label,omitempty"`
-	DisplayFields []DisplayField      `json:"display_fields,omitempty"`
+	Mode          string                 `json:"mode"`
+	Keys          []string               `json:"keys,omitempty"`
+	ComponentType string                 `json:"component_type,omitempty"`
+	KeyCases      []CollectionKeyCase    `json:"key_cases,omitempty"`
+	KeyMappings   []CollectionKeyMapping `json:"key_mappings,omitempty"`
+	ItemLabel     string                 `json:"item_label,omitempty"`
+	DisplayFields []DisplayField         `json:"display_fields,omitempty"`
 }
 type ValuePair struct {
 	Left  any `json:"left"`

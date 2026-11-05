@@ -52,7 +52,7 @@ func TestConditionalCollectionCompilerValidation(t *testing.T) {
 	c := conditionalCollection()
 	c.KeyCases = nil
 	c.ComponentType = ""
-	if _, err := collectionKey(map[string]any{"kind": ""}, c); err != nil {
+	if _, _, err := collectionKey(map[string]any{"kind": ""}, c, ""); err != nil {
 		t.Fatal(err)
 	}
 }

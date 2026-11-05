@@ -815,13 +815,15 @@ func (x *execution) arrays(f frame, r Collection) {
 	if r.Mode == "keyed" {
 		idx := [3]map[string]int{{}, {}, {}}
 		all := map[string]bool{}
+		mapped := false
 		for side, arr := range a {
 			for i, v := range arr {
-				k, err := collectionKey(v, r)
+				k, used, err := collectionKey(v, r, x.inputs[side].Environment)
 				if err != nil {
 					x.record(f, "conflict", err.Error(), r.Rule, "")
 					return
 				}
+				mapped = mapped || used
 				if _, ok := idx[side][k]; ok {
 					x.record(f, "conflict", "duplicate collection key", r.Rule, "")
 					return
@@ -834,7 +836,11 @@ func (x *execution) arrays(f frame, r Collection) {
 		if x.request.Mode == "deployment" {
 			status = "excluded"
 		}
-		x.record(f, status, "keyed array ordering normalization", r.Rule, "")
+		code := "keyed array ordering normalization"
+		if mapped {
+			code = "keyed array key mapping and ordering normalization"
+		}
+		x.record(f, status, code, r.Rule, "")
 		for _, k := range keys(all) {
 			nf := f
 			nf.path = f.path + "/*"

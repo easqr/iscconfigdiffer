@@ -3,10 +3,12 @@
 The module has one comparison implementation: the neutral `v2` engine, with ISC
 snapshot and optional Configuration Hub adapters in the root `differ` package.
 ISC domain rules are assembled under `internal/iscprofile`, with separate SOURCE
-schema and provisioning-policy providers. The neutral engine supports generic
-conditional collection keys and per-input collection context; it contains no
-SOURCE-specific matching logic. SOURCE schemas/attributes match by name, while
-provisioning policies use usage/subtype and fields use name.
+schema, provisioning-policy, and Active Directory providers. The neutral engine
+supports generic conditional collection keys, environment key mappings, and
+per-input collection context; it contains no SOURCE-specific matching logic. SOURCE schemas/attributes match by name, while
+provisioning policies use usage/subtype and fields use name. Active Directory
+forest settings use forestName, with explicit policy-authored environment aliases
+for alignment; value equivalence and deployment expectations stay independent.
 Policies and reports use schema `2`. Exporter manifests/envelopes retain their
 independent storage-format numbers.
 
@@ -23,7 +25,10 @@ independent storage-format numbers.
 Synthetic tests cover exporter organization/publication to validated readers and
 comparison, plus mapping retrieval/publication to offline import. No tenant
 exports, credentials or network services are fixtures. Current examples are
-compiled and executed in `TestDocumentedExamples`.
+compiled and executed in `TestDocumentedExamples` and
+`TestDocumentedForestMappingAndReportContext`. Collection mapping validation,
+typed fallback, original pointers, baseline alignment, deterministic digests, and
+compiled-plan detachment are covered in `v2/collection_mappings_test.go`.
 
 ## Checks
 
