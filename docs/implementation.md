@@ -38,6 +38,9 @@ compiled-plan detachment are covered in `v2/collection_mappings_test.go`.
 `v2/item_selectors_test.go` and `source_ad_domain_users_test.go` cover complete
 logical item scopes, per-domain approvals, reordered inputs, cross-domain
 rejection, scope conflicts, coverage, redaction, and concurrent compiled reuse.
+`v2/items_selectors_test.go` and `provisioning_nested_mapping_test.go` verify
+conjunctive ancestor scopes, independent policy/field ordering, non-leakage to
+other policies or fields, condition-order digests, and nested report provenance.
 
 ## Checks
 

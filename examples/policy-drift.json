@@ -136,6 +136,42 @@
         "kind": "invented-policy",
         "record_id": "regional-domain-service-account"
       }
+    },
+    {
+      "id": "directory-create-user-principal-name",
+      "type": "SOURCE",
+      "key": "Invented Directory",
+      "path": "/provisioningPolicies/*/fields/*/transform/attributes/value",
+      "items": [
+        {
+          "collection": "isc.SOURCE.provisioning-policies",
+          "keys": {
+            "/usageType": {
+              "value": "CREATE"
+            }
+          }
+        },
+        {
+          "collection": "isc.SOURCE.provisioning-fields",
+          "keys": {
+            "/name": {
+              "value": "userPrincipalName"
+            }
+          }
+        }
+      ],
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "$uid@dev.example.invalid",
+          "prod": "$uid@prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "create-upn-template"
+      }
     }
   ],
   "collection_mappings": [

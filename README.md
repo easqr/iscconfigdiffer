@@ -784,10 +784,75 @@ duplicate domain keys remain conflicts. Equivalence does not assert that an
 account or domain must exist. Set `required:true` if an unused approval must make
 the comparison incomplete.
 
-`item` is currently supported on drift equivalences. It does not introduce
+`item` and `items` are supported on drift equivalences. It does not introduce
 per-item deployment expectations or change deployment authority requirements.
 The same selector can scope other drift fields, including complete server arrays,
 or target another keyed collection; it contains no AD-specific engine logic.
+
+### Map a provisioning field within a specific policy
+
+Provisioning policies and their fields are nested keyed arrays. Use `items` when
+an approval must match both ancestors. For example, this rule from the
+[drift example](examples/policy-drift.json) approves only the exported CREATE
+policy's `userPrincipalName` template:
+
+```json
+{
+  "id": "directory-create-user-principal-name",
+  "type": "SOURCE",
+  "key": "Invented Directory",
+  "path": "/provisioningPolicies/*/fields/*/transform/attributes/value",
+  "items": [
+    {
+      "collection": "isc.SOURCE.provisioning-policies",
+      "keys": {
+        "/usageType": {
+          "value": "CREATE"
+        }
+      }
+    },
+    {
+      "collection": "isc.SOURCE.provisioning-fields",
+      "keys": {
+        "/name": {
+          "value": "userPrincipalName"
+        }
+      }
+    }
+  ],
+  "left_env": "dev",
+  "right_env": "prod",
+  "groups": [
+    {
+      "dev": "$uid@dev.example.invalid",
+      "prod": "$uid@prod.example.invalid"
+    }
+  ],
+  "evidence": {
+    "kind": "invented-policy",
+    "record_id": "create-upn-template"
+  }
+}
+```
+
+All entries in `items` must match: `/usageType` must be `CREATE` **and** the
+field's `/name` must be `userPrincipalName`. Both arrays can move independently;
+the field path uses wildcards, and the report retains each input's original
+indices. The same template pair on another field or in another policy remains
+a difference unless independently approved.
+
+These are raw keys (`value`), because the policy usage and field names are the
+same between environments. Use `mapped` for an environment-mapped key component
+when needed. Every referenced collection still requires its complete key tuple.
+The existing single `item` form remains supported; use either `item` or nonempty
+`items`, not both. Conditions may be authored in either order; the compiler
+orders them from outer to inner and rejects duplicate collection conditions.
+
+The differ compares the template strings literally. It does not evaluate `$uid`
+or execute transforms, and this rule does not approve the transform's `type`,
+other attributes, or the field's flags. The same mechanism can combine schema
+and attribute identities or other nested collection keys without source-specific
+logic in the engine. It remains a drift equivalence, not deployment authority.
 
 ## Deployment validation
 

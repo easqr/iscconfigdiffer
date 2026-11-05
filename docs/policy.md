@@ -91,7 +91,7 @@ wildcards expand only from available structures.
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id` |
 | `ignores` | Selector; explicit subtree exclusion/normalization |
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
-| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` scope |
+| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` or `items` scope |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
 | `collection_mappings` | `collection` effective keyed collection ID, optional object `key`, and nonempty `key_mappings`; common rule fields except `replaces` |
 | `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, `key_cases`, and `key_mappings` only for keyed; optional `item_label` and `display_fields` for report context |
@@ -120,8 +120,12 @@ Several disjoint cases belong in one rule; overlapping rule ownership is rejecte
 ### Equivalence item scopes
 
 An equivalence may include `item:{"collection":RULE_ID,"keys":{...}}` to select
-one aligned item of an ancestor keyed collection. The field selector still uses
-wildcard array segments. Scoping occurs after collection key resolution, including
+one aligned item, or `items:[...]` to require several ancestor identities together.
+Use exactly one form; `items` must be nonempty and each collection may appear only
+once. All listed conditions must match, and their collections must form a compatible
+nested ancestor chain of the selected field. Condition order is immaterial;
+compilation canonicalizes `items` from outer to inner for stable policy digests.
+The field selector still uses wildcard array segments. Scoping occurs after collection key resolution, including
 implementation mapping extensions; it never uses numeric item positions.
 
 Each `keys` entry is an item-relative key pointer with exactly one of:
@@ -145,10 +149,12 @@ mapped/value forms are rejected.
 Unknown, disabled, replaced, non-keyed, inactive, or non-ancestor collection
 references fail compilation. Reference the effective replacement ID when
 appropriate. Scope does not expand the collection's type, variant, key, section,
-or path ownership. Different complete tuples in the same collection are disjoint
-owners and can approve different value pairs at the same field. Identical scopes,
-broad/scoped competing owners, and potentially overlapping scopes on different
-ancestor collections are rejected. Scope never adds precedence over ignores,
+or path ownership. Two rules are disjoint when at least one collection constrained
+by both rules has different complete tuples. This allows independent CREATE/UPN,
+CREATE/email, and UPDATE/UPN approvals at the same field path. Without a disjoint
+shared constraint, ownership may overlap: identical/reordered conditions,
+broad/scoped competitors, and partially overlapping ancestor constraints are
+rejected. A narrower rule does not take precedence over a broader one. Scope never adds precedence over ignores,
 expectations, or other rule categories.
 
 The selector requires consistent resolved component identities across the inputs
@@ -161,13 +167,14 @@ scoped rule follows existing optional/required coverage behavior. Unapproved
 values fall back to ordinary comparison; declaring a scope is not an assertion
 that an item must exist or that both environments must have a specified value.
 
-Reports retain `Decision.item` on applied scoped equivalence decisions, together
+Reports retain `Decision.item` for the single form or `Decision.items` for the
+joint form on applied scoped equivalence decisions, together
 with original locations, containing-item context, and mapping extension evidence.
 HTML and Markdown show Collection item scope. Scope identifiers, like other
 identity metadata, remain visible with `--exclude-values`; explicit sensitive
 redaction removes them for affected types. Scope definitions are detached and
 included in the effective policy digest. Equivalences remain drift-only;
-expectations do not accept `item` in this iteration.
+expectations do not accept `item` or `items`.
 
 For example, these two rules approve service accounts for two domains in the
 same mapped forest. The complete executable policy and both domains' DN mapping
@@ -241,6 +248,60 @@ groups are in [policy-drift.json](../examples/policy-drift.json).
 Both rules reference `corporate-forest`, but their `corporate-domain` and
 `regional-domain` identities differ. Moving a valid account pair to the other
 domain produces drift, even though that pair is approved elsewhere.
+
+### Nested provisioning example
+
+The CREATE policy's UPN template requires two simultaneous constraints: the
+`isc.SOURCE.provisioning-policies` tuple `/usageType = CREATE` and the
+`isc.SOURCE.provisioning-fields` tuple `/name = userPrincipalName`. Both are
+inherited structural keys; no numeric array indices or copied collection rules
+are needed in the implementation policy.
+
+```json
+{
+  "id": "directory-create-user-principal-name",
+  "type": "SOURCE",
+  "key": "Invented Directory",
+  "path": "/provisioningPolicies/*/fields/*/transform/attributes/value",
+  "items": [
+    {
+      "collection": "isc.SOURCE.provisioning-policies",
+      "keys": {
+        "/usageType": {
+          "value": "CREATE"
+        }
+      }
+    },
+    {
+      "collection": "isc.SOURCE.provisioning-fields",
+      "keys": {
+        "/name": {
+          "value": "userPrincipalName"
+        }
+      }
+    }
+  ],
+  "left_env": "dev",
+  "right_env": "prod",
+  "groups": [
+    {
+      "dev": "$uid@dev.example.invalid",
+      "prod": "$uid@prod.example.invalid"
+    }
+  ],
+  "evidence": {
+    "kind": "invented-policy",
+    "record_id": "create-upn-template"
+  }
+}
+```
+
+This accepts only the indicated literal template pair in that policy and field.
+Other policy usages, field names, transform types/attributes, and field flags
+remain comparable. Identical account templates elsewhere do not inherit approval.
+The full runnable declaration is also in
+[policy-drift.json](../examples/policy-drift.json). Single `item` rules and existing
+mapped/raw key semantics remain supported. No deployment behavior is changed.
 
 ### Collection key mappings
 
