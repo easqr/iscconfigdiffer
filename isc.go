@@ -14,10 +14,12 @@ import (
 // Request keeps validated ISC storage inputs outside the neutral engine.
 // Left/Right mean source/actual when Mode is deployment.
 type Request struct {
-	Mode            string
-	Left, Right     snapshot.Input
-	Baseline        *snapshot.Input
-	Scope           []string
+	Mode        string
+	Left, Right snapshot.Input
+	Baseline    *snapshot.Input
+	Scope       []string
+	// ObjectKey selects one logical object key within a single explicit scope.
+	ObjectKey       string
 	Operations      []v2.Operation
 	IncludeMatching bool
 }
@@ -56,7 +58,7 @@ func Compare(r Request, p v2.Policy) (v2.Report, error) {
 	if e != nil {
 		return report, e
 	}
-	req := v2.Request{Mode: r.Mode, Left: left, Right: right, Scope: r.Scope, Operations: r.Operations, IncludeMatching: r.IncludeMatching}
+	req := v2.Request{Mode: r.Mode, Left: left, Right: right, Scope: r.Scope, ObjectKey: r.ObjectKey, Operations: r.Operations, IncludeMatching: r.IncludeMatching}
 	if r.Baseline != nil {
 		b, e := AdaptSnapshot(*r.Baseline)
 		if e != nil {

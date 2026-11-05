@@ -153,11 +153,13 @@ type Operation struct {
 	Action string `json:"action"`
 }
 type Request struct {
-	Mode            string
-	Left            Input
-	Right           Input
-	Baseline        *Input
-	Scope           []string
+	Mode     string
+	Left     Input
+	Right    Input
+	Baseline *Input
+	Scope    []string
+	// ObjectKey selects an exact logical key; Scope must contain one type.
+	ObjectKey       string
 	Operations      []Operation
 	IncludeMatching bool
 }
@@ -212,6 +214,7 @@ type Report struct {
 	Profile        string              `json:"profile,omitempty"`
 	Inputs         map[string]Input    `json:"inputs"`
 	Scope          []string            `json:"scope"`
+	ObjectKey      string              `json:"object_key,omitempty"`
 	Operations     []Operation         `json:"operations,omitempty"`
 	ObjectCoverage map[string]int      `json:"object_coverage"`
 	Excluded       map[string][]string `json:"excluded"`

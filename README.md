@@ -221,6 +221,35 @@ Without `--scope`, the primary inputs must declare the same type set. Use
 including a deployment baseline. An unavailable type is not treated as an empty
 inventory.
 
+To compare just one object, combine one explicit type with `--name`:
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left ../configexporter/exports/papajohns-sb --left-mode snapshot --left-env dev \
+  --right ../configexporter/exports/papajohns --right-mode snapshot --right-env prod \
+  --scope SOURCE --name "Active Directory" \
+  --policy policy.json
+```
+
+Use your own export paths and policy file. `--name` is an exact, case-sensitive
+logical key, normally the object's `name` under ISC profiles. It is not a physical
+ID, substring, or pattern. For custom/composite identities, supply the logical key
+shown in the report; explicit pairings use the source/left key. Omit `--name` to
+compare every object in the selected types.
+
+The filter requires exactly one type in `--scope` and works in drift and deployment
+modes. An object present on only one side still produces a difference. If no
+object matches in any supplied input, the result is incomplete with exit `2`.
+Deployment still requires an operation for the selected key. Other operations
+remain context for reference checks but are not validated by this filtered run.
+
+All inputs are still read, validated, and matched, so other objects can resolve
+references; invalid inputs or ambiguous identities can still prevent completion.
+Required policy rules remain enforced. JSON reports record `object_key`, include
+it in the request digest, and count objects skipped by the filter separately from
+the full type inventory. A filtered result makes no claim about other objects.
+
+
 Roots can be separate directories or root symlinks. Nested links and special
 files are rejected. Keep editable trees unchanged while they are being read.
 **Keep policies, operations, mappings, and unrelated JSON outside configuration
@@ -689,6 +718,7 @@ are resolved relative to the current working directory unless absolute.
 | `--mode` | `drift` | `drift` or `deployment` |
 | `--policy FILE` | Built-in `default` / `isc-envelope-v2` | Read a comparison policy JSON file using schema `2` |
 | `--scope TYPES` | Full declared type set; primary sets must match | Explicit comma-separated type subset available in all inputs |
+| `--name KEY` | All objects | Exact logical name/key within one explicit `--scope` type |
 | `--format` | `text` | `text` or `json` |
 | `--matching` | `false` | Include ordinary equal leaves in reports; does not affect result counts or exit status |
 | `--operations FILE` | None | Required deployment operation list; invalid in drift mode |

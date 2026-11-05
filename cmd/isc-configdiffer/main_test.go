@@ -164,3 +164,28 @@ func TestReviewHubUsesPolicyEnvironmentBindings(t *testing.T) {
 		t.Fatal(code, errOut.String())
 	}
 }
+
+func TestCLIObjectNameFilter(t *testing.T) {
+	root := tree(t, "same")
+	base := []string{"--left", root, "--right", root, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--format", "json"}
+	for _, tc := range []struct {
+		extra []string
+		code  int
+	}{
+		{[]string{"--scope", "ROLE", "--name", "Invented"}, 0},
+		{[]string{"--scope", "ROLE", "--name", "invented"}, 2},
+		{[]string{"--name", "Invented"}, 2},
+		{[]string{"--scope", "ROLE", "--name", ""}, 2},
+	} {
+		var out, errOut bytes.Buffer
+		if code := run(append(append([]string{}, base...), tc.extra...), &out, &errOut); code != tc.code {
+			t.Fatal(tc, code, errOut.String(), out.String())
+		}
+		if tc.code == 0 {
+			var report v2.Report
+			if err := json.Unmarshal(out.Bytes(), &report); err != nil || report.ObjectKey != "Invented" || len(report.Matches) != 1 {
+				t.Fatal(err, report)
+			}
+		}
+	}
+}

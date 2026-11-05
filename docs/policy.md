@@ -18,6 +18,25 @@ The CLI defaults to drift mode; select `--mode deployment` for draft validation.
 Policies use payload-relative selectors. `DecodePolicy`, `Compile`, and `Compare`
 are the public ISC entry points; the `v2` package provides the neutral core.
 
+## Object selection
+
+`differ.Request.ObjectKey` and `v2.Request.ObjectKey` optionally select one exact,
+case-sensitive logical key. Set `Scope` to exactly one explicit type. The CLI
+exposes this as `--scope SOURCE --name "Active Directory"`. Selection uses the
+matched group's source/left key (including explicit pairings), not a physical ID.
+
+The full inventory remains validated and matched for identity/reference context;
+only the selected group produces comparison decisions. A one-sided object remains
+a drift difference. No matching group produces `selected object unavailable` and
+exit `2`. Deployment requires an operation for the selected key; unselected
+operations remain reference context and do not produce comparison decisions.
+Global identity diagnostics and required-rule checks still apply.
+
+Reports include optional `object_key` and bind it into `request_digest`.
+`*_in_scope` coverage remains the full type inventory; `*_outside_object_filter`
+counts skipped inventory objects, and `compared_groups` counts selected groups.
+Sensitive selectors redact the filter key along with other object identities.
+
 ## Schema
 
 The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`, and rule arrays.

@@ -8,6 +8,9 @@ func (x *execution) redact() {
 		if !active(r.Rule, x.request.Mode) {
 			continue
 		}
+		if x.report.ObjectKey != "" && x.report.Scope[0] == r.Type && (r.Key == "" || r.Key == x.report.ObjectKey) {
+			hidden[r.Type] = true
+		}
 		for _, g := range x.inventory.groups {
 			if g.typ == r.Type && (r.Key == "" || r.Key == g.key) {
 				hidden[g.typ] = true
@@ -43,6 +46,9 @@ func (x *execution) redact() {
 				changed = true
 			}
 		}
+	}
+	if x.report.ObjectKey != "" && hidden[x.report.Scope[0]] {
+		x.report.ObjectKey = "[redacted]"
 	}
 	mask := func(locations map[string]Location) {
 		for role := range locations {

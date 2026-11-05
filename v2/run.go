@@ -98,6 +98,9 @@ func Run(request Request, c *Compiled) (Report, error) {
 			return x.report, errors.New("binding role conflicts with mode")
 		}
 	}
+	if request.ObjectKey != "" && len(request.Scope) != 1 {
+		return x.report, errors.New("object key requires one explicit scope type")
+	}
 	scope := map[string]bool{}
 	if len(request.Scope) == 0 {
 		if !reflect.DeepEqual(left.Types, right.Types) {
@@ -129,6 +132,7 @@ func Run(request Request, c *Compiled) (Report, error) {
 	x.report.Profile = c.policy.Profile
 	x.report.ProfileDigest = c.profileDigest
 	x.report.Scope = keys(scope)
+	x.report.ObjectKey = request.ObjectKey
 	x.report.Complete = true
 	x.report.Correct = true
 	x.report.Evidence = []Evidence{}
@@ -179,16 +183,37 @@ func Run(request Request, c *Compiled) (Report, error) {
 	x.operations = ops
 	x.report.Operations = append([]Operation{}, request.Operations...)
 	sort.Slice(x.report.Operations, func(i, j int) bool { return stable(x.report.Operations[i]) < stable(x.report.Operations[j]) })
-	x.report.ObjectCoverage["selected_operations"] = len(ops)
+	x.report.ObjectCoverage["selected_operations"] = 0
+	for _, op := range ops {
+		if request.ObjectKey == "" || op.Key == request.ObjectKey {
+			x.report.ObjectCoverage["selected_operations"]++
+		}
+	}
+	if request.ObjectKey != "" && request.Mode == "deployment" && x.report.ObjectCoverage["selected_operations"] == 0 {
+		x.report.Complete = false
+		x.report.Correct = false
+		return x.report, errors.New("selected object requires a deployment operation")
+	}
 	requestBytes, _ := json.Marshal(struct {
 		Mode, Policy string
 		Inputs       map[string]Input
 		Scope        []string
 		Operations   []Operation
-	}{request.Mode, c.digest, x.report.Inputs, x.report.Scope, x.report.Operations})
+		ObjectKey    string `json:",omitempty"`
+	}{request.Mode, c.digest, x.report.Inputs, x.report.Scope, x.report.Operations, request.ObjectKey})
 	x.report.RequestDigest = hash(requestBytes)
 	seenOps := map[string]bool{}
+	foundObject := false
 	for _, g := range x.inventory.groups {
+		if request.ObjectKey != "" && g.key != request.ObjectKey {
+			for i, n := range g.nodes {
+				if n != nil {
+					x.report.ObjectCoverage[x.roles[i]+"_outside_object_filter"]++
+				}
+			}
+			continue
+		}
+		foundObject = true
 		x.current = g
 		op, selected := ops[physical(g.typ, g.key)]
 		if request.Mode == "deployment" {
@@ -254,7 +279,13 @@ func Run(request Request, c *Compiled) (Report, error) {
 			x.walk(f)
 		}
 	}
+	if request.ObjectKey != "" && !foundObject {
+		x.diagnose(Diagnostic{Code: "selected object unavailable", Type: request.Scope[0]})
+	}
 	for k, op := range ops {
+		if request.ObjectKey != "" && op.Key != request.ObjectKey {
+			continue
+		}
 		if !seenOps[k] {
 			x.current = &group{typ: op.Type, key: op.Key}
 			x.record(frame{}, "unverified", "operation object unavailable", Rule{}, "")
@@ -829,6 +860,11 @@ func valueKind(v any, present bool) string {
 func (r Report) Text(w io.Writer) error {
 	if _, e := fmt.Fprintf(w, "Comparison v2 (%s): complete=%t correct=%t exit=%d\n", r.Mode, r.Complete, r.Correct, r.ExitCode()); e != nil {
 		return e
+	}
+	if r.ObjectKey != "" && len(r.Scope) == 1 {
+		if _, e := fmt.Fprintf(w, "Object filter: %s %q\n", r.Scope[0], r.ObjectKey); e != nil {
+			return e
+		}
 	}
 	for _, status := range keys(r.Counts) {
 		if _, e := fmt.Fprintf(w, "%s: %d\n", status, r.Counts[status]); e != nil {

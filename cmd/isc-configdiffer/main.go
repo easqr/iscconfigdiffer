@@ -31,6 +31,7 @@ func run(args []string, out, errOut io.Writer) int {
 
 	format := f.String("format", "text", "text or json")
 	scope := f.String("scope", "", "explicit common type scope")
+	name := f.String("name", "", "exact logical object name/key within one explicit scope type")
 	matching := f.Bool("matching", false, "include ordinary equal leaves")
 	operations := f.String("operations", "", "explicit deployment operations JSON file")
 	hub := f.String("hub", "", "offline Hub array or bundle directory")
@@ -44,6 +45,15 @@ func run(args []string, out, errOut io.Writer) int {
 	}
 	fail := func(e error) int { fmt.Fprintln(errOut, e); return 2 }
 	bad := func(s string) int { return fail(fmt.Errorf("%s", s)) }
+	emptyName := false
+	f.Visit(func(fl *flag.Flag) {
+		if fl.Name == "name" && *name == "" {
+			emptyName = true
+		}
+	})
+	if emptyName {
+		return bad("name must not be empty")
+	}
 	if f.NArg() != 0 {
 		return bad("unexpected arguments")
 	}
@@ -104,7 +114,7 @@ func run(args []string, out, errOut io.Writer) int {
 		}
 	}
 
-	req := differ.Request{Mode: *mode, Left: l, Right: r, Scope: list(*scope), IncludeMatching: *matching}
+	req := differ.Request{Mode: *mode, Left: l, Right: r, Scope: list(*scope), ObjectKey: *name, IncludeMatching: *matching}
 	if *baseline.dir != "" {
 		b, e := readInput(baseline)
 		if e != nil {

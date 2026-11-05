@@ -75,3 +75,13 @@ func TestKeyedSelectorsAndKnownReferencePrecedence(t *testing.T) {
 		t.Fatal("external mapping overrode known correspondence", report)
 	}
 }
+
+func TestObjectFilterAdapter(t *testing.T) {
+	types := []string{"SOURCE"}
+	left := input(t, "dev", types, obj("SOURCE", "a", "Directory", nil), obj("SOURCE", "b", "Other", map[string]any{"value": "dev"}))
+	right := input(t, "prod", types, obj("SOURCE", "c", "Directory", nil), obj("SOURCE", "d", "Other", map[string]any{"value": "prod"}))
+	r := compareTest(t, Request{Mode: "drift", Left: left, Right: right, Scope: types, ObjectKey: "Directory"}, portable())
+	if r.ExitCode() != 0 || len(r.Matches) != 1 || r.ObjectKey != "Directory" {
+		t.Fatal(r)
+	}
+}
