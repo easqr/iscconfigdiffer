@@ -19,6 +19,7 @@ type slot struct {
 type frame struct {
 	items       map[string]map[string]CollectionItemKey
 	itemScope   *CollectionItemSelector
+	itemScopes  []CollectionItemSelector
 	extensions  []CollectionMappingUsage
 	property    bool
 	nodes       [3]slot
@@ -380,6 +381,7 @@ func (x *execution) record(f frame, status, code string, r Rule, authority strin
 	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
 	d.Normalization = x.normalization
 	d.Item = f.itemScope
+	d.Items = f.itemScopes
 	d.Extensions = f.extensions
 	if code == "null and absent properties equivalent" {
 		d.Normalization = "null_equals_absent"
@@ -464,11 +466,12 @@ func (x *execution) walk(f frame) {
 			}
 		}
 		for _, r := range x.c.policy.Equivalences {
-			if !active(r.Rule, "drift") || !x.selected(r.Selector, f) || !itemSelected(r.Item, f.items) {
+			if !active(r.Rule, "drift") || !x.selected(r.Selector, f) || !equivalenceItemsSelected(r, f.items) {
 				continue
 			}
 			nf := f
 			nf.itemScope = r.Item
+			nf.itemScopes = r.Items
 			l, rr := x.inputs[0], x.inputs[1]
 			if (r.LeftTenant != "" && r.LeftTenant != l.Tenant) || (r.RightTenant != "" && r.RightTenant != rr.Tenant) {
 				x.record(nf, "unverified", "equivalence tenant context mismatch", r.Rule, "")

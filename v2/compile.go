@@ -46,6 +46,9 @@ func categories(p *Policy) []reflect.Value {
 	return a
 }
 func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
+	if err := validateItemForms(p); err != nil {
+		return nil, err
+	}
 	b, e := json.Marshal(p)
 	if e != nil {
 		return nil, errors.New("policy contains non-JSON values")
@@ -85,6 +88,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		return nil, errors.New("unknown profile")
 	}
 	// Profiles are caller-owned too; compiled plans never retain their maps/slices.
+	if err := validateItemForms(base); err != nil {
+		return nil, err
+	}
 	profileBytes, err := json.Marshal(base)
 	if err != nil {
 		return nil, errors.New("invalid profile JSON")
@@ -245,7 +251,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			if !coactive(rulesByID[id], rulesByID[old.id]) {
 				continue
 			}
-			if kind == "equivalence" && old.kind == "equivalence" && disjointItems(equivalencesByID[id].Item, equivalencesByID[old.id].Item) {
+			if kind == "equivalence" && old.kind == "equivalence" && disjointEquivalenceItems(equivalencesByID[id], equivalencesByID[old.id]) {
 				continue
 			}
 			if kind == "collection" && old.kind == "collection" {

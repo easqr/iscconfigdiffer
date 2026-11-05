@@ -117,10 +117,14 @@ func locationView(role string, loc Location) humanLocation {
 }
 func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
 	out := humanDecision{Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	scopes := d.Items
 	if d.Item != nil {
-		out.ItemScope = append(out.ItemScope, reportField{"Collection", d.Item.Collection})
-		for _, path := range keys(d.Item.Keys) {
-			key := d.Item.Keys[path]
+		scopes = []CollectionItemSelector{*d.Item}
+	}
+	for _, scope := range scopes {
+		out.ItemScope = append(out.ItemScope, reportField{"Collection", scope.Collection})
+		for _, path := range keys(scope.Keys) {
+			key := scope.Keys[path]
 			if key.Mapped != "" {
 				out.ItemScope = append(out.ItemScope, reportField{"Mapped " + path, key.Mapped})
 			} else {

@@ -105,12 +105,13 @@ type ValuePair struct {
 type Equivalence struct {
 	Rule
 	Selector
-	Item        *CollectionItemSelector `json:"item,omitempty"`
-	LeftEnv     string                  `json:"left_env"`
-	RightEnv    string                  `json:"right_env"`
-	LeftTenant  string                  `json:"left_tenant,omitempty"`
-	RightTenant string                  `json:"right_tenant,omitempty"`
-	Pairs       []ValuePair             `json:"pairs,omitempty"`
+	Item        *CollectionItemSelector  `json:"item,omitempty"`
+	Items       []CollectionItemSelector `json:"items,omitempty"`
+	LeftEnv     string                   `json:"left_env"`
+	RightEnv    string                   `json:"right_env"`
+	LeftTenant  string                   `json:"left_tenant,omitempty"`
+	RightTenant string                   `json:"right_tenant,omitempty"`
+	Pairs       []ValuePair              `json:"pairs,omitempty"`
 	// Each environment contributes exactly one value to a group. Groups and
 	// pairs cannot be combined in one rule. Groups are explicitly symmetric.
 	Groups []map[string]any `json:"groups,omitempty"`
@@ -244,6 +245,7 @@ type Location struct {
 	Context   []ItemContext `json:"context,omitempty"`
 }
 type Decision struct {
+	Items         []CollectionItemSelector `json:"items,omitempty"`
 	Item          *CollectionItemSelector  `json:"item,omitempty"`
 	Extensions    []CollectionMappingUsage `json:"extensions,omitempty"`
 	Normalization string                   `json:"normalization,omitempty"`

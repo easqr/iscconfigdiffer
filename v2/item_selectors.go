@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -61,91 +62,145 @@ func disjointItems(a, b *CollectionItemSelector) bool {
 	}
 	return false
 }
+func validateItemForms(p Policy) error {
+	for _, r := range p.Equivalences {
+		if r.Item != nil && r.Items != nil {
+			return errors.New("equivalence must use item or items, not both")
+		}
+		if r.Items != nil && len(r.Items) == 0 {
+			return errors.New("equivalence items must be nonempty")
+		}
+	}
+	return nil
+}
+func equivalenceItems(r Equivalence) []CollectionItemSelector {
+	if r.Item != nil {
+		return []CollectionItemSelector{*r.Item}
+	}
+	return r.Items
+}
+func equivalenceItemsSelected(r Equivalence, items map[string]map[string]CollectionItemKey) bool {
+	for _, scope := range equivalenceItems(r) {
+		if !itemSelected(&scope, items) {
+			return false
+		}
+	}
+	return true
+}
+func disjointEquivalenceItems(a, b Equivalence) bool {
+	for _, first := range equivalenceItems(a) {
+		for _, second := range equivalenceItems(b) {
+			if disjointItems(&first, &second) {
+				return true
+			}
+		}
+	}
+	return false
+}
 func validateEquivalenceItems(p Policy, collections map[string]Collection) error {
 	for _, r := range p.Equivalences {
-		if r.Item == nil {
-			continue
-		}
-		scope := r.Item
-		c, ok := collections[scope.Collection]
-		if !ok || c.Mode != "keyed" || !active(c.Rule, "drift") || !collectionContains(c.Selector, r.Selector, c.Mode) {
-			return fmt.Errorf("equivalence %s requires an ancestor effective keyed collection", r.ID)
-		}
-		complete := func(paths []string) bool {
-			unique := map[string]CollectionItemKey{}
-			for _, path := range paths {
-				unique[path] = CollectionItemKey{}
+		scopes := equivalenceItems(r)
+		seenCollections := map[string]bool{}
+		for i := range scopes {
+			scope := &scopes[i]
+			if seenCollections[scope.Collection] {
+				return fmt.Errorf("equivalence %s repeats a collection in items", r.ID)
 			}
-			return sameItemPaths(scope.Keys, unique)
-		}
-		choices := [][]string{c.Keys}
-		for _, keyCase := range c.KeyCases {
-			choices = append(choices, keyCase.Keys)
-		}
-		for i, paths := range choices {
-			seen := map[string]CollectionItemKey{}
-			for _, path := range paths {
-				seen[path] = CollectionItemKey{}
+			seenCollections[scope.Collection] = true
+			c, ok := collections[scope.Collection]
+			if !ok || c.Mode != "keyed" || !active(c.Rule, "drift") || !collectionContains(c.Selector, r.Selector, c.Mode) {
+				return fmt.Errorf("equivalence %s requires an ancestor effective keyed collection", r.ID)
 			}
-			if len(seen) != len(paths) {
-				return errors.New("item scopes require distinct key component paths")
-			}
-			for _, previous := range choices[:i] {
-				other := map[string]CollectionItemKey{}
-				for _, path := range previous {
-					other[path] = CollectionItemKey{}
-				}
-				if sameItemPaths(seen, other) && !slices.Equal(paths, previous) {
-					return errors.New("item scope key tuple order is ambiguous")
+			for _, previous := range scopes[:i] {
+				parent := collections[previous.Collection]
+				if !collectionContains(parent.Selector, c.Selector, parent.Mode) && !collectionContains(c.Selector, parent.Selector, c.Mode) {
+					return fmt.Errorf("equivalence %s items must form an ancestor chain", r.ID)
 				}
 			}
-		}
-		validTuple := complete(c.Keys)
-		for _, keyCase := range c.KeyCases {
-			validTuple = validTuple || complete(keyCase.Keys)
-		}
-		if len(scope.Keys) == 0 || !validTuple {
-			return fmt.Errorf("equivalence %s item requires a complete collection key tuple", r.ID)
-		}
-		mappings := append([]CollectionKeyMapping{}, c.KeyMappings...)
-		for _, extension := range p.CollectionMappings {
-			if extension.Collection == c.ID && active(extension.Rule, "drift") && (extension.Key == "" || r.Key == "" || extension.Key == r.Key) {
-				mappings = append(mappings, extension.KeyMappings...)
-			}
-		}
-		for path, key := range scope.Keys {
-			if !concrete(path) || (key.Mapped != "") == (len(key.Value) > 0) {
-				return errors.New("item key requires exactly one mapped group or raw value")
-			}
-			if key.Mapped != "" {
-				if strings.TrimSpace(key.Mapped) == "" {
-					return errors.New("item mapped group must be nonblank")
+			complete := func(paths []string) bool {
+				unique := map[string]CollectionItemKey{}
+				for _, path := range paths {
+					unique[path] = CollectionItemKey{}
 				}
-				found := false
-				for _, mapping := range mappings {
-					if mapping.Path != path {
-						continue
+				return sameItemPaths(scope.Keys, unique)
+			}
+			choices := [][]string{c.Keys}
+			for _, keyCase := range c.KeyCases {
+				choices = append(choices, keyCase.Keys)
+			}
+			for i, paths := range choices {
+				seen := map[string]CollectionItemKey{}
+				for _, path := range paths {
+					seen[path] = CollectionItemKey{}
+				}
+				if len(seen) != len(paths) {
+					return errors.New("item scopes require distinct key component paths")
+				}
+				for _, previous := range choices[:i] {
+					other := map[string]CollectionItemKey{}
+					for _, path := range previous {
+						other[path] = CollectionItemKey{}
 					}
-					for _, group := range mapping.Groups {
-						found = found || group.Key == key.Mapped
-					}
-				}
-				if !found {
-					return fmt.Errorf("equivalence %s references an unavailable mapping group", r.ID)
-				}
-			} else {
-				value, err := JSON(key.Value)
-				if err != nil || !scalar(value) {
-					return errors.New("item raw key requires a nonnull scalar value")
-				}
-				if c.ComponentType == "string" {
-					s, ok := value.(string)
-					if !ok || strings.TrimSpace(s) == "" {
-						return errors.New("item raw key must be a nonblank string")
+					if sameItemPaths(seen, other) && !slices.Equal(paths, previous) {
+						return errors.New("item scope key tuple order is ambiguous")
 					}
 				}
 			}
+			validTuple := complete(c.Keys)
+			for _, keyCase := range c.KeyCases {
+				validTuple = validTuple || complete(keyCase.Keys)
+			}
+			if len(scope.Keys) == 0 || !validTuple {
+				return fmt.Errorf("equivalence %s item requires a complete collection key tuple", r.ID)
+			}
+			mappings := append([]CollectionKeyMapping{}, c.KeyMappings...)
+			for _, extension := range p.CollectionMappings {
+				if extension.Collection == c.ID && active(extension.Rule, "drift") && (extension.Key == "" || r.Key == "" || extension.Key == r.Key) {
+					mappings = append(mappings, extension.KeyMappings...)
+				}
+			}
+			for path, key := range scope.Keys {
+				if !concrete(path) || (key.Mapped != "") == (len(key.Value) > 0) {
+					return errors.New("item key requires exactly one mapped group or raw value")
+				}
+				if key.Mapped != "" {
+					if strings.TrimSpace(key.Mapped) == "" {
+						return errors.New("item mapped group must be nonblank")
+					}
+					found := false
+					for _, mapping := range mappings {
+						if mapping.Path != path {
+							continue
+						}
+						for _, group := range mapping.Groups {
+							found = found || group.Key == key.Mapped
+						}
+					}
+					if !found {
+						return fmt.Errorf("equivalence %s references an unavailable mapping group", r.ID)
+					}
+				} else {
+					value, err := JSON(key.Value)
+					if err != nil || !scalar(value) {
+						return errors.New("item raw key requires a nonnull scalar value")
+					}
+					if c.ComponentType == "string" {
+						s, ok := value.(string)
+						if !ok || strings.TrimSpace(s) == "" {
+							return errors.New("item raw key must be a nonblank string")
+						}
+					}
+				}
+			}
 		}
+		sort.Slice(r.Items, func(i, j int) bool {
+			a, _ := pointer(collections[r.Items[i].Collection].Path)
+			b, _ := pointer(collections[r.Items[j].Collection].Path)
+			if len(a) != len(b) {
+				return len(a) < len(b)
+			}
+			return r.Items[i].Collection < r.Items[j].Collection
+		})
 	}
 	return nil
 }
