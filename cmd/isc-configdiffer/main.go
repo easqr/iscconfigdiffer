@@ -23,7 +23,7 @@ func addInput(f *flag.FlagSet, role string) inputFlags {
 func readInput(f inputFlags) (snapshot.Input, error) {
 	return snapshot.Read(*f.dir, snapshot.Options{Mode: snapshot.Mode(*f.mode), Label: *f.label, Environment: *f.env, Types: list(*f.types)})
 }
-func run(args []string, out, errOut io.Writer) int {
+func run(args []string, errOut io.Writer) int {
 	f := flag.NewFlagSet("isc-configdiffer", flag.ContinueOnError)
 	f.SetOutput(errOut)
 	mode := f.String("mode", "drift", "drift or deployment")
@@ -213,9 +213,6 @@ func run(args []string, out, errOut io.Writer) int {
 	if e = saveReport(*outputDir, filename, rendered.Bytes()); e != nil {
 		return fail(fmt.Errorf("cannot save report: %w", e))
 	}
-	if _, e = io.Copy(out, &rendered); e != nil {
-		return bad("cannot write report to standard output")
-	}
 	return report.ExitCode()
 }
 
@@ -255,4 +252,4 @@ func list(s string) []string {
 	}
 	return strings.Split(s, ",")
 }
-func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
+func main() { os.Exit(run(os.Args[1:], os.Stderr)) }

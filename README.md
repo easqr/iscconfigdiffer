@@ -175,8 +175,9 @@ has been completely written. Filtered and full comparisons use the same default
 policy filename, so give them different overrides if you want to retain both.
 The default `reports/` directory is excluded from Git tracking.
 
-Reports also continue to go to standard output for piping or redirection;
-input/policy/request and output errors go to standard error. A completed
+Reports are written only to the output directory, not to standard output.
+Read the saved file to inspect or process a report. Input/policy/request and
+output errors go to standard error. A completed
 comparison saves its diagnostic report even when it is incomplete and exits `2`.
 Requests rejected before comparison do not create a new report. An output failure
 returns `2`; an older report may remain in place, so always check the exit code.

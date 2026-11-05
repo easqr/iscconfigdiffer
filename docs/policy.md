@@ -25,7 +25,7 @@ the working directory) as `<policy-id>.txt` or `<policy-id>.json`, according to
 `--format`. The built-in policy ID is `default`. `--output-file` overrides the
 exact filename, without directory components; it does not alter the format.
 Directories are created as needed. Existing reports are replaced after the new
-report has been fully written. Reports also remain available on standard output.
+report has been fully written. Report contents are written only to files; standard output remains empty.
 Output failures return exit `2`. Incomplete comparison reports are saved too;
 invalid requests that never produce a report do not create one. The library's
 report API does not write files automatically.

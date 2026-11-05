@@ -190,8 +190,16 @@ func TestCLIObjectNameFilter(t *testing.T) {
 	}
 }
 
-// Keep CLI tests independent of the checkout and one another's reports.
-func runWithReports(t *testing.T, args []string, out, errOut *bytes.Buffer) int {
+// Read the saved report for assertions while isolating each CLI invocation.
+func runWithReports(t *testing.T, args []string, reportContents, errOut *bytes.Buffer) int {
 	t.Helper()
-	return run(append(append([]string{}, args...), "--output-dir", t.TempDir()), out, errOut)
+	dir := t.TempDir()
+	code := run(append(append([]string{}, args...), "--output-dir", dir, "--output-file", "report"), errOut)
+	data, err := os.ReadFile(filepath.Join(dir, "report"))
+	if err == nil {
+		reportContents.Write(data)
+	} else if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	return code
 }
