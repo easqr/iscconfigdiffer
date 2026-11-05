@@ -19,6 +19,8 @@ adapters.
 
 ## Contents
 
+- [Configure environment-specific mappings](#configure-environment-specific-mappings)
+- [Which files do I need?](#which-files-do-i-need)
 - [Build and install](#build-and-install)
 - [Quick start](#quick-start)
 - [Input format and scope](#input-format-and-scope)
@@ -29,6 +31,206 @@ adapters.
 - [Reports and exit codes](#reports-and-exit-codes)
 - [Troubleshooting](#troubleshooting)
 - [Development and further documentation](#development-and-further-documentation)
+
+## Configure environment-specific mappings
+
+**For a normal comparison between environments, put your environment mappings in
+one policy JSON file and pass it with `--policy`.** Start with
+[`examples/policy-drift.json`](examples/policy-drift.json).
+[`examples/policy.json`](examples/policy.json) is a smaller example with **no
+environment mappings**; it only selects built-in matching and metadata handling.
+
+A policy is the tool's comparison instructions. Environment mappings are one
+part of a policy, called `equivalences`. Other optional parts control object
+matching, array ordering, exclusions, and required values. There is no separate
+mandatory mapping file for ordinary drift comparison.
+
+### 1. Identify the object, field, and environment values
+
+For example, suppose the two exports contain a source named `Invented Directory`:
+
+| Item | Development export | Production export |
+| --- | --- | --- |
+| `object.name` | `Invented Directory` | `Invented Directory` |
+| `object.connectorAttributes.host` | `directory-dev.example.invalid` | `directory-prod.example.invalid` |
+| `object.connectorAttributes.timeout` | `60` | `60` |
+
+The objects match by their common name. You want to allow the two hostnames while
+still reporting an unexpected difference in `timeout` or another ordinary field.
+
+### 2. Save a complete policy file
+
+Copy `examples/policy-drift.json` to a location outside your export directories,
+for example `/policies/dev-to-prod.json`. Its complete contents are:
+
+```json
+{
+  "version": 2,
+  "id": "invented-drift",
+  "profile": "isc-portable-v2",
+  "equivalences": [
+    {
+      "id": "directory-host",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/host",
+      "left_env": "dev",
+      "right_env": "prod",
+      "pairs": [
+        {
+          "left": "directory-dev.example.invalid",
+          "right": "directory-prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-hosts"
+      },
+      "key": "Invented Directory"
+    }
+  ]
+}
+```
+
+Edit these fields for your own exports:
+
+| Field | What you put there |
+| --- | --- |
+| Root `id` | Your name for this policy; it is recorded in reports |
+| `profile` | `isc-portable-v2` supplies ISC object matching and excludes physical IDs and specified generated metadata |
+| Rule `id` | Your unique name for this one mapping rule |
+| `type` | The exported object's `self.type`, such as `SOURCE` |
+| `key` | Its exact logical name, here `object.name`; omitting `key` applies the rule to all objects of that type |
+| `path` | The field inside the payload: `object.connectorAttributes.host` becomes `/connectorAttributes/host` |
+| `left_env` / `right_env` | The environment labels in which this approved value pair applies |
+| `pairs[].left` / `pairs[].right` | The exact approved development and production values, preserving their JSON types |
+| `evidence` | Optional attribution stored in reports; it does not require another file for drift |
+
+`key` identifies the object; `path` identifies the field inside it. Do not include
+`/object` at the beginning of a policy path. Matching is case-sensitive. If your
+objects have different names, define an explicit `pairings` rule as described in
+[matching and references](#matching-references-arrays-and-exclusions); a field
+mapping does not establish object correspondence.
+
+### 3. Assign environments to the two inputs and run
+
+After [building the CLI](#build-and-install), compare your actual export roots:
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left /data/dev --left-mode snapshot --left-env dev \
+  --right /data/prod --right-mode snapshot --right-env prod \
+  --scope SOURCE \
+  --policy /policies/dev-to-prod.json \
+  --format json > drift-report.json
+```
+
+`--left` and `--right` locate the exported data. `--left-env dev` assigns the label
+`dev` to the left input, which matches the rule's `left_env`; `--right-env prod`
+connects the right input to `right_env`. **The labels in a rule do not assign
+environments to inputs.** Directory names, manifest tenant names, and display
+`--*-label` options do not assign them either.
+
+Choose your own labels, such as `sandbox` and `production`, and use those exact
+strings in both the policy and the input environment options. Alternatively, add
+this root property to the policy:
+
+```json
+{"bindings":{"left":"dev","right":"prod"}}
+```
+
+This is a property to merge into the complete policy, not another configuration
+file. With those bindings, you can omit `--left-env` and `--right-env` from the
+command. Conflicting CLI and policy environment assignments are rejected. In the
+Go library, the equivalent input setting is `snapshot.Options.Environment`; the
+same policy file is used.
+
+For edited or manifest-free input directories, choose `tree` instead of
+`snapshot`; a manifest-free tree also needs `--left-types SOURCE` or
+`--right-types SOURCE`. The [quick start](#quick-start) creates runnable sample
+data so you can try the workflow without tenant exports.
+
+### 4. Read the result and extend the policy
+
+For the mapped object and field:
+
+| Compared values | Drift result |
+| --- | --- |
+| Approved development hostname on the left and production hostname on the right | `equivalent` |
+| Approved development hostname on the left, an unexpected hostname on the right | `different` |
+| Approved hostname pair, but different timeouts | Hostnames are equivalent; timeout is different |
+
+The engine records the equivalence and leaves the export files unchanged. These
+`pairs` are directional: reversing the environments requires a reversed pair or
+an explicitly symmetric `groups` rule. To allow another field, add another
+`equivalences` rule with its own ID, object key, path, and values. To allow several
+pairs at the same object/path, add entries to that rule's `pairs` array rather
+than overlapping rules.
+
+Equivalence rules account for approved differences. Ordinary equal values still
+compare equal even if they are not a listed pair. **If each environment must have
+a particular value—even when both sides contain the same wrong value—use an
+`expectations` rule instead.** For example, this alternative rule requires the
+correct hostname on each side:
+
+```json
+{
+  "id": "directory-host-required",
+  "type": "SOURCE",
+  "key": "Invented Directory",
+  "path": "/connectorAttributes/host",
+  "modes": ["drift"],
+  "operation": "literal",
+  "values": {
+    "dev": {"state":"present","value":"directory-dev.example.invalid"},
+    "prod": {"state":"present","value":"directory-prod.example.invalid"}
+  },
+  "authority": "environment-configuration-policy",
+  "evidence": {"kind":"approved-policy","record_id":"directory-hosts"}
+}
+```
+
+Put this object in the policy's `expectations` array **instead of** the hostname
+`equivalences` rule. Both cannot own the same active field. The
+[configuration reference](#configuration-files) below explains the other rule
+categories; you can leave them out until needed.
+
+## Which files do I need?
+
+For ordinary environment-aware drift, your **policy file is the only file you
+write for configuration**. The exports are generated input data. The deployment
+and Hub files below are needed only for those workflows.
+
+| Workflow | Files you author | Inputs generated elsewhere | Options |
+| --- | --- | --- | --- |
+| Compare environments with your own approved mappings | One policy containing `equivalences` (start from `examples/policy-drift.json`) | Left and right configuration exports | `--mode drift --policy FILE` plus input paths/environments |
+| Compare literally after standard metadata handling | A minimal policy (such as `examples/policy.json`) | Left and right exports | `--mode drift --policy FILE` |
+| Validate a projected deployment draft | One expectation policy (start from `examples/policy-deployment.json`) and one operation list (adapt `examples/operations.json`) | Source export, actual draft, optional target baseline | `--mode deployment --policy FILE --operations FILE` |
+| Use mappings already saved from Configuration Hub | One comparison policy without overlapping value rules | Exports and optional Hub mapping array/bundle | Add `--hub PATH`; tenant context is required for a bare array |
+| Promote saved Hub mappings into deployment expectations | Expectation policy, operation list, and an attribution/evidence JSON file | Source/draft/baseline and Hub mappings | Add `--hub-deployment-authority` and `--hub-deployment-evidence` |
+
+File roles are different even though all use JSON:
+
+- **Policy:** instructions for interpreting and comparing objects. Mappings go in
+  `equivalences`; required values go in `expectations`; other arrays control
+  matching, references, collections, exclusions, and report redaction. You can
+  combine nonconflicting categories in one policy.
+- **Operations:** deployment-only list of intended objects and `create`, `update`,
+  or `delete` actions. It contains no environment value mappings.
+- **Hub mappings:** an optional vendor-format mapping export. It is an alternative
+  source of mapping rules to authoring all equivalences yourself; do not duplicate
+  the same active fields in both sources.
+- **`manifest.json`:** exporter-generated inventory and integrity/provenance data
+  inside a configuration export. It contains no comparison policy.
+- **Mapping `provenance.json`:** exporter-generated context/checksum metadata next
+  to `mappings.json`, used only when importing that mapping bundle.
+- **Deployment evidence:** your declared attribution for promoting Hub mappings;
+  it contains no mapping values and is not required for ordinary drift.
+
+The CLI reads **one** policy path supplied with `--policy`. It does not discover,
+merge, or load the other example files automatically. `policy.json` is just a
+filename; it has no special behavior. Store your own policies outside export
+roots. `configdiffer` also does not use the exporter's authentication/settings
+files (`config.json` or `exporter.json`).
 
 ## Build and install
 
@@ -273,7 +475,7 @@ arbitrary; their JSON schema determines their purpose.
 | `mappings.json` | Saved Hub response or exporter mapping retrieval | Optional vendor mapping input; pass the file or its bundle with `--hub` |
 | Mapping `provenance.json` | Exporter mapping retrieval | Validates a bundle's integrity and records retrieval context |
 | Deployment evidence JSON | You | Authority attribution for Hub deployment promotion |
-| `examples/policy.json` | Included minimal example | Portable comparison using the current policy schema |
+| `examples/policy.json` | Included minimal example | Matching and standard metadata exclusions only; **no environment mappings** |
 
 Exporter authentication files such as `config.json` and `exporter.json` belong to
 `configexporter`; `configdiffer` does not read them.
@@ -364,32 +566,12 @@ Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-prof
 
 ### Equivalence: approved drift differences
 
-The included drift example contains this category:
-
-```json
-{
-  "equivalences": [
-    {
-      "id": "directory-host",
-      "type": "SOURCE",
-      "path": "/connectorAttributes/host",
-      "left_env": "dev",
-      "right_env": "prod",
-      "pairs": [
-        {"left": "directory-dev.example.invalid", "right": "directory-prod.example.invalid"}
-      ]
-    }
-  ]
-}
-```
-
-This is a **fragment to merge into a full policy**, not a standalone policy.
-`pairs` are directional, apply to the specified environments, and compare typed
-whole values. Reversing the command does not reverse a pair automatically.
-Alternatively, use `groups` instead of `pairs` for explicitly symmetric
-relationships, for example `[{"dev":"dev-host","prod":"prod-host"}]`.
-Do not combine both forms. Cases must be unambiguous; substitutions are never
-chained. Equivalence is inactive in deployment mode.
+Use the complete [environment mapping walkthrough](#configure-environment-specific-mappings)
+and [`examples/policy-drift.json`](examples/policy-drift.json). Each equivalence
+rule connects an object/field selector, input environment labels, and approved
+whole-value pairs. Optional `groups` can replace `pairs` for explicitly symmetric
+relationships, such as `[{"dev":"dev-host","prod":"prod-host"}]`.
+Do not combine both forms. Equivalence rules run only in drift mode.
 
 ### Expectations: required states and values
 

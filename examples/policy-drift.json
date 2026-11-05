@@ -9,8 +9,17 @@
       "path": "/connectorAttributes/host",
       "left_env": "dev",
       "right_env": "prod",
-      "pairs": [{"left": "directory-dev.example.invalid", "right": "directory-prod.example.invalid"}],
-      "evidence": {"kind": "invented-policy", "record_id": "environment-hosts"}
+      "pairs": [
+        {
+          "left": "directory-dev.example.invalid",
+          "right": "directory-prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-hosts"
+      },
+      "key": "Invented Directory"
     }
   ]
 }
