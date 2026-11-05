@@ -1,0 +1,27 @@
+{
+  "id": "isc.envelope",
+  "version": 1,
+  "layer": "common",
+  "profiles": [
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.envelope",
+    "ignores": [
+      {
+        "id": "isc.$TYPE.jws-header",
+        "type": "$TYPE",
+        "path": "/jwsHeader",
+        "space": "metadata"
+      },
+      {
+        "id": "isc.$TYPE.jws-signature",
+        "type": "$TYPE",
+        "path": "/jwsSignature",
+        "space": "metadata"
+      }
+    ]
+  }
+}

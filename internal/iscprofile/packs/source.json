@@ -1,0 +1,148 @@
+{
+  "id": "isc.source",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.source",
+    "collections": [
+      {
+        "id": "isc.SOURCE.schemas",
+        "type": "SOURCE",
+        "path": "/schemas",
+        "mode": "keyed",
+        "keys": [
+          "/name"
+        ],
+        "component_type": "string",
+        "item_label": "Schema",
+        "display_fields": [
+          {
+            "label": "Name",
+            "path": "/name"
+          },
+          {
+            "label": "Native object type",
+            "path": "/nativeObjectType"
+          }
+        ]
+      },
+      {
+        "id": "isc.SOURCE.schema-attributes",
+        "type": "SOURCE",
+        "path": "/schemas/*/attributes",
+        "mode": "keyed",
+        "keys": [
+          "/name"
+        ],
+        "component_type": "string",
+        "item_label": "Attribute",
+        "display_fields": [
+          {
+            "label": "Name",
+            "path": "/name"
+          }
+        ]
+      },
+      {
+        "id": "isc.SOURCE.provisioning-policies",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies",
+        "mode": "keyed",
+        "keys": [
+          "/usageType"
+        ],
+        "component_type": "string",
+        "item_label": "Provisioning policy",
+        "display_fields": [
+          {
+            "label": "Name",
+            "path": "/name"
+          },
+          {
+            "label": "Usage type",
+            "path": "/usageType"
+          },
+          {
+            "label": "Subtype ID",
+            "path": "/subtypeId"
+          }
+        ],
+        "key_cases": [
+          {
+            "when_path": "/usageType",
+            "when_value": "CREATE_MACHINE_ACCOUNT",
+            "keys": [
+              "/usageType",
+              "/subtypeId"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "isc.SOURCE.provisioning-fields",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/fields",
+        "mode": "keyed",
+        "keys": [
+          "/name"
+        ],
+        "component_type": "string",
+        "item_label": "Field",
+        "display_fields": [
+          {
+            "label": "Name",
+            "path": "/name"
+          }
+        ]
+      }
+    ],
+    "ignores": [
+      {
+        "id": "isc.SOURCE.before-provisioning-rule-id",
+        "type": "SOURCE",
+        "path": "/beforeProvisioningRule/id"
+      },
+      {
+        "id": "isc.SOURCE.schema-attribute-reference-id",
+        "type": "SOURCE",
+        "path": "/schemas/*/attributes/*/schema/id"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-policy-id",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/id"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-field-id",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/fields/*/id"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-policy-created",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/created"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-field-created",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/fields/*/created"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-policy-modified",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/modified"
+      },
+      {
+        "id": "isc.SOURCE.provisioning-field-modified",
+        "type": "SOURCE",
+        "path": "/provisioningPolicies/*/fields/*/modified"
+      }
+    ]
+  }
+}

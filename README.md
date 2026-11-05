@@ -555,35 +555,23 @@ categories; you can leave them out until needed.
 
 ### Forest names that differ between environments
 
-A forest's name identifies its entry in
-`/connectorAttributes/forestSettings`. All ISC profiles match this array by
-`forestName` and show a Forest name beside each item's original JSON Pointer.
-Names must be nonblank strings and unique within each source. This is a differ
-validation requirement; it is not a claim that ISC rejects duplicate names.
+The shipped Active Directory rules identify forests by `forestName` within
+`/connectorAttributes/forestSettings`. Names must be unique nonblank strings
+within each source; array order is ignored. Reports show each input's Forest
+name beside its original pointer.
 
-When development and production use different forest names, configure **both**:
-
-1. A collection `key_mappings` group to align the two forest entries.
-2. An `equivalences` group to accept their different names during drift comparison.
-
-This complete policy shows that combination:
+Your policy supplies environment differences, rather than repeating those
+structural rules. Use `collection_mappings` to extend `isc.SOURCE.ad-forests`
+for one source, then a separate `equivalences` rule to accept the name difference:
 
 ```json
 {
   "version": 2,
   "id": "directory-forest-drift",
   "profile": "isc-portable-v2",
-  "collections": [
+  "collection_mappings": [
     {
       "id": "directory-forests",
-      "replaces": "isc.SOURCE.ad-forests",
-      "type": "SOURCE",
-      "path": "/connectorAttributes/forestSettings",
-      "mode": "keyed",
-      "keys": ["/forestName"],
-      "component_type": "string",
-      "item_label": "Forest",
-      "display_fields": [{"label":"Name","path":"/forestName"}],
       "key_mappings": [
         {
           "path": "/forestName",
@@ -598,7 +586,12 @@ This complete policy shows that combination:
           ]
         }
       ],
-      "evidence": {"kind":"approved-policy","record_id":"environment-forests"}
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-forests"
+      },
+      "collection": "isc.SOURCE.ad-forests",
+      "key": "Invented Directory"
     }
   ],
   "equivalences": [
@@ -610,120 +603,116 @@ This complete policy shows that combination:
       "left_env": "dev",
       "right_env": "prod",
       "groups": [
-        {"dev":"dev.example.invalid","prod":"prod.example.invalid"}
+        {
+          "dev": "dev.example.invalid",
+          "prod": "prod.example.invalid"
+        }
       ],
-      "evidence": {"kind":"approved-policy","record_id":"environment-forests"}
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-forests"
+      }
     }
   ]
 }
 ```
 
-Replace `Invented Directory` and the environment values with your source name and
-forest names. Run with `--left-env dev --right-env prod`, or use policy bindings.
-The same combination, alongside a hostname equivalence, is in
-[`examples/policy-drift.json`](examples/policy-drift.json).
+Replace `Invented Directory` and the environment values for your implementation.
+Run with `--left-env dev --right-env prod` or equivalent policy bindings.
+`corporate-forest` is a policy-defined logical identity used for alignment, not a
+value written to either export. Add another group for another corresponding
+forest. Exact, case-sensitive matching applies; there is no inferred case folding,
+substitution, or mapping chain. Unmapped names retain exact matching.
 
-`corporate-forest` is a policy-defined logical identity, not a hostname written
-into either export. Add another group for another corresponding forest. Matching
-is exact and case-sensitive. Unmapped forest names use exact matching; no DNS
-case conversion, prefix substitution, or mapping chains are inferred.
+The extension inherits the shipped collection's keys, connector scope, and report
+labels. Its `key` restricts the mapping to your source's logical name. Another AD
+source uses the shipped structure without inheriting these environment mappings.
+Unknown, invalid, overlapping, or disabled extension targets fail compilation.
+Missing/unlisted input environments and duplicate keys produce conflicts.
 
-The collection replaces the profile's rule for this path across SOURCE objects,
-so it retains the built-in selector without a source `key`. Forest entries are
-always matched within their parent source; they cannot match entries in another
-source. The equivalence is scoped to `Invented Directory`. With a neutral policy
-that has no ISC profile, a custom collection can also declare an exact source
-`key` because there is no built-in rule to replace.
+Only sources identified as Active Directory activate the AD rules. Renaming a
+source does not change its connector; update the extension's exact object key if
+you rename it. See [shipped rules and implementation policy](#shipped-rules-and-implementation-policy)
+for how connectors are identified and how to override defaults.
 
-Mapped names in one input and raw names in the other are distinct identities,
-even if their strings happen to be equal. Duplicate or invalid forest names,
-ambiguous mappings, or missing/unlisted input environments cannot produce a
-successful comparison. Other forest settings, additions, and removals remain
-comparable. Domain settings use [their own rules and mappings](#domain-settings-between-environments);
-this forest configuration does not implicitly map references elsewhere.
-
-Reports preserve each input's actual forest name and array index, and identify
-the collection mapping rule and its evidence. The mapping aligns entries in
-both drift and deployment. It does not itself accept different name values or
-verify a deployment: deployment still needs an independent destination-name
-expectation, such as a literal value or `preserve_target` with a baseline.
+Mapped names remain original values in the report. Alignment does not itself
+approve different values or verify a deployment. Other forest settings and
+membership changes remain comparable. Domain settings use their own mappings;
+there is no implicit propagation to references elsewhere.
 
 ### Domain settings between environments
 
-All ISC profiles match `/connectorAttributes/domainSettings` by the complete
-`(forestName, domainDN)` tuple within a source. Both fields must be nonblank
-strings; duplicate tuples produce conflicts. Multiple domains may share a
-forest name, and the same domain DN may appear in different forests. This is a
-differ validation requirement, not a claim about ISC enforcing array uniqueness.
-Domain entries are unordered. Each finding shows Domain context containing both
-Forest name and Domain DN beside each input's original JSON Pointer.
+The shipped AD domain rule `isc.SOURCE.ad-domains` identifies each entry in
+`/connectorAttributes/domainSettings` by `(forestName, domainDN)` within its
+source. Both fields must be nonblank strings; duplicate tuples are conflicts.
+Each component can repeat independently when the complete tuple is unique.
+Domain entries are unordered, and reports display Forest name and Domain DN.
+These are differ requirements, not claims about ISC enforcing array uniqueness.
 
-To compare corresponding domains with different environment-specific names,
-replace `isc.SOURCE.ad-domains` and map **both key components**. This collection
-belongs in the policy's `collections` array:
+Put this extension in your policy's `collection_mappings` array:
 
 ```json
 {
   "id": "directory-domains",
-  "replaces": "isc.SOURCE.ad-domains",
-  "type": "SOURCE",
-  "path": "/connectorAttributes/domainSettings",
-  "mode": "keyed",
-  "keys": ["/forestName", "/domainDN"],
-  "component_type": "string",
-  "item_label": "Domain",
-  "display_fields": [
-    {"label":"Forest name","path":"/forestName"},
-    {"label":"Domain DN","path":"/domainDN"}
-  ],
   "key_mappings": [
     {
       "path": "/forestName",
       "groups": [
-        {"key":"corporate-forest","values":{"dev":"dev.example.invalid","prod":"prod.example.invalid"}}
+        {
+          "key": "corporate-forest",
+          "values": {
+            "dev": "dev.example.invalid",
+            "prod": "prod.example.invalid"
+          }
+        }
       ]
     },
     {
       "path": "/domainDN",
       "groups": [
-        {"key":"corporate-domain","values":{"dev":"DC=dev,DC=example,DC=invalid","prod":"DC=prod,DC=example,DC=invalid"}}
+        {
+          "key": "corporate-domain",
+          "values": {
+            "dev": "DC=dev,DC=example,DC=invalid",
+            "prod": "DC=prod,DC=example,DC=invalid"
+          }
+        }
       ]
     }
   ],
-  "evidence": {"kind":"approved-policy","record_id":"environment-domains"}
+  "evidence": {
+    "kind": "invented-policy",
+    "record_id": "directory-environment-domains"
+  },
+  "collection": "isc.SOURCE.ad-domains",
+  "key": "Invented Directory"
 }
 ```
 
-The replacement keeps the built-in selector without an object `key`, as with the
-forest rule. Matching stays local to each source. Add separate, source-key-scoped
-`equivalences` rules for drift at:
+The extension adds only your source-specific environment values. It inherits the
+two-part key and display labels from the AD pack. Add drift `equivalences` rules
+for the aligned values at:
 
 | Path | Approved environment values |
 | --- | --- |
 | `/connectorAttributes/domainSettings/*/forestName` | `dev.example.invalid` ↔ `prod.example.invalid` |
 | `/connectorAttributes/domainSettings/*/domainDN` | `DC=dev,DC=example,DC=invalid` ↔ `DC=prod,DC=example,DC=invalid` |
 
-[`examples/policy-drift.json`](examples/policy-drift.json) contains the complete
-collection, both equivalence rules scoped to `Invented Directory`, and the
-separate forest-settings mappings. Edit all applicable occurrences for your
-environments and run with `--left-env dev --right-env prod` or equivalent policy
-bindings. Mapping groups are not shared automatically across paths or arrays.
-Use another logical domain group for each additional corresponding domain; keep
-the forest component mapped to its corresponding forest group.
+[`examples/policy-drift.json`](examples/policy-drift.json) contains both mapping
+extensions and their equivalences for `Invented Directory`. Keep these values
+consistent with the forest extension; definitions are not shared automatically
+between arrays. DN canonicalization, suffix replacement, and domain-to-forest
+referential integrity validation are not performed.
 
-Names and DNs use exact, case-sensitive matching. DN canonicalization, suffix
-replacement, and cross-environment mapping inference are not performed. The
-rule does not validate that a domain's forest reference exists in `forestSettings`.
-Unmapped values retain exact matching, and domain additions/removals remain
-comparable. Authentication, TLS, port, service account, unknown fields, and other
-settings remain comparable. The `servers` array stays ordered because its order
-controls connection fallback priority.
+Other domain settings remain comparable. The `servers` array remains ordered
+because its order controls fallback priority. To accept different complete server
+lists, author a drift equivalence at
+`/connectorAttributes/domainSettings/*/servers` with the complete ordered arrays
+as the environment values. No additional collection definition is needed.
 
-Key mappings only establish correspondence. Drift equivalences accept the two
-name differences; deployment still requires independent expectations for those
-values and the other domain settings. An authoritative `copy_source` expectation
-still checks the raw source name/DN; it does not substitute a mapped destination
-value. Use destination literals or `preserve_target` with a baseline as appropriate.
+Collection extensions align entries in deployment too, but destination values
+still need independent expectations. `copy_source` checks the original source
+name/DN; use destination literals or `preserve_target` with a baseline when needed.
 
 ## Deployment validation
 
@@ -1065,7 +1054,9 @@ null/absent-property equivalence. It does not add environment-specific hostname 
 | --- | --- |
 | `version` | Required `2` for the comparison policy schema |
 | `id` | Required stable policy identifier |
-| `profile` | Optional named ISC identity/metadata profile |
+| `profile` | Optional preset selecting shipped common, SOURCE, and connector rule packs |
+| `disabled_rules` | Optional list of shipped rule IDs to disable explicitly |
+| `collection_mappings` | Optional source-scoped extensions supplying environment mappings for existing keyed collections |
 | `null_handling` | Optional `strict` or `null_equals_absent`; defaults to the selected profile, otherwise `strict`. Applies to payload properties only |
 | `modes` | Optional allowed comparison modes, e.g. `["drift"]` |
 | `bindings` | Optional role-to-environment object, e.g. `{"left":"dev","right":"prod"}`; deployment uses `source`, `actual`, `baseline` |
@@ -1076,7 +1067,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute and AD forest/domain alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
+| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment and connector-scoped AD/Entra alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, and lifecycle-state `/identityCount` |
 
@@ -1098,6 +1089,58 @@ include their parent identity profile; attribute-sync configurations use their
 parent source. `ACCESS_REQUEST_CONFIG` and `AUTH_ORG` are singletons. Ambiguous
 identities do not pass. See the [identity contract](docs/contracts.md#scope-and-identities)
 for the named-type list.
+
+### Shipped rules and implementation policy
+
+The first three rule layers ship with the module; your policy supplies the fourth:
+
+| Layer | Contents | Where it lives |
+| --- | --- | --- |
+| ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
+| SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| Connector defaults | AD forest/domain structure; Entra SKU/service-plan structure | `active-directory.json`, `microsoft-entra.json` in the same directory |
+| Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
+
+The [JSON rule packs](internal/iscprofile/packs) are embedded in the executable.
+Users normally leave them unchanged. Maintainers update these files and build a
+new executable to change defaults; adding connector identity patterns does not
+require adding comparison logic. See the [rule-pack format](docs/rule-packs.md).
+The core engine supplies vendor-neutral comparison mechanisms and does not know
+what SOURCE, Active Directory, or Entra mean.
+
+The ISC adapter identifies connectors from exact exported metadata declared in
+the packs: AD's connector class, connector type, or `connectorName`; Entra's
+`connectorName` of `Microsoft Entra`. Source display names and the presence of
+arrays do not identify a connector. Unknown connectors receive common/SOURCE
+rules and ordinary comparison, without guessed connector rules. Contradictory
+recognized identifiers fail input adaptation; different classified connectors
+across matched inputs produce a conflict. Generic selectors can use `variant`
+(`active-directory` or `microsoft-entra` here) to restrict a rule to a connector.
+
+Use `collection_mappings` to attach mappings to a collection without copying its
+structure. Use `collections` only to define additional array semantics or to make
+an explicit full replacement. A replacement retains the original selector,
+including its `variant`, and declares `replaces` with the shipped rule ID.
+For example, a deliberate AD forest replacement must retain
+`"variant":"active-directory"`.
+
+To turn off a shipped normalization or matching rule entirely, explicitly list
+its ID in root `disabled_rules`, for example:
+
+```json
+{
+  "version": 2,
+  "id": "compare-reference-ids",
+  "profile": "isc-portable-v2",
+  "disabled_rules": ["isc.SOURCE.before-provisioning-rule-id"]
+}
+```
+
+That policy compares the reference ID normally. Unknown/duplicate disabled IDs,
+replacing a disabled rule, or extending a disabled collection are errors. These
+are explicit choices, not file-order precedence. Reports retain shipped-pack
+versions/digests, rule evidence, extension provenance, replacements, and disabled
+IDs so a result can be traced to its effective policy.
 
 ### SOURCE before-provisioning rule references
 
@@ -1128,8 +1171,8 @@ are not given another item's labels. HTML, Markdown, JSON, omission, and sensiti
 redaction use the same context behavior as provisioning findings.
 
 The built-in rules are `isc.SOURCE.schemas` and `isc.SOURCE.schema-attributes`.
-Existing custom rules at these paths must declare `replaces` with the corresponding
-ID, or can be removed to use the built-ins. Replacements define their own
+Redundant custom rules at these paths can be removed to use the built-ins.
+Intentional structural changes must declare `replaces` with the corresponding ID. Replacements define their own
 `item_label` and `display_fields`; include these to retain readable context.
 Schema `id`, `created`, and `modified` exclusions remain specific to the portable
 profile. All ISC profiles exclude `/schemas/*/attributes/*/schema/id` using
@@ -1180,7 +1223,7 @@ and [subtype policy documentation](https://developer.sailpoint.com/docs/api/crea
 ### Selectors, rule options, and precedence
 
 Value rules select a `type`, a JSON Pointer `path`, and optionally one exact object
-logical `key`. Policy paths are **payload-relative**:
+logical `key`, plus optional adapter-classified `variant`. Policy paths are **payload-relative**:
 
 | Selector | Meaning |
 | --- | --- |
@@ -1207,7 +1250,8 @@ Every rule includes `id`. Optional common fields are:
 File order never determines precedence. Conflicting active rules, including an
 ignore that could hide an expectation, are rejected. To override a profile rule,
 name its ID with `replaces`; adding another overlapping rule is not an override.
-Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-profiles).
+Use `disabled_rules` for an explicit opt-out, or `collection_mappings` to add
+implementation mappings without changing structure. Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-profiles).
 
 ### Equivalence: approved drift differences
 
@@ -1272,6 +1316,7 @@ The other policy arrays use the following syntax:
 | `identities` | `type`, `strategy` (`fields`, `singleton`, `dependent`); `paths` for fields; `parent_type`/`parent_path` for dependencies; optional `component_type` (`scalar` or `string`) |
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id`; explicitly relate physical objects; deployment interprets left/right as source/actual |
 | `references` | Selector plus `target_type`, optional one-to-one `external` ID map; compare references through object correspondence in drift |
+| `collection_mappings` | `collection` rule ID, optional object `key`, and `key_mappings`; inherits the collection definition |
 | `collections` | Selector plus `mode` (`ordered`, `keyed`, `multiset`); `keys`, `component_type`, `key_cases`, and `key_mappings` for keyed arrays; optional `item_label` and `display_fields` for report context |
 | `ignores` | Selector; explicitly exclude that subtree from comparison |
 | `sensitive` | Selector; conservatively redact values, object identity and physical provenance in reports |
@@ -1460,7 +1505,9 @@ These entries go below your application's own `module` declaration. Run
 | Invalid artifact or unexpected JSON | Check envelope format, hexadecimal filename, and whether policies/mappings were placed inside an input tree |
 | Checksum/count failure in snapshot mode | Use an intact exported generation; choose tree mode explicitly for intended edits |
 | Identity unavailable or ambiguous | Check exact names, parent objects, duplicates, and explicit strategies for unknown types |
-| Overlapping rule/profile error | Remove competing ownership or use an explicit same-category profile replacement |
+| Overlapping rule/profile error | Use `collection_mappings` for environment mappings; remove competing ownership or use an explicit same-category replacement for structural changes |
+| Connector rule does not apply | Check the exported connector metadata against the shipped pack identifiers; source display name and array shape are not classifiers |
+| Unknown collection mapping target | Reference the effective collection ID; a disabled or replaced target cannot be extended |
 | Unused required selector | Check type, object key, path, available collection items, and rule mode |
 | Deployment remains unverified | Inspect uncovered fields, authority/evidence, environment values, baseline availability, and reference correspondence |
 | Hub context mismatch | Check source/target direction, resolved environments, manifest tenants, and explicit `default` binding |

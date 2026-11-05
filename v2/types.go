@@ -5,10 +5,11 @@ package v2
 import "encoding/json"
 
 type Selector struct {
-	Type  string `json:"type"`
-	Key   string `json:"key,omitempty"`
-	Space string `json:"space,omitempty"`
-	Path  string `json:"path"`
+	Type    string `json:"type"`
+	Variant string `json:"variant,omitempty"`
+	Key     string `json:"key,omitempty"`
+	Space   string `json:"space,omitempty"`
+	Path    string `json:"path"`
 }
 type Rule struct {
 	ID       string    `json:"id"`
@@ -83,6 +84,20 @@ type Collection struct {
 	ItemLabel     string                 `json:"item_label,omitempty"`
 	DisplayFields []DisplayField         `json:"display_fields,omitempty"`
 }
+
+// CollectionMapping adds implementation-specific mappings to an existing
+// collection without taking ownership of its structural definition.
+type CollectionMapping struct {
+	Rule
+	Collection  string                 `json:"collection"`
+	Key         string                 `json:"key,omitempty"`
+	KeyMappings []CollectionKeyMapping `json:"key_mappings"`
+}
+type CollectionMappingUsage struct {
+	RuleID     string    `json:"rule_id"`
+	Collection string    `json:"collection"`
+	Evidence   *Evidence `json:"evidence,omitempty"`
+}
 type ValuePair struct {
 	Left  any `json:"left"`
 	Right any `json:"right"`
@@ -124,22 +139,24 @@ type Reference struct {
 	External   map[string]string `json:"external,omitempty"`
 }
 type Policy struct {
+	DisabledRules []string `json:"disabled_rules,omitempty"`
 	// NullHandling controls content-property comparison; neutral default is strict.
-	NullHandling string            `json:"null_handling,omitempty"`
-	Version      int               `json:"version"`
-	ID           string            `json:"id"`
-	Modes        []string          `json:"modes,omitempty"`
-	Profile      string            `json:"profile,omitempty"`
-	Bindings     map[string]string `json:"bindings,omitempty"`
-	Identities   []Identity        `json:"identities,omitempty"`
-	Pairings     []Pairing         `json:"pairings,omitempty"`
-	Ignores      []Ignore          `json:"ignores,omitempty"`
-	Expectations []Expectation     `json:"expectations,omitempty"`
-	Equivalences []Equivalence     `json:"equivalences,omitempty"`
-	References   []Reference       `json:"references,omitempty"`
-	Collections  []Collection      `json:"collections,omitempty"`
-	Sensitive    []Sensitive       `json:"sensitive,omitempty"`
-	Evidence     []Evidence        `json:"evidence,omitempty"`
+	NullHandling       string              `json:"null_handling,omitempty"`
+	Version            int                 `json:"version"`
+	ID                 string              `json:"id"`
+	Modes              []string            `json:"modes,omitempty"`
+	Profile            string              `json:"profile,omitempty"`
+	Bindings           map[string]string   `json:"bindings,omitempty"`
+	Identities         []Identity          `json:"identities,omitempty"`
+	Pairings           []Pairing           `json:"pairings,omitempty"`
+	Ignores            []Ignore            `json:"ignores,omitempty"`
+	Expectations       []Expectation       `json:"expectations,omitempty"`
+	Equivalences       []Equivalence       `json:"equivalences,omitempty"`
+	References         []Reference         `json:"references,omitempty"`
+	Collections        []Collection        `json:"collections,omitempty"`
+	CollectionMappings []CollectionMapping `json:"collection_mappings,omitempty"`
+	Sensitive          []Sensitive         `json:"sensitive,omitempty"`
+	Evidence           []Evidence          `json:"evidence,omitempty"`
 }
 
 // Profile is supplied by an adapter; the compiler has no built-in vendor types.
@@ -157,7 +174,9 @@ type Compiled struct {
 func (c *Compiled) Digest() string { return c.digest }
 
 type Document struct {
-	Type     string `json:"type"`
+	Type string `json:"type"`
+	// Variant is adapter-classified domain metadata, independent of object name.
+	Variant  string `json:"variant,omitempty"`
 	ID       string `json:"id"`
 	Path     string `json:"path"`
 	Content  any    `json:"content"`
@@ -213,21 +232,22 @@ type Location struct {
 	Context   []ItemContext `json:"context,omitempty"`
 }
 type Decision struct {
-	Normalization string              `json:"normalization,omitempty"`
-	Expected      *State              `json:"expected,omitempty"`
-	ExpectedRole  string              `json:"expected_role,omitempty"`
-	Type          string              `json:"type"`
-	Key           string              `json:"key"`
-	Status        string              `json:"status"`
-	Code          string              `json:"code,omitempty"`
-	Space         string              `json:"space,omitempty"`
-	RuleID        string              `json:"rule_id,omitempty"`
-	Replaces      string              `json:"replaces,omitempty"`
-	Authority     string              `json:"authority,omitempty"`
-	Evidence      *Evidence           `json:"evidence,omitempty"`
-	ItemKeys      []string            `json:"item_keys,omitempty"`
-	Locations     map[string]Location `json:"locations,omitempty"`
-	Derivation    *Derivation         `json:"derivation,omitempty"`
+	Extensions    []CollectionMappingUsage `json:"extensions,omitempty"`
+	Normalization string                   `json:"normalization,omitempty"`
+	Expected      *State                   `json:"expected,omitempty"`
+	ExpectedRole  string                   `json:"expected_role,omitempty"`
+	Type          string                   `json:"type"`
+	Key           string                   `json:"key"`
+	Status        string                   `json:"status"`
+	Code          string                   `json:"code,omitempty"`
+	Space         string                   `json:"space,omitempty"`
+	RuleID        string                   `json:"rule_id,omitempty"`
+	Replaces      string                   `json:"replaces,omitempty"`
+	Authority     string                   `json:"authority,omitempty"`
+	Evidence      *Evidence                `json:"evidence,omitempty"`
+	ItemKeys      []string                 `json:"item_keys,omitempty"`
+	Locations     map[string]Location      `json:"locations,omitempty"`
+	Derivation    *Derivation              `json:"derivation,omitempty"`
 }
 type Derivation struct {
 	Role     string   `json:"role"`
@@ -248,6 +268,7 @@ type Match struct {
 	Locations map[string]Location `json:"locations"`
 }
 type Report struct {
+	DisabledRules  []string            `json:"disabled_rules,omitempty"`
 	NullHandling   string              `json:"null_handling"`
 	ValuesExcluded bool                `json:"values_excluded"`
 	Version        int                 `json:"version"`

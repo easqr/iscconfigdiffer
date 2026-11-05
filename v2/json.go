@@ -296,7 +296,7 @@ func space(s string) string {
 	return s
 }
 func overlap(a, b Selector) bool {
-	if a.Type != b.Type || space(a.Space) != space(b.Space) || (a.Key != "" && b.Key != "" && a.Key != b.Key) {
+	if a.Type != b.Type || (a.Variant != "" && b.Variant != "" && a.Variant != b.Variant) || space(a.Space) != space(b.Space) || (a.Key != "" && b.Key != "" && a.Key != b.Key) {
 		return false
 	}
 	x, _ := pointer(a.Path)

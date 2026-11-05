@@ -45,7 +45,14 @@ func AdaptSnapshot(in snapshot.Input) (v2.Input, error) {
 				metadata[k] = v
 			}
 		}
-		out.Documents = append(out.Documents, v2.Document{Type: o.Type, ID: o.ID, Path: o.Path, Content: o.Envelope["object"], Metadata: metadata})
+		variant := ""
+		if o.Type == "SOURCE" {
+			variant, e = iscprofile.ConnectorVariant(o.Envelope["object"])
+			if e != nil {
+				return v2.Input{}, e
+			}
+		}
+		out.Documents = append(out.Documents, v2.Document{Type: o.Type, Variant: variant, ID: o.ID, Path: o.Path, Content: o.Envelope["object"], Metadata: metadata})
 	}
 	return out, nil
 }

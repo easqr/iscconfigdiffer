@@ -1,0 +1,80 @@
+{
+  "id": "isc.active-directory",
+  "version": 1,
+  "layer": "connector",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.active-directory",
+    "collections": [
+      {
+        "id": "isc.SOURCE.ad-forests",
+        "type": "SOURCE",
+        "path": "/connectorAttributes/forestSettings",
+        "mode": "keyed",
+        "keys": [
+          "/forestName"
+        ],
+        "component_type": "string",
+        "item_label": "Forest",
+        "display_fields": [
+          {
+            "label": "Name",
+            "path": "/forestName"
+          }
+        ],
+        "variant": "active-directory"
+      },
+      {
+        "id": "isc.SOURCE.ad-domains",
+        "type": "SOURCE",
+        "path": "/connectorAttributes/domainSettings",
+        "mode": "keyed",
+        "keys": [
+          "/forestName",
+          "/domainDN"
+        ],
+        "component_type": "string",
+        "item_label": "Domain",
+        "display_fields": [
+          {
+            "label": "Forest name",
+            "path": "/forestName"
+          },
+          {
+            "label": "Domain DN",
+            "path": "/domainDN"
+          }
+        ],
+        "variant": "active-directory"
+      }
+    ]
+  },
+  "connector": {
+    "variant": "active-directory",
+    "identifiers": [
+      {
+        "path": "/connectorClass",
+        "values": [
+          "sailpoint.connector.ADLDAPConnector"
+        ]
+      },
+      {
+        "path": "/type",
+        "values": [
+          "Active Directory - Direct"
+        ]
+      },
+      {
+        "path": "/connectorAttributes/connectorName",
+        "values": [
+          "Active Directory"
+        ]
+      }
+    ]
+  }
+}

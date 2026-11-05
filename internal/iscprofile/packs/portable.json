@@ -1,0 +1,40 @@
+{
+  "id": "isc.portable",
+  "version": 1,
+  "layer": "common",
+  "profiles": [
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.portable",
+    "ignores": [
+      {
+        "id": "isc.$TYPE.physical-id",
+        "type": "$TYPE",
+        "path": "/self/id",
+        "space": "metadata"
+      },
+      {
+        "id": "isc.$TYPE.id",
+        "type": "$TYPE",
+        "path": "/id"
+      },
+      {
+        "id": "isc.$TYPE.created",
+        "type": "$TYPE",
+        "path": "/created"
+      },
+      {
+        "id": "isc.$TYPE.modified",
+        "type": "$TYPE",
+        "path": "/modified"
+      },
+      {
+        "id": "isc.LIFECYCLE_STATE.identity-count",
+        "type": "LIFECYCLE_STATE",
+        "path": "/identityCount"
+      }
+    ]
+  }
+}

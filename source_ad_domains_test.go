@@ -17,10 +17,11 @@ func domainEntry(forest, dn string) map[string]any {
 }
 func domainInput(t *testing.T, env, typ string, domains []any) snapshot.Input {
 	t.Helper()
-	return input(t, env, []string{typ}, obj(typ, "same-source-id", "Invented Directory", map[string]any{"connectorAttributes": map[string]any{"domainSettings": domains}}))
+	return input(t, env, []string{typ}, obj(typ, "same-source-id", "Invented Directory", map[string]any{"connectorAttributes": map[string]any{"connectorName": "Active Directory", "domainSettings": domains}}))
 }
 func domainExpectations() []v2.Expectation {
 	out := []v2.Expectation{{Rule: rule("copy-name"), Selector: v2.Selector{Type: "SOURCE", Path: "/name"}, Operation: "copy_source", Authority: "invented-release"}}
+	out = append(out, v2.Expectation{Rule: rule("copy-connector"), Selector: v2.Selector{Type: "SOURCE", Path: "/connectorAttributes/connectorName"}, Operation: "copy_source", Authority: "invented-release"})
 	for _, field := range []string{"forestName", "domainDN", "useSSL", "port", "authorizationType", "user", "servers"} {
 		out = append(out, v2.Expectation{Rule: rule("copy-domain-" + field), Selector: v2.Selector{Type: "SOURCE", Path: "/connectorAttributes/domainSettings/*/" + field}, Operation: "copy_source", Authority: "invented-release"})
 	}
@@ -132,7 +133,7 @@ func TestDocumentedDomainMappingAndContext(t *testing.T) {
 	right := []any{domainEntry("shared.example.invalid", "DC=shared"), domainEntry("prod.example.invalid", "DC=prod,DC=example,DC=invalid")}
 	req := Request{Mode: "drift", Left: domainInput(t, "dev", "SOURCE", left), Right: domainInput(t, "prod", "SOURCE", right)}
 	r := compareTest(t, req, p)
-	if r.ExitCode() != 0 || r.Counts["equivalent"] != 2 || r.Replacements["isc.SOURCE.ad-domains"] != "directory-domains" {
+	if r.ExitCode() != 0 || r.Counts["equivalent"] != 2 || r.RuleUsage["directory-domains"] != 1 {
 		t.Fatal("example mapping failed", r.Counts, r.Replacements)
 	}
 	for _, role := range []string{"left", "right"} {

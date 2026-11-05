@@ -2,15 +2,14 @@
 
 The module has one comparison implementation: the neutral `v2` engine, with ISC
 snapshot and optional Configuration Hub adapters in the root `differ` package.
-ISC domain rules are assembled under `internal/iscprofile`, with separate SOURCE
-schema, provisioning-policy, and Active Directory providers. The neutral engine
-supports generic conditional collection keys, environment key mappings, and
-per-input collection context; it contains no SOURCE-specific matching logic.
-SOURCE schemas/attributes match by name, while
-provisioning policies use usage/subtype and fields use name. Active Directory
-forest settings use forestName and domain settings use the forestName/domainDN
-tuple, with explicit policy-authored environment aliases for alignment; value
-equivalence and deployment expectations stay independent.
+ISC domain rules are shipped as embedded JSON under `internal/iscprofile/packs`.
+The loader assembles common, SOURCE, and connector layers with version/digest
+provenance. The ISC adapter classifies SOURCE connectors from pack-declared
+metadata; the neutral engine uses generic document variants. It contains no ISC
+connector names or SOURCE-specific matching logic. Implementation policies attach
+source-scoped collection mapping extensions, add expectations/equivalences, or
+explicitly replace/disable defaults. They do not need to duplicate shipped keys
+or labels. See [the rule-pack format](rule-packs.md).
 Policies and reports use schema `2`. Exporter manifests/envelopes retain their
 independent storage-format numbers.
 
@@ -29,7 +28,9 @@ comparison, plus mapping retrieval/publication to offline import. No tenant
 exports, credentials or network services are fixtures. Current examples are
 compiled and executed in `TestDocumentedExamples`,
 `TestDocumentedForestMappingAndReportContext`, and
-`TestDocumentedDomainMappingAndContext`. Domain tests also cover composite-key
+`TestDocumentedDomainMappingAndContext`. `rule_packs_test.go` and
+`v2/collection_extensions_test.go` cover connector isolation, ambiguous identities,
+override/disable rules, detached definitions, scoped extensions, and provenance. Domain tests also cover composite-key
 uniqueness, per-input context, deployment authority, and server ordering.
 Collection mapping validation,
 typed fallback, original pointers, baseline alignment, deterministic digests, and

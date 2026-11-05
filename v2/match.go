@@ -36,7 +36,7 @@ func detached(in Input) (Input, error) {
 	out.Documents = []Document{}
 	seenID := map[string]bool{}
 	for _, doc := range in.Documents {
-		if doc.Type == "" || doc.ID == "" || !seen[doc.Type] || seenID[physical(doc.Type, doc.ID)] {
+		if doc.Type == "" || doc.ID == "" || doc.Variant != "" && !validID.MatchString(doc.Variant) || !seen[doc.Type] || seenID[physical(doc.Type, doc.ID)] {
 			return out, errors.New("invalid document identity/scope")
 		}
 		seenID[physical(doc.Type, doc.ID)] = true

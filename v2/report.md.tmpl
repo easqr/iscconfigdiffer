@@ -106,6 +106,12 @@ Evidence:
 | Field | Value |
 | --- | --- |
 {{range .Evidence}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{end}}{{if .Extensions}}
+Collection mapping extensions:
+
+| Field | Value |
+| --- | --- |
+{{range .Extensions}}{{if .Value}}| {{cell .Name}} | {{cell .Value}} |
 {{end}}{{end}}{{end}}{{if .Derivation}}
 Expected result derived from:
 

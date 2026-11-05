@@ -1,0 +1,269 @@
+{
+  "id": "isc.common",
+  "version": 1,
+  "layer": "common",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.common",
+    "null_handling": "null_equals_absent",
+    "identities": [
+      {
+        "id": "isc.identity.ACCESS_PROFILE",
+        "type": "ACCESS_PROFILE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.CAMPAIGN_FILTER",
+        "type": "CAMPAIGN_FILTER",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.CONNECTOR_RULE",
+        "type": "CONNECTOR_RULE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.FORM_DEFINITION",
+        "type": "FORM_DEFINITION",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.GOVERNANCE_GROUP",
+        "type": "GOVERNANCE_GROUP",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.IDENTITY_OBJECT_CONFIG",
+        "type": "IDENTITY_OBJECT_CONFIG",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.IDENTITY_PROFILE",
+        "type": "IDENTITY_PROFILE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.PASSWORD_POLICY",
+        "type": "PASSWORD_POLICY",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.PASSWORD_SYNC_GROUP",
+        "type": "PASSWORD_SYNC_GROUP",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.PUBLIC_IDENTITIES_CONFIG",
+        "type": "PUBLIC_IDENTITIES_CONFIG",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.ROLE",
+        "type": "ROLE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.RULE",
+        "type": "RULE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.SEGMENT",
+        "type": "SEGMENT",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.SERVICE_DESK_INTEGRATION",
+        "type": "SERVICE_DESK_INTEGRATION",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.SOD_POLICY",
+        "type": "SOD_POLICY",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.SOURCE",
+        "type": "SOURCE",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.SPS_PARAMETER",
+        "type": "SPS_PARAMETER",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.TAG",
+        "type": "TAG",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.TRANSFORM",
+        "type": "TRANSFORM",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.TRIGGER_SUBSCRIPTION",
+        "type": "TRIGGER_SUBSCRIPTION",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.WORKFLOW",
+        "type": "WORKFLOW",
+        "strategy": "fields",
+        "paths": [
+          "/name"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.ACCESS_REQUEST_CONFIG",
+        "type": "ACCESS_REQUEST_CONFIG",
+        "strategy": "singleton"
+      },
+      {
+        "id": "isc.identity.AUTH_ORG",
+        "type": "AUTH_ORG",
+        "strategy": "singleton"
+      },
+      {
+        "id": "isc.identity.NOTIFICATION_TEMPLATE",
+        "type": "NOTIFICATION_TEMPLATE",
+        "strategy": "fields",
+        "paths": [
+          "/key",
+          "/locale",
+          "/medium"
+        ],
+        "component_type": "string"
+      },
+      {
+        "id": "isc.identity.LIFECYCLE_STATE",
+        "type": "LIFECYCLE_STATE",
+        "strategy": "dependent",
+        "paths": [
+          "/technicalName"
+        ],
+        "component_type": "string",
+        "parent_type": "IDENTITY_PROFILE",
+        "parent_path": "/identityProfileRef/id"
+      },
+      {
+        "id": "isc.identity.ATTR_SYNC_SOURCE_CONFIG",
+        "type": "ATTR_SYNC_SOURCE_CONFIG",
+        "strategy": "dependent",
+        "parent_type": "SOURCE",
+        "parent_path": "/source/id"
+      }
+    ],
+    "expectations": [
+      {
+        "id": "isc.$TYPE.envelope.version",
+        "type": "$TYPE",
+        "path": "/version",
+        "space": "metadata",
+        "modes": [
+          "deployment"
+        ],
+        "operation": "copy_source",
+        "authority": "isc-envelope-structure"
+      },
+      {
+        "id": "isc.$TYPE.envelope.self.type",
+        "type": "$TYPE",
+        "path": "/self/type",
+        "space": "metadata",
+        "modes": [
+          "deployment"
+        ],
+        "operation": "copy_source",
+        "authority": "isc-envelope-structure"
+      }
+    ]
+  }
+}

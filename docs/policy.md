@@ -64,7 +64,7 @@ Sensitive selectors redact the filter key along with other object identities.
 ## Schema
 
 The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`,
-`null_handling`, and rule arrays.
+`null_handling`, `disabled_rules`, `collection_mappings`, and rule arrays.
 Root `modes` restricts permitted comparison modes; an omitted restriction permits both execution modes.
 JSON is strict: exact property spelling, no unknown properties or duplicate keys,
 valid UTF-8, no trailing JSON, and exact numbers. Policy/rule IDs use 1–200 ASCII
@@ -77,8 +77,8 @@ All rule categories include `id` and optional `replaces`, `required`, `modes`, a
 Treat labels, authority and evidence attributes as visible report metadata and
 do not put secrets in them.
 
-Selectors contain `type`, `path`, optional exact logical `key`, and optional
-`space` (`content`, the default, or `metadata`). Paths are JSON Pointers relative
+Selectors contain `type`, `path`, optional exact logical `key`, optional
+adapter-classified `variant`, and optional `space` (`content`, the default, or `metadata`). Paths are JSON Pointers relative
 to the selected section. `""` selects the section root. Escape `~` as `~0` and
 `/` as `~1`. A segment exactly `*` selects one object member or array item; no
 recursive wildcard, regex, filter or expression language exists. A literal member
@@ -93,6 +93,7 @@ wildcards expand only from available structures.
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
 | `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant` |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
+| `collection_mappings` | `collection` effective keyed collection ID, optional object `key`, and nonempty `key_mappings`; common rule fields except `replaces` |
 | `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, `key_cases`, and `key_mappings` only for keyed; optional `item_label` and `display_fields` for report context |
 | `sensitive` | Selector; conservative report redaction |
 
@@ -170,6 +171,40 @@ intentional difference. Deployment needs independent authoritative expectations;
 `copy_source` still requires the raw source value and `preserve_target` still
 requires the aligned baseline value. Profile replacement ownership, selector
 conflict handling, and mode restrictions are unchanged.
+
+### Collection mapping extensions
+
+`collection_mappings` attaches implementation mappings to an existing effective
+keyed collection. Each entry has its own `id`, a `collection` rule ID, optional
+exact object `key`, required `key_mappings`, and optional `modes`, `required`, and
+`evidence`. It inherits type, variant, section, path, key structure, and display
+labels. It does not replace the collection or claim value authority.
+
+Extensions may restrict, but not expand, collection modes or object scope.
+Unknown, non-keyed, disabled, or replaced targets are errors; reference the
+effective replacement's ID if a structural replacement is also intentional.
+Overlapping active extensions for the same collection/object scope are errors,
+as are mapping paths overlapping the collection's own inline mappings. Use one
+extension with multiple groups/components for a scope rather than competing
+extensions. Independent object scopes or disjoint modes can have their own
+extensions. Existing key mapping validation applies after extension composition.
+
+Extension IDs have independent usage/required checks and evidence. Collection
+and descendant decisions retain `extensions` with extension rule ID, collection
+rule ID, and attribution. Ordinary collection evidence still identifies the
+shipped rule pack. Definitions remain separate in the effective policy digest;
+input documents and expected values are never rewritten.
+
+### Explicitly disabling shipped rules
+
+Root `disabled_rules` lists unique shipped/profile rule IDs to omit. It cannot
+name unknown IDs, implementation rules, or a rule also being replaced. Disabling
+an ignore restores ordinary comparison and deployment coverage requirements;
+it does not verify the field. Disabling an identity requires a usable replacement
+strategy, otherwise matching remains incomplete. Disabled collection targets
+cannot receive mapping extensions. File order never supplies precedence.
+Reports retain `disabled_rules` and both the original profile digest and the
+effective policy digest.
 
 ### Expectations
 
@@ -273,6 +308,22 @@ This default follows the null/absent-property convention in the
 
 ## ISC profiles
 
+Profiles are assembled from validated embedded [JSON rule packs](rule-packs.md):
+common defaults, SOURCE defaults, and connector defaults. The implementation
+policy extends or explicitly replaces/disables those defaults. Go supplies the
+loader, adapter classification, and comparison mechanisms; rule selectors, keys,
+labels, exclusions, and connector identity aliases are shipped as JSON.
+
+`Selector.variant` optionally restricts a rule to adapter-classified document
+metadata. `Document.variant` is independent of the display name and participates
+in the detached document hash. Empty selector variants cover all variants;
+different nonempty variants have disjoint ownership. Replacements retain variant
+ownership along with the rest of their selector. Matched documents with different
+variants produce a conflict; rules never normalize across incompatible connectors.
+Unrecognized connectors remain unclassified and use ordinary comparison plus
+common/SOURCE defaults. Unsupported arrays do not receive inferred semantics.
+
+
 * `isc-identity-v2`: existing named, composite, parent-qualified and singleton
   identity strategies plus SOURCE schema/attribute, AD forest/domain, and provisioning
   alignment, and generated provisioning policy/field metadata exclusions. Other fields remain comparable.
@@ -309,8 +360,8 @@ The reference's `name`, `type`, and other fields retain ordinary comparison and
 expectation requirements. Missing or changed names/types remain findings; the
 exclusion does not establish equivalence or deployment authority for them.
 Exclusion decisions retain the profile rule ID, evidence, and original pointer.
-The rule is declared in `internal/iscprofile/source.go`; the neutral engine is
-unchanged. Other object types and unrelated nested IDs remain comparable.
+The rule is declared in `internal/iscprofile/packs/source.json`; the neutral
+engine has no SOURCE-specific exclusion logic. Other object types and unrelated nested IDs remain comparable.
 
 ## SOURCE schema rules
 
@@ -337,12 +388,13 @@ parent collection rules do not grant authority.
 
 Custom collection rules at these paths require explicit same-category,
 same-selector `replaces`. Replacements supply their own display annotations.
-The SOURCE provider is `internal/iscprofile/source_schema.go`; the neutral engine
-and renderers use existing generic collection and context capabilities.
+The SOURCE declarations are in `internal/iscprofile/packs/source.json` and
+`source-portable.json`; the neutral engine and renderers use generic collection
+and context capabilities.
 
 ## SOURCE Active Directory forest and domain rules
 
-All ISC profiles supply `isc.SOURCE.ad-forests` at
+All ISC profiles include connector-scoped `isc.SOURCE.ad-forests` at
 `/connectorAttributes/forestSettings`, keyed by the nonblank string `/forestName`.
 Names must be unique within a source for comparison. This is an explicit differ
 requirement, not a documented guarantee of ISC validation. Entries are unordered;
@@ -362,21 +414,24 @@ No DN normalization is implied. Server lists remain ordered, and credentials,
 connection settings, unknown fields, and other values remain comparable.
 Domain-to-forest referential integrity is not validated.
 
-The SOURCE Active Directory provider is `internal/iscprofile/source_ad.go`. It
-supplies no tenant-specific mappings or equivalences. To add mappings, explicitly
-replace the collection with the same selector, retaining `item_label` and
-`display_fields` if readable context is wanted. Because the built-in has no
-object key, replacements retain that scope; each source/parent array remains
-independent. Value equivalences can be source-key scoped. See the complete
-[drift example](../examples/policy-drift.json) and
-[forest walkthrough](../README.md#forest-names-that-differ-between-environments)
+The declarations are in `internal/iscprofile/packs/active-directory.json` and
+use `variant:"active-directory"`. Only matching connector metadata enables them;
+SOURCE type and array shape alone are insufficient. Server ordering is unchanged.
+Environment mappings belong in `collection_mappings`, targeting the shipped rule
+ID and optional source key. Forest and domain collections receive independent
+extensions; definitions are not automatically reused. Separate drift equivalences
+accept the mapped field values. Structural exceptions require full same-selector
+replacements, including the connector variant.
+
+The Entra pack similarly declares `isc.SOURCE.entra-skus` (by `/skuId`) and
+`isc.SOURCE.entra-service-plans` (by `/servicePlanId`) under
+`/connectorAttributes/subscribedSkus`, scoped to `variant:"microsoft-entra"`.
+These rules preserve existing scalar-key semantics and show item context; they
+do not accept environment-specific differences or ignore other settings.
+
+See the [complete drift example](../examples/policy-drift.json),
+[forest walkthrough](../README.md#forest-names-that-differ-between-environments),
 and [domain walkthrough](../README.md#domain-settings-between-environments).
-Domain mappings must be authored independently of forest-settings mappings;
-there is no implicit reuse of group definitions between collections. Separate
-drift equivalences at `/connectorAttributes/domainSettings/*/forestName` and
-`/connectorAttributes/domainSettings/*/domainDN` accept mapped value differences.
-Deployment alignment does not grant authority or rewrite expected source values;
-independent destination expectations remain required.
 
 ## SOURCE provisioning policy rules
 
@@ -426,7 +481,7 @@ normalization.
 
 The neutral engine interprets these declarations without SOURCE-specific code.
 ISC profile assembly lives in `internal/iscprofile`; SOURCE schema and
-provisioning providers are separate files. Existing public `ISCProfile` and
+provisioning declarations are in the SOURCE JSON packs. Existing public `ISCProfile` and
 `Compile` entry points remain unchanged.
 
 Sources: [provisioning policy creation](https://developer.sailpoint.com/docs/api/create-provisioning-policy-v-2/)
@@ -519,7 +574,7 @@ substitution parity is claimed.
 ## Reports and verification
 
 V2 JSON includes input provenance/content hashes, effective type/operation scope,
-request/policy/profile digests, matching decisions, replacement history, rule
+request/policy/profile digests, matching decisions, replacement/disable history, collection extension provenance, rule
 usage, adapter evidence, diagnostics, decision counts and object coverage.
 Each input also has a measured `document_hash` covering detached documents and
 declared types, independently of an upstream artifact `content_hash` supplied by

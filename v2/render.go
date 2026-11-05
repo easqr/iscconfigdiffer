@@ -34,6 +34,7 @@ type humanDecision struct {
 	ItemKeys                                                      []string
 	Locations                                                     []humanLocation
 	Evidence                                                      []reportField
+	Extensions                                                    []reportField
 	Derivation                                                    []reportField
 }
 type humanGroup struct {
@@ -167,6 +168,15 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 			out.Evidence = append(out.Evidence, reportField{k, d.Evidence.Attributes[k]})
 		}
 	}
+	for _, extension := range d.Extensions {
+		out.Extensions = append(out.Extensions, reportField{"Extension rule", extension.RuleID}, reportField{"Collection rule", extension.Collection})
+		if extension.Evidence != nil {
+			out.Extensions = append(out.Extensions, reportField{"Evidence kind", extension.Evidence.Kind}, reportField{"Evidence record", extension.Evidence.RecordID}, reportField{"Evidence digest", extension.Evidence.Digest})
+			for _, key := range keys(extension.Evidence.Attributes) {
+				out.Extensions = append(out.Extensions, reportField{key, extension.Evidence.Attributes[key]})
+			}
+		}
+	}
 	if d.Derivation != nil {
 		loc := locationView(d.Derivation.Role, d.Derivation.Location)
 		out.Derivation = []reportField{{"Context", loc.ContextSummary}, {"Role", loc.Role}, {"Type", d.Derivation.Type}, {"Path", loc.Pointer}, {"Artifact", loc.Artifact}, {"ID", loc.ID}, {"Presence", loc.State}, {"Value", loc.Value}}
@@ -196,6 +206,14 @@ func (r Report) humanView() humanReport {
 		v.ObjectKey = r.ObjectKey
 	}
 	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Null handling", r.NullHandling}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
+	if len(r.DisabledRules) > 0 {
+		v.Provenance = append(v.Provenance, reportField{"Disabled shipped rules", strings.Join(r.DisabledRules, ", ")})
+	}
+	for _, e := range r.Evidence {
+		if e.Kind == "isc-rule-pack" {
+			v.Provenance = append(v.Provenance, reportField{"Rule pack", e.RecordID + "; version: " + e.Attributes["version"] + "; layer: " + e.Attributes["layer"] + "; digest: " + e.Digest})
+		}
+	}
 	for _, k := range keys(r.ObjectCoverage) {
 		v.Coverage = append(v.Coverage, reportField{k, fmt.Sprint(r.ObjectCoverage[k])})
 	}

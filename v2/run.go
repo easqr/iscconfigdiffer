@@ -17,6 +17,7 @@ type slot struct {
 	unavailable bool
 }
 type frame struct {
+	extensions  []CollectionMappingUsage
 	property    bool
 	nodes       [3]slot
 	path, space string
@@ -132,6 +133,7 @@ func Run(request Request, c *Compiled) (Report, error) {
 	x.report.PolicyID = c.policy.ID
 	x.report.PolicyDigest = c.digest
 	x.report.Profile = c.policy.Profile
+	x.report.DisabledRules = append([]string{}, c.policy.DisabledRules...)
 	x.report.ProfileDigest = c.profileDigest
 	x.report.Scope = keys(scope)
 	x.report.ObjectKey = request.ObjectKey
@@ -240,6 +242,16 @@ func Run(request Request, c *Compiled) (Report, error) {
 			}
 		}
 		x.report.Matches = append(x.report.Matches, Match{Type: g.typ, Key: g.key, RuleID: g.rule, Locations: locations})
+		variants := map[string]bool{}
+		for _, node := range g.nodes {
+			if node != nil {
+				variants[node.doc.Variant] = true
+			}
+		}
+		if len(variants) > 1 {
+			x.record(frame{}, "conflict", "document variant mismatch", Rule{}, "")
+			continue
+		}
 		if request.Mode == "deployment" && op.Action == "delete" {
 			if g.nodes[1] != nil {
 				x.record(frame{}, "violation", "deleted object present in draft", Rule{}, "")
@@ -365,6 +377,7 @@ func (x *execution) diagnose(d Diagnostic) {
 func (x *execution) record(f frame, status, code string, r Rule, authority string) {
 	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
 	d.Normalization = x.normalization
+	d.Extensions = f.extensions
 	if code == "null and absent properties equivalent" {
 		d.Normalization = "null_equals_absent"
 	}
@@ -403,7 +416,18 @@ func (x *execution) record(f frame, status, code string, r Rule, authority strin
 	}
 }
 func (x *execution) selected(s Selector, f frame) bool {
-	return selects(s, x.current.typ, x.current.key, f.space, f.path)
+	return x.variantSelected(s) && selects(s, x.current.typ, x.current.key, f.space, f.path)
+}
+func (x *execution) variantSelected(s Selector) bool {
+	if s.Variant == "" {
+		return true
+	}
+	for _, node := range x.current.nodes {
+		if node != nil && node.doc.Variant != s.Variant {
+			return false
+		}
+	}
+	return true
 }
 func (x *execution) walk(f frame) {
 	for _, r := range x.c.policy.Ignores {
@@ -562,7 +586,7 @@ func (x *execution) walk(f frame) {
 func (x *execution) literalChildren(f frame) map[string]bool {
 	out := map[string]bool{}
 	add := func(s Selector, r Rule) {
-		if !active(r, x.request.Mode) || s.Type != x.current.typ || space(s.Space) != f.space || (s.Key != "" && s.Key != x.current.key) {
+		if !active(r, x.request.Mode) || !x.variantSelected(s) || s.Type != x.current.typ || space(s.Space) != f.space || (s.Key != "" && s.Key != x.current.key) {
 			return
 		}
 		a, _ := pointer(s.Path)
@@ -760,6 +784,7 @@ func (x *execution) reference(f frame, r Reference) {
 	x.record(f, "unverified", "reference unavailable", r.Rule, "")
 }
 func (x *execution) arrays(f frame, r Collection) {
+	f, r = x.extendCollection(f, r)
 	a := [3][]any{}
 	for i, n := range f.nodes {
 		if !n.present {

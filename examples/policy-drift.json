@@ -76,24 +76,9 @@
       }
     }
   ],
-  "collections": [
+  "collection_mappings": [
     {
       "id": "directory-forests",
-      "replaces": "isc.SOURCE.ad-forests",
-      "type": "SOURCE",
-      "path": "/connectorAttributes/forestSettings",
-      "mode": "keyed",
-      "keys": [
-        "/forestName"
-      ],
-      "component_type": "string",
-      "item_label": "Forest",
-      "display_fields": [
-        {
-          "label": "Name",
-          "path": "/forestName"
-        }
-      ],
       "key_mappings": [
         {
           "path": "/forestName",
@@ -111,30 +96,12 @@
       "evidence": {
         "kind": "invented-policy",
         "record_id": "environment-forests"
-      }
+      },
+      "collection": "isc.SOURCE.ad-forests",
+      "key": "Invented Directory"
     },
     {
       "id": "directory-domains",
-      "replaces": "isc.SOURCE.ad-domains",
-      "type": "SOURCE",
-      "path": "/connectorAttributes/domainSettings",
-      "mode": "keyed",
-      "keys": [
-        "/forestName",
-        "/domainDN"
-      ],
-      "component_type": "string",
-      "item_label": "Domain",
-      "display_fields": [
-        {
-          "label": "Forest name",
-          "path": "/forestName"
-        },
-        {
-          "label": "Domain DN",
-          "path": "/domainDN"
-        }
-      ],
       "key_mappings": [
         {
           "path": "/forestName",
@@ -164,7 +131,9 @@
       "evidence": {
         "kind": "invented-policy",
         "record_id": "directory-environment-domains"
-      }
+      },
+      "collection": "isc.SOURCE.ad-domains",
+      "key": "Invented Directory"
     }
   ]
 }

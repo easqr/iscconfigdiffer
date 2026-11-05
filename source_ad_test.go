@@ -14,7 +14,7 @@ import (
 
 func forestInput(t *testing.T, env, typ string, forests []any) snapshot.Input {
 	t.Helper()
-	return input(t, env, []string{typ}, obj(typ, "same-source-id", "Invented Directory", map[string]any{"connectorAttributes": map[string]any{"forestSettings": forests}}))
+	return input(t, env, []string{typ}, obj(typ, "same-source-id", "Invented Directory", map[string]any{"connectorAttributes": map[string]any{"connectorName": "Active Directory", "forestSettings": forests}}))
 }
 func forestEntry(name string, ssl bool) any {
 	return map[string]any{"forestName": name, "useSSL": ssl, "authorizationType": "simple", "user": "shared-user-sentinel"}
@@ -75,7 +75,7 @@ func TestDocumentedForestMappingAndReportContext(t *testing.T) {
 	right := []any{forestEntry("shared.example.invalid", false), forestEntry("prod.example.invalid", true)}
 	req := Request{Mode: "drift", IncludeMatching: true, Left: forestInput(t, "dev", "SOURCE", left), Right: forestInput(t, "prod", "SOURCE", right)}
 	r := compareTest(t, req, p)
-	if r.ExitCode() != 0 || r.Counts["equivalent"] != 1 || r.Replacements["isc.SOURCE.ad-forests"] != "directory-forests" {
+	if r.ExitCode() != 0 || r.Counts["equivalent"] != 1 || r.RuleUsage["directory-forests"] != 1 {
 		t.Fatal("example did not align mapped forests", r.Counts, r.Replacements)
 	}
 	found := false

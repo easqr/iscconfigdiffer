@@ -1,0 +1,29 @@
+{
+  "id": "isc.source-portable",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.source-portable",
+    "ignores": [
+      {
+        "id": "isc.SOURCE.schema-id",
+        "type": "SOURCE",
+        "path": "/schemas/*/id"
+      },
+      {
+        "id": "isc.SOURCE.schema-created",
+        "type": "SOURCE",
+        "path": "/schemas/*/created"
+      },
+      {
+        "id": "isc.SOURCE.schema-modified",
+        "type": "SOURCE",
+        "path": "/schemas/*/modified"
+      }
+    ]
+  }
+}

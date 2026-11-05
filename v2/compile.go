@@ -40,7 +40,7 @@ func ruleOf(v reflect.Value) Rule { return v.FieldByName("Rule").Interface().(Ru
 func categories(p *Policy) []reflect.Value {
 	v := reflect.ValueOf(p).Elem()
 	a := []reflect.Value{}
-	for _, n := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "References", "Collections", "Sensitive"} {
+	for _, n := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "References", "Collections", "Sensitive", "CollectionMappings"} {
 		a = append(a, v.FieldByName(n))
 	}
 	return a
@@ -94,7 +94,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		return nil, err
 	}
 	base = detachedProfile
-	if base.Version != 0 || base.ID != "" || base.Profile != "" || len(base.Modes) > 0 || len(base.Bindings) > 0 {
+	if base.Version != 0 || base.ID != "" || base.Profile != "" || len(base.Modes) > 0 || len(base.Bindings) > 0 || len(base.DisabledRules) > 0 {
 		return nil, errors.New("profile rules may supply comparison defaults, rule arrays and evidence only")
 	}
 	for _, setting := range []string{p.NullHandling, base.NullHandling} {
@@ -153,6 +153,14 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			profileIDs[r.ID] = i
 		}
 	}
+	disabled := map[string]bool{}
+	for _, id := range p.DisabledRules {
+		if _, ok := profileIDs[id]; !ok || disabled[id] {
+			return nil, errors.New("disabled_rules requires unique shipped rule IDs")
+		}
+		disabled[id] = true
+	}
+	sort.Strings(p.DisabledRules)
 	for i, cat := range pc {
 		for j := 0; j < cat.Len(); j++ {
 			r := ruleOf(cat.Index(j))
@@ -162,7 +170,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			allIDs[r.ID] = true
 			if r.Replaces != "" {
 				ci, ok := profileIDs[r.Replaces]
-				if !ok || ci != i || replaced[r.Replaces] != "" {
+				if !ok || ci != i || replaced[r.Replaces] != "" || disabled[r.Replaces] {
 					return nil, fmt.Errorf("invalid replacement for rule %s", r.ID)
 				}
 				replaced[r.Replaces] = r.ID
@@ -172,7 +180,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	for i, cat := range bc {
 		for j := 0; j < cat.Len(); j++ {
 			r := ruleOf(cat.Index(j))
-			if replaced[r.ID] == "" {
+			if replaced[r.ID] == "" && !disabled[r.ID] {
 				pc[i].Set(reflect.Append(pc[i], cat.Index(j)))
 			}
 		}
@@ -217,6 +225,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		}
 	}
 	claim := func(s Selector, kind, id string) error {
+		if s.Variant != "" && !validID.MatchString(s.Variant) {
+			return fmt.Errorf("invalid variant for rule %s", id)
+		}
 		if s.Type == "" || (space(s.Space) != "content" && space(s.Space) != "metadata") {
 			return fmt.Errorf("invalid selector for rule %s", id)
 		}
@@ -484,7 +495,13 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			return nil, err
 		}
 	}
+	if err := validateCollectionExtensions(p, collectionsByID, coactive); err != nil {
+		return nil, err
+	}
 	for _, r := range p.Sensitive {
+		if r.Variant != "" && !validID.MatchString(r.Variant) {
+			return nil, errors.New("invalid sensitive variant")
+		}
 		if r.Type == "" || (space(r.Space) != "content" && space(r.Space) != "metadata") {
 			return nil, errors.New("invalid sensitive selector")
 		}

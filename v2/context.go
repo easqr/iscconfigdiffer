@@ -55,7 +55,7 @@ func (x *execution) locationContext(doc Document, key, section, path string) []I
 	}
 	found := []located{}
 	for _, r := range x.c.policy.Collections {
-		if r.ItemLabel == "" || !active(r.Rule, x.request.Mode) || r.Type != doc.Type || space(r.Space) != section || r.Key != "" && r.Key != key {
+		if r.ItemLabel == "" || !active(r.Rule, x.request.Mode) || r.Type != doc.Type || r.Variant != "" && r.Variant != doc.Variant || space(r.Space) != section || r.Key != "" && r.Key != key {
 			continue
 		}
 		pattern, _ := pointer(r.Path)
