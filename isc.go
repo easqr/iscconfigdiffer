@@ -82,13 +82,15 @@ func Compare(r Request, p v2.Policy) (v2.Report, error) {
 }
 func Compile(p v2.Policy) (*v2.Compiled, error) {
 	if p.Profile == "" {
-		return v2.Compile(p)
+		compiled, err := v2.Compile(p)
+		return compiled, policyFileError(p, err)
 	}
 	profile, e := ISCProfile(p)
 	if e != nil {
-		return nil, e
+		return nil, policyFileError(p, e)
 	}
-	return v2.Compile(p, profile)
+	compiled, err := v2.Compile(p, profile)
+	return compiled, policyFileError(p, err)
 }
 
 // ISCProfile builds ISC domain rules for the vendor-neutral comparison engine.

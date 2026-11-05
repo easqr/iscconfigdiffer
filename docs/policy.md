@@ -10,6 +10,8 @@ comparison code imports neither exporter authentication nor a generated SDK.
 * `differ.AdaptSnapshot`: validates and detaches `snapshot.Input`, preserving
   provenance and unknown fields. Payload becomes `content`; envelope fields other
   than `object` become `metadata`.
+* `differ.LoadPolicy(path)`: strict root-policy/fragment file composition with provenance.
+* `differ.DecodePolicy(bytes)`: strict self-contained policy decoding, without file access.
 * `differ.Compile` and `differ.Compare`: ISC profiles and validated storage.
 * `differ.ImportHub` / `ReadHub`: offline array/bundle adapters.
 
@@ -17,6 +19,59 @@ The CLI and library use one comparison engine and policy/report schema `2`.
 The CLI defaults to drift mode; select `--mode deployment` for draft validation.
 Policies use payload-relative selectors. `DecodePolicy`, `Compile`, and `Compare`
 are the public ISC entry points; the `v2` package provides the neutral core.
+
+## Root includes and rule-only fragments
+
+Use `differ.LoadPolicy(path)` or CLI `--policy FILE` for a root policy containing
+`"includes": ["sources/active-directory.json", "transforms.json"]`.
+Includes are an optional array of explicit, nonblank, root-relative filenames.
+All files must remain inside the root directory, including symlink targets.
+Absolute/escaping paths, repeated files (including hard-link/symlink aliases),
+nonregular files, invalid/duplicate JSON properties, and unknown properties fail.
+There are no globs, recursive includes, directory scanning, or implicit overrides.
+The root itself may contain rules. No `includes` means a normal single-file policy.
+`DecodePolicy` and `v2.Decode` do no I/O and reject `includes`.
+
+Root settings (`version`, `id`, `profile`, `bindings`, `null_handling`, `modes`)
+are never merged from fragments. Fragments accept only these fields:
+
+```text
+identities, pairings, ignores, expectations, equivalences, references,
+collections, collection_mappings, sensitive, disabled_rules, evidence
+```
+
+All except `evidence` and `disabled_rules` are ordinary rule arrays with the same
+syntax and validation as root rules. `disabled_rules` is an array of shipped rule
+IDs; `evidence` is an array of attribution records. Rule-level modes and evidence
+remain part of each rule. A fragment has no `version`, `id`, or `includes` header;
+`{}` is a valid empty fragment. All files use strict JSON without comments.
+
+Composition appends arrays and then compiles once. Rule IDs are globally unique
+across categories and files. Repeated disabled IDs also fail. Include order does
+not confer precedence: normal conflict, specificity, replacement, and disabling
+rules still apply. File names do not confer scope; explicit selectors do.
+Compiler errors identify implicated files through rule IDs where available and
+otherwise identify the root file. Parsing and duplicate-ID errors name their files.
+
+`LoadPolicy` adds attribution-only `Policy.Evidence` records, one per physical
+file, with `kind: "policy-file"`, a root-relative `record_id`, SHA-256 of actual
+file bytes, and string attributes `role` (`root`/`fragment`), `rule_ids`, and
+`disabled_rules` (sorted, space-separated IDs). The root name is its basename.
+Fragment evidence is retained. File evidence never populates a rule's evidence
+or authority. JSON reports retain the index; human reports inventory files and
+show origins for applied rules/extensions. Evidence is public metadata and is
+not hidden by value exclusion.
+
+Because file provenance participates in the effective policy digest, splitting,
+reformatting, or reordering a manifest changes policy/request digests without
+necessarily changing decisions. Relocating an unchanged bundle with the same
+root basename and relative layout does not change file provenance. Core rules
+and report JSON schema remain unchanged. The neutral engine accepts the assembled
+policy and knows nothing about file loading.
+
+See the [README walkthrough](../README.md#organize-policies-across-files) and the
+[modular example](../examples/policy-includes.json). These are implementation
+policy fragments, distinct from the adapter's embedded [rule packs](rule-packs.md).
 
 ## CLI report files
 

@@ -119,11 +119,7 @@ func run(args []string, errOut io.Writer) int {
 	}
 	p := differ.DefaultPolicy()
 	if *policyPath != "" {
-		b, e := os.ReadFile(*policyPath)
-		if e != nil {
-			return bad("cannot read policy")
-		}
-		p, e = differ.DecodePolicy(b)
+		p, e = differ.LoadPolicy(*policyPath)
 		if e != nil {
 			return fail(e)
 		}

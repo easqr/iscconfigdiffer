@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "id": "invented-drift-modular",
+  "profile": "isc-portable-v2",
+  "bindings": {
+    "left": "dev",
+    "right": "prod"
+  },
+  "includes": [
+    "policy-rules/sources/shared.json",
+    "policy-rules/sources/active-directory.json",
+    "policy-rules/sources/entra.json",
+    "policy-rules/transforms.json"
+  ]
+}

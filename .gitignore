@@ -3,3 +3,6 @@ policy.json
 # Generated CLI reports
 /reports/
 /bin/
+
+# Local implementation policy fragments
+/policy-rules/

@@ -1,0 +1,22 @@
+{
+  "equivalences": [
+    {
+      "id": "entra-client",
+      "type": "SOURCE",
+      "key": "Invented Entra",
+      "path": "/connectorAttributes/clientID",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "invented-dev-client",
+          "prod": "invented-prod-client"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "entra-client-identifiers"
+      }
+    }
+  ]
+}

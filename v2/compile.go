@@ -162,7 +162,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	disabled := map[string]bool{}
 	for _, id := range p.DisabledRules {
 		if _, ok := profileIDs[id]; !ok || disabled[id] {
-			return nil, errors.New("disabled_rules requires unique shipped rule IDs")
+			return nil, fmt.Errorf("disabled_rules requires unique shipped rule IDs: %s", id)
 		}
 		disabled[id] = true
 	}
@@ -171,7 +171,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		for j := 0; j < cat.Len(); j++ {
 			r := ruleOf(cat.Index(j))
 			if !validID.MatchString(r.ID) || allIDs[r.ID] {
-				return nil, errors.New("invalid or duplicate rule ID")
+				return nil, fmt.Errorf("invalid or duplicate rule ID: %s", r.ID)
 			}
 			allIDs[r.ID] = true
 			if r.Replaces != "" {
@@ -502,10 +502,10 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			return nil, errors.New("keyed collection requires keys only")
 		}
 		if err := validateCollectionKeys(r); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("collection %s: %w", r.ID, err)
 		}
 		if err := validateCollectionDisplay(r); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("collection %s: %w", r.ID, err)
 		}
 	}
 	if err := validateCollectionExtensions(p, collectionsByID, coactive); err != nil {

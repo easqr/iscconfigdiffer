@@ -1,0 +1,22 @@
+{
+  "equivalences": [
+    {
+      "id": "static-domain",
+      "type": "TRANSFORM",
+      "key": "Invented Email Domain",
+      "path": "/attributes/value",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "dev.example.invalid",
+          "prod": "prod.example.invalid"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "static-transform-domains"
+      }
+    }
+  ]
+}

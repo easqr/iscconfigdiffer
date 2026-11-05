@@ -203,3 +203,35 @@ func runWithReports(t *testing.T, args []string, reportContents, errOut *bytes.B
 	}
 	return code
 }
+
+func TestCLIIncludedPolicy(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "policy.json")
+	if err := os.WriteFile(root, []byte(`{"version":2,"id":"included","profile":"isc-portable-v2","bindings":{"left":"dev","right":"prod"},"includes":["rules.json"]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "rules.json"), []byte(`{"equivalences":[{"id":"secret-mapping","type":"ROLE","key":"Invented","path":"/secret","left_env":"dev","right_env":"prod","groups":[{"dev":"dev-value","prod":"prod-value"}]}]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"--left", tree(t, "dev-value"), "--right", tree(t, "prod-value"), "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--policy", root, "--format", "json"}
+	var out, errOut bytes.Buffer
+	if code := runWithReports(t, args, &out, &errOut); code != 0 {
+		t.Fatal(code, errOut.String())
+	}
+	var r v2.Report
+	if err := json.Unmarshal(out.Bytes(), &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Counts["equivalent"] != 1 || !strings.Contains(out.String(), "rules.json") {
+		t.Fatal(r.Counts)
+	}
+	// Invalid fragment configuration fails before writing a report.
+	if err := os.WriteFile(filepath.Join(dir, "rules.json"), []byte(`{"profile":"isc-portable-v2"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	errOut.Reset()
+	if code := runWithReports(t, args, &out, &errOut); code != 2 || out.Len() != 0 || !strings.Contains(errOut.String(), "rules.json") {
+		t.Fatal(code, errOut.String())
+	}
+}

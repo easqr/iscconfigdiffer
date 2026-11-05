@@ -42,6 +42,20 @@ rejection, scope conflicts, coverage, redaction, and concurrent compiled reuse.
 conjunctive ancestor scopes, independent policy/field ordering, non-leakage to
 other policies or fields, condition-order digests, and nested report provenance.
 
+## Policy file composition
+
+`policy_files.go` implements `differ.LoadPolicy` in the root adapter; the CLI uses
+it for `--policy`. The neutral `v2.Decode`, `Compile`, and `Run` remain independent
+of the filesystem. A root manifest can contain shared settings and rules; its
+explicit, contained includes accept only rule arrays, disabled IDs, and attribution.
+File digests and rule ownership travel through existing evidence records; human
+renderers display the recorded index without reopening files.
+
+`policy_files_test.go` and `TestCLIIncludedPolicy` cover composition equivalence,
+strict shapes, path containment and aliases, cross-file ID/scope conflicts,
+authority isolation, relocatable provenance, report origins, and the modular
+SOURCE/Entra/AD/TRANSFORM examples. Tenant exports are development checks only.
+
 ## Checks
 
 Run `go test ./...`, `go test -race ./...`, `go vet ./...`, and `go build ./...`

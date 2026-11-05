@@ -34,6 +34,7 @@ type humanDecision struct {
 	ItemKeys                                                      []string
 	Locations                                                     []humanLocation
 	Evidence                                                      []reportField
+	PolicyFiles                                                   []reportField
 	ItemScope                                                     []reportField
 	Extensions                                                    []reportField
 	Derivation                                                    []reportField
@@ -222,10 +223,17 @@ func (r Report) humanView() humanReport {
 		v.ObjectKey = r.ObjectKey
 	}
 	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Null handling", r.NullHandling}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
+	fileOrigins := map[string]Evidence{}
 	if len(r.DisabledRules) > 0 {
 		v.Provenance = append(v.Provenance, reportField{"Disabled shipped rules", strings.Join(r.DisabledRules, ", ")})
 	}
 	for _, e := range r.Evidence {
+		if e.Kind == "policy-file" {
+			v.Provenance = append(v.Provenance, reportField{"Policy file", e.RecordID + "; role: " + e.Attributes["role"] + "; digest: " + e.Digest})
+			for _, id := range strings.Fields(e.Attributes["rule_ids"]) {
+				fileOrigins[id] = e
+			}
+		}
 		if e.Kind == "isc-rule-pack" {
 			v.Provenance = append(v.Provenance, reportField{"Rule pack", e.RecordID + "; version: " + e.Attributes["version"] + "; layer: " + e.Attributes["layer"] + "; digest: " + e.Digest})
 		}
@@ -272,7 +280,16 @@ func (r Report) humanView() humanReport {
 	}
 	for _, d := range r.Decisions {
 		g := getGroup(d.Type, d.Key)
-		g.Decisions = append(g.Decisions, decisionView(d, roles, r.ValuesExcluded))
+		view := decisionView(d, roles, r.ValuesExcluded)
+		if origin, ok := fileOrigins[d.RuleID]; ok {
+			view.PolicyFiles = append(view.PolicyFiles, reportField{"File", origin.RecordID}, reportField{"Digest", origin.Digest})
+		}
+		for _, extension := range d.Extensions {
+			if origin, ok := fileOrigins[extension.RuleID]; ok {
+				view.PolicyFiles = append(view.PolicyFiles, reportField{"Extension " + extension.RuleID, origin.RecordID}, reportField{"Digest", origin.Digest})
+			}
+		}
+		g.Decisions = append(g.Decisions, view)
 		token := physical(d.Type, d.Key)
 		counts[token][d.Status]++
 		for role := range d.Locations {

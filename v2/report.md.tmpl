@@ -118,6 +118,12 @@ Collection item scope:
 | Key component | Identity |
 | --- | --- |
 {{range .ItemScope}}| {{cell .Name}} | {{cell .Value}} |
+{{end}}{{end}}{{if .PolicyFiles}}
+Policy file origin:
+
+| Field | Value |
+| --- | --- |
+{{range .PolicyFiles}}| {{cell .Name}} | {{cell .Value}} |
 {{end}}{{end}}{{if .Derivation}}
 Expected result derived from:
 
