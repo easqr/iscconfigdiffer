@@ -68,6 +68,13 @@ human view. `v2/render_subtrees_test.go` covers nested and empty containers,
 JSON Pointer escaping, keyed/ordered arrays, reordered physical indices,
 explicit checks, role/section/status boundaries, deployment baselines, value
 omission, redacted combined objects, rendering, and structured-report immutability.
+`v2/render_implementations.go` first groups changed `transform/type` discriminators
+and their related attribute differences. `v2/render_implementations_test.go` covers
+ordinary drift, nested implementations, explicit checks, approved type mappings,
+same-type changes, ordering, conservative boundaries, value omission, redaction,
+and JSON immutability. `source_provisioning_implementation_test.go` verifies
+separate ENABLE/DISABLE findings with independently reordered policies and fields
+and preserved per-input context. All fixtures are invented.
 The comparison engine and JSON report schema are unchanged.
 
 ## Checks

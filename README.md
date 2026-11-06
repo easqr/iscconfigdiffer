@@ -177,6 +177,18 @@ with its original path and provenance. For example, one missing branch and its
 seven descendants count as one finding representing eight decisions. Other fields
 and explicit policy checks remain separate findings.
 
+When a nested transform's `type` changes, **Transform implementation differs**
+shows the old and new types at their original `.../transform/type` paths. Its
+related attribute differences appear under **Nested decisions**, so a replacement
+of one transform implementation appears as one finding. Each provisioning policy
+and field keeps its own finding and identifying context. Explicit checks and
+changes to other transform properties remain separate.
+
+This grouping recognizes the JSON convention `transform/type` with related
+`transform/attributes` paths, independently of the object or connector type.
+An unchanged or explicitly approved type comparison keeps attribute differences
+in their usual findings; grouping does not declare the implementations equivalent.
+
 The summary distinguishes **Displayed findings** from **Decision counts**. The
 latter retain every underlying comparison decision, including ordinary equal
 leaves that may be omitted from the details. Grouping changes presentation only:

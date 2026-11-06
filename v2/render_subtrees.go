@@ -141,6 +141,7 @@ func groupMissingSubtrees(decisions []Decision, views []humanDecision, roles []s
 		}
 		child := views[i]
 		child.Nested = true
+		child.DecisionCount = 1
 		views[parent].Children = append(views[parent].Children, child)
 	}
 	out := make([]humanDecision, 0, len(views))
@@ -149,6 +150,10 @@ func groupMissingSubtrees(decisions []Decision, views []humanDecision, roles []s
 			continue
 		}
 		view.DecisionCount = 1 + len(view.Children)
+		if len(view.Children) > 0 && view.FindingTitle == "" {
+			view.FindingTitle = "Missing subtree"
+			view.ChildrenNotice = "These details describe the same missing subtree."
+		}
 		out = append(out, view)
 	}
 	return out

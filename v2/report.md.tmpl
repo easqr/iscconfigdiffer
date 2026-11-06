@@ -11,7 +11,7 @@
 {{end}}
 {{.ValueNotice}} Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
 
-Missing subtrees are shown once as grouped findings, with repetitive nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless `--matching` is enabled. These counts are not object counts or independent problems.
+Missing subtrees and changed transform implementations are shown as grouped findings, with nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless `--matching` is enabled. These counts are not object counts or independent problems.
 
 ## Displayed findings
 {{if .FindingCounts}}
@@ -21,7 +21,7 @@ Missing subtrees are shown once as grouped findings, with repetitive nested deci
 {{end}}{{else}}
 No findings to display.
 {{end}}
-{{.NestedDecisions}} repetitive decisions are nested within the findings below.
+{{.NestedDecisions}} decisions are nested within the findings below.
 
 ## Decision counts
 {{if .Counts}}
@@ -106,10 +106,10 @@ These rules did not apply. They do not by themselves make the comparison incompl
 {{range .OptionalDiagnostics}}| {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} |
 {{end}}{{end}}
 
-{{define "decision"}}{{if .Nested}}#####{{else}}####{{end}} {{cell .Status}} — {{if .Children}}missing subtree{{else}}{{cell .Code}}{{end}}
+{{define "decision"}}{{if .Nested}}#####{{else}}####{{end}} {{cell .Status}} — {{if .FindingTitle}}{{cell .FindingTitle}}{{else}}{{cell .Code}}{{end}}
 
 {{cell .Explanation}}
-{{if .Children}}
+{{if .FindingTitle}}
 Reason: {{cell .Code}}
 {{end}}
 Section: {{cell .Space}}
@@ -171,7 +171,7 @@ Expected result derived from:
 <details>
 <summary>Nested decisions ({{len .Children}})</summary>
 
-This finding represents {{.DecisionCount}} underlying decisions, including the parent. These details describe the same missing subtree.
+This finding represents {{.DecisionCount}} underlying decisions, including the parent. {{.ChildrenNotice}}
 
 {{range .Children}}{{template "decision" .}}{{end}}
 </details>

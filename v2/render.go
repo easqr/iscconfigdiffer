@@ -27,6 +27,7 @@ type humanLocation struct {
 	Context                                                         []ItemContext
 }
 type humanDecision struct {
+	FindingTitle, ChildrenNotice                                  string
 	Children                                                      []humanDecision
 	Nested                                                        bool
 	DecisionCount                                                 int
@@ -316,7 +317,8 @@ func (r Report) humanView() humanReport {
 	for _, g := range groups {
 		token := physical(g.Type, g.Key)
 		g.DecisionCount = len(g.Decisions)
-		g.Decisions = groupMissingSubtrees(decisions[token], g.Decisions, roles)
+		remaining, views := groupTransformImplementations(decisions[token], g.Decisions, roles)
+		g.Decisions = groupMissingSubtrees(remaining, views, roles)
 		counts := map[string]int{}
 		for _, d := range g.Decisions {
 			counts[d.Status]++

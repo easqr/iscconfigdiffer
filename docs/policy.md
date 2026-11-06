@@ -910,6 +910,23 @@ the input roles. Reordered keyed items use each side's own pointers; redacted
 combined identities stay ungrouped. The renderer indexes missing-container
 ancestors rather than comparing every pair of decisions.
 
+A changed, unruled string discriminator at `.../transform/type` produces a
+`Transform implementation differs` finding. Its captured type values and original
+discriminator pointers form the summary; ordinary `different` decisions below
+that transform's `attributes` paths become its flat child details. This display
+convention uses no vendor, SOURCE, connector, policy-name, or field-name checks.
+Each role must establish physical ancestry within the same object and section;
+reordered keyed items keep their own indices. Outer changed implementations own
+the related differences of nested transforms. Ambiguous ownership stays ungrouped.
+
+Explicit rule checks, equivalent/normalized results, and unverified deployment
+checks stay independent. Metadata such as a transform's name or description also
+stays outside the attribute group. The convention applies to nested objects named
+`transform`; other objects with a `type` property retain existing presentation.
+Values excluded from the JSON report are not reread to establish or display type
+changes: the captured `value mismatch`, presence, kind, and pointers identify them.
+This is presentation grouping only, with no new comparison or equivalence rule.
+
 `Displayed findings` and object status badges count grouped entries; object rows
 also show their underlying displayed decision count. `Decision counts` retain the
 engine's full counts, including omitted equal leaves. HTML filters count findings
