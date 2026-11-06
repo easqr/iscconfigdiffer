@@ -1391,6 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
 | Connector defaults | AD forest/domain structure; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
@@ -1484,6 +1485,21 @@ The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
 implementation-specific mapping.
+
+### WORKFLOW creator and modifier references
+
+All ISC profiles exclude these WORKFLOW reference IDs in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/creator/id` | `isc.WORKFLOW.creator-id` |
+| `/modifiedBy/id` | `isc.WORKFLOW.modified-by-id` |
+
+The exported field is `creator`, not `create`. These rules are declared in
+`internal/iscprofile/packs/workflow.json`. Reference names, types, and other fields
+remain comparable, as do identical paths on other configuration types. List either
+rule ID in `disabled_rules` to restore its ID comparison and deployment coverage
+requirements. No implementation-policy mapping is needed.
 
 ### SOURCE correlation references
 

@@ -99,7 +99,7 @@ func TestRulePackProfilesAreDetached(t *testing.T) {
 			t.Fatal("caller mutated cached pack")
 		}
 	}
-	if len(b.Rules.Evidence) != 7 {
+	if len(b.Rules.Evidence) != 8 {
 		t.Fatal("missing pack inventory", len(b.Rules.Evidence))
 	}
 }

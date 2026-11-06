@@ -1,0 +1,26 @@
+{
+  "id": "isc.workflow",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.workflow",
+    "ignores": [
+      {
+        "id": "isc.WORKFLOW.creator-id",
+        "type": "WORKFLOW",
+        "path": "/creator/id"
+      },
+      {
+        "id": "isc.WORKFLOW.modified-by-id",
+        "type": "WORKFLOW",
+        "path": "/modifiedBy/id"
+      }
+    ]
+  }
+}

@@ -645,6 +645,21 @@ excluded by this rule. Reports attribute it to the common portable pack.
 Disable the concrete expanded rule ID (for example `isc.ROLE.owner-id`) to restore
 normal comparison/deployment coverage for that type.
 
+## WORKFLOW creator and modifier references
+
+All ISC profiles exclude these WORKFLOW reference IDs in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/creator/id` | `isc.WORKFLOW.creator-id` |
+| `/modifiedBy/id` | `isc.WORKFLOW.modified-by-id` |
+
+The exported field is `creator`, not `create`. These rules are declared in
+`internal/iscprofile/packs/workflow.json`. Reference names, types, and other fields
+remain comparable, as do identical paths on other configuration types. List either
+rule ID in `disabled_rules` to restore its ID comparison and deployment coverage
+requirements. No implementation-policy mapping is needed.
+
 ## SOURCE correlation reference IDs
 
 All ISC profiles supply `isc.SOURCE.correlation-config-details-id` at
