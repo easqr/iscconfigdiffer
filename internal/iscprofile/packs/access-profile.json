@@ -1,0 +1,26 @@
+{
+  "id": "isc.access-profile",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.access-profile",
+    "ignores": [
+      {
+        "id": "isc.ACCESS_PROFILE.entitlement-id",
+        "type": "ACCESS_PROFILE",
+        "path": "/entitlements/*/id"
+      },
+      {
+        "id": "isc.ACCESS_PROFILE.source-id",
+        "type": "ACCESS_PROFILE",
+        "path": "/source/id"
+      }
+    ]
+  }
+}

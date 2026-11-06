@@ -1391,6 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
 | Connector defaults | AD forest/domain structure; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
@@ -1485,6 +1486,25 @@ The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
 implementation-specific mapping.
+
+### ACCESS_PROFILE entitlement and source references
+
+All ISC profiles exclude these ACCESS_PROFILE reference IDs in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/entitlements/*/id` | `isc.ACCESS_PROFILE.entitlement-id` |
+| `/source/id` | `isc.ACCESS_PROFILE.source-id` |
+
+The entitlement wildcard applies to every array member, for example
+`/entitlements/0/id` and `/entitlements/2/id`. Entitlement and source names, types,
+and other fields remain comparable. Missing entitlements and source references
+still produce findings; entitlement array ordering is unchanged. Other nested IDs
+and identical paths on other configuration types retain normal comparison.
+
+These declarations live in `internal/iscprofile/packs/access-profile.json`.
+No local policy mapping is needed. Add either rule ID to `disabled_rules` to
+restore its ID comparison and deployment coverage requirements.
 
 ### WORKFLOW creator and modifier references
 
