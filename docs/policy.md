@@ -645,6 +645,26 @@ excluded by this rule. Reports attribute it to the common portable pack.
 Disable the concrete expanded rule ID (for example `isc.ROLE.owner-id`) to restore
 normal comparison/deployment coverage for that type.
 
+## ROLE access profile and entitlement references
+
+All ISC profiles exclude these ROLE reference IDs in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/accessProfiles/*/id` | `isc.ROLE.access-profile-id` |
+| `/entitlements/*/id` | `isc.ROLE.entitlement-id` |
+| `/entitlements/*/sourceId` | `isc.ROLE.entitlement-source-id` |
+
+The wildcards apply to every array member, including `/accessProfiles/0/id`,
+`/entitlements/0/id`, and `/entitlements/0/sourceId`. Names, types, entitlement
+`sourceName`, and other fields remain comparable. Missing members and array
+ordering still produce findings. Other nested IDs and ROLE `/source/id` retain
+normal comparison; these rules do not apply to other configuration types.
+
+These declarations live in `internal/iscprofile/packs/role.json`. Add an
+individual rule ID to `disabled_rules` to restore that ID's comparison and
+deployment coverage requirements. No implementation-policy mappings are needed.
+
 ## ACCESS_PROFILE entitlement and source references
 
 All ISC profiles exclude these ACCESS_PROFILE reference IDs in drift and deployment:

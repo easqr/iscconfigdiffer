@@ -1391,6 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
 | Connector defaults | AD forest/domain structure; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
@@ -1486,6 +1487,26 @@ The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
 implementation-specific mapping.
+
+### ROLE access profile and entitlement references
+
+All ISC profiles exclude these ROLE reference IDs in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/accessProfiles/*/id` | `isc.ROLE.access-profile-id` |
+| `/entitlements/*/id` | `isc.ROLE.entitlement-id` |
+| `/entitlements/*/sourceId` | `isc.ROLE.entitlement-source-id` |
+
+The wildcards apply to every array member, including `/accessProfiles/0/id`,
+`/entitlements/0/id`, and `/entitlements/0/sourceId`. Names, types, entitlement
+`sourceName`, and other fields remain comparable. Missing members and array
+ordering still produce findings. Other nested IDs and ROLE `/source/id` retain
+normal comparison; these rules do not apply to other configuration types.
+
+These declarations live in `internal/iscprofile/packs/role.json`. Add an
+individual rule ID to `disabled_rules` to restore that ID's comparison and
+deployment coverage requirements. No implementation-policy mappings are needed.
 
 ### ACCESS_PROFILE entitlement and source references
 

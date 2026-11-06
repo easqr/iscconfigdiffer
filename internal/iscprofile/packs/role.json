@@ -1,0 +1,31 @@
+{
+  "id": "isc.role",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.role",
+    "ignores": [
+      {
+        "id": "isc.ROLE.access-profile-id",
+        "type": "ROLE",
+        "path": "/accessProfiles/*/id"
+      },
+      {
+        "id": "isc.ROLE.entitlement-id",
+        "type": "ROLE",
+        "path": "/entitlements/*/id"
+      },
+      {
+        "id": "isc.ROLE.entitlement-source-id",
+        "type": "ROLE",
+        "path": "/entitlements/*/sourceId"
+      }
+    ]
+  }
+}

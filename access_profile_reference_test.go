@@ -132,7 +132,11 @@ func TestAccessProfileReferenceExclusionsPreserveOtherDifferences(t *testing.T) 
 	}
 	for _, typ := range []string{"ROLE", "WORKFLOW", "SOURCE"} {
 		r := compareTest(t, Request{Mode: "drift", Left: accessProfileReferenceInput(t, "dev", typ, nil), Right: accessProfileReferenceInput(t, "prod", typ, nil)}, portable())
-		if r.ExitCode() != 1 || r.Counts["different"] != 4 || r.RuleUsage["isc.ACCESS_PROFILE.entitlement-id"] != 0 || r.RuleUsage["isc.ACCESS_PROFILE.source-id"] != 0 {
+		want := 4
+		if typ == "ROLE" {
+			want = 1
+		} // ROLE has its own entitlement-ID exclusion; /source/id remains comparable.
+		if r.ExitCode() != 1 || r.Counts["different"] != want || r.RuleUsage["isc.ACCESS_PROFILE.entitlement-id"] != 0 || r.RuleUsage["isc.ACCESS_PROFILE.source-id"] != 0 {
 			t.Fatal("ACCESS_PROFILE rules escaped type scope", typ, r.Counts)
 		}
 	}
