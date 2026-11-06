@@ -727,11 +727,19 @@ extensions; definitions are not automatically reused. Separate drift equivalence
 accept the mapped field values. Structural exceptions require full same-selector
 replacements, including the connector variant.
 
-The Entra pack similarly declares `isc.SOURCE.entra-skus` (by `/skuId`) and
-`isc.SOURCE.entra-service-plans` (by `/servicePlanId`) under
-`/connectorAttributes/subscribedSkus`, scoped to `variant:"microsoft-entra"`.
-These rules preserve existing scalar-key semantics and show item context; they
-do not accept environment-specific differences or ignore other settings.
+The Entra pack excludes the entire `/connectorAttributes/subscribedSkus`
+subtree with `isc.SOURCE.entra-subscribed-skus`, scoped to
+`variant:"microsoft-entra"`, in all built-in profiles and both modes. Nested
+service plans are included in the exclusion; adjacent settings and other
+connector variants remain comparable. The exclusion applies even when the
+inventory is missing on one side or has a different shape.
+
+This replaces the shipped `isc.SOURCE.entra-skus` and
+`isc.SOURCE.entra-service-plans` collections. Those collection IDs are no longer
+available for extensions/replacements. Disable `isc.SOURCE.entra-subscribed-skus`
+to compare inventory, and declare implementation collection rules if keyed
+SKU/service-plan matching is needed. Disabling restores ordinary comparison;
+it does not infer deployment expectations.
 
 See the [complete drift example](../examples/policy-drift.json),
 [forest walkthrough](../README.md#forest-names-that-differ-between-environments),

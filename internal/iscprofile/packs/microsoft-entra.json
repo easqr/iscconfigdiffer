@@ -10,48 +10,12 @@
   "rules": {
     "version": 2,
     "id": "isc.microsoft-entra",
-    "collections": [
+    "ignores": [
       {
-        "id": "isc.SOURCE.entra-skus",
+        "id": "isc.SOURCE.entra-subscribed-skus",
         "type": "SOURCE",
-        "path": "/connectorAttributes/subscribedSkus",
         "variant": "microsoft-entra",
-        "mode": "keyed",
-        "keys": [
-          "/skuId"
-        ],
-        "item_label": "SKU",
-        "display_fields": [
-          {
-            "label": "SKU ID",
-            "path": "/skuId"
-          },
-          {
-            "label": "Part number",
-            "path": "/skuPartNumber"
-          }
-        ]
-      },
-      {
-        "id": "isc.SOURCE.entra-service-plans",
-        "type": "SOURCE",
-        "path": "/connectorAttributes/subscribedSkus/*/servicePlans",
-        "variant": "microsoft-entra",
-        "mode": "keyed",
-        "keys": [
-          "/servicePlanId"
-        ],
-        "item_label": "Service plan",
-        "display_fields": [
-          {
-            "label": "Service plan ID",
-            "path": "/servicePlanId"
-          },
-          {
-            "label": "Name",
-            "path": "/servicePlanName"
-          }
-        ]
+        "path": "/connectorAttributes/subscribedSkus"
       }
     ]
   },

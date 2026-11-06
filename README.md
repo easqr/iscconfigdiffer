@@ -1360,7 +1360,7 @@ Built-in ISC profiles:
 
 | Profile | Drift behavior |
 | --- | --- |
-| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment and connector-scoped AD/Entra alignment, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
+| `isc-identity-v2` | Supplies logical identities, SOURCE schema/attribute alignment, connector-scoped AD alignment, Entra inventory exclusion, and provisioning-policy alignment/exclusions; other content and envelope metadata remain comparable |
 | `isc-envelope-v2` | Also excludes envelope JWS header/signature fields; used when `--policy` is omitted |
 | `isc-portable-v2` | Also excludes envelope `/self/id`, payload `/id`, `/created`, `/modified`, `/owner/id`, SOURCE `/schemas/*/id`, `/schemas/*/created`, `/schemas/*/modified`, `/connectorAttributes/cloudCacheUpdate`, `/connectorAttributes/since`, and lifecycle-state `/identityCount` |
 
@@ -1391,7 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
-| Connector defaults | AD forest/domain structure; Entra SKU/service-plan structure | `active-directory.json`, `microsoft-entra.json` in the same directory |
+| Connector defaults | AD forest/domain structure; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
 The [JSON rule packs](internal/iscprofile/packs) are embedded in the executable.
@@ -1434,6 +1434,22 @@ replacing a disabled rule, or extending a disabled collection are errors. These
 are explicit choices, not file-order precedence. Reports retain shipped-pack
 versions/digests, rule evidence, extension provenance, replacements, and disabled
 IDs so a result can be traced to its effective policy.
+
+### Microsoft Entra subscribed SKUs
+
+Microsoft Entra SOURCE configurations exclude the entire
+`/connectorAttributes/subscribedSkus` subtree, including nested service plans,
+in both drift and deployment modes under all built-in ISC profiles. The shipped
+connector rule is `isc.SOURCE.entra-subscribed-skus`. It applies by recognized
+Entra connector metadata, independently of the source's display name. Other
+connectors and adjacent Entra settings remain comparable.
+
+The exclusion replaces the SKU/service-plan collection defaults. To compare this
+inventory explicitly, add `"isc.SOURCE.entra-subscribed-skus"` to `disabled_rules`;
+arrays then follow normal comparison unless you define your own collection rules.
+The former `isc.SOURCE.entra-skus` and `isc.SOURCE.entra-service-plans` collection
+IDs are no longer shipped, so remove references to them from implementation
+extensions or replacements. No local mapping is needed for the default exclusion.
 
 ### SOURCE cache-update metadata
 

@@ -48,19 +48,9 @@ func TestConnectorPacksUseConnectorIdentityNotShapeOrObjectName(t *testing.T) {
 		t.Fatal("contradictory connector identifiers accepted")
 	}
 }
-func TestEntraPackAndExplicitConnectorOverride(t *testing.T) {
-	sku := func(id string, reverse bool) any {
-		plans := []any{map[string]any{"servicePlanId": "plan-a"}, map[string]any{"servicePlanId": "plan-b"}}
-		if reverse {
-			plans[0], plans[1] = plans[1], plans[0]
-		}
-		return map[string]any{"skuId": id, "servicePlans": plans}
-	}
-	req := Request{Mode: "drift", Left: connectorInput(t, "dev", "Renamed Entra", "Microsoft Entra", map[string]any{"subscribedSkus": []any{sku("sku-a", false), sku("sku-b", false)}}), Right: connectorInput(t, "prod", "Renamed Entra", "Microsoft Entra", map[string]any{"subscribedSkus": []any{sku("sku-b", true), sku("sku-a", true)}})}
-	r := compareTest(t, req, portable())
-	if r.ExitCode() != 0 || r.RuleUsage["isc.SOURCE.entra-skus"] != 1 || r.RuleUsage["isc.SOURCE.entra-service-plans"] != 2 {
-		t.Fatal("Entra defaults require customer definitions", r.Counts)
-	}
+func TestExplicitConnectorOverride(t *testing.T) {
+	req := Request{Mode: "drift"}
+	var r v2.Report
 	p := portable()
 	p.Collections = []v2.Collection{{Rule: v2.Rule{ID: "ordered-forests", Replaces: "isc.SOURCE.ad-forests", Evidence: &v2.Evidence{Kind: "implementation-policy"}}, Selector: v2.Selector{Type: "SOURCE", Variant: "active-directory", Path: "/connectorAttributes/forestSettings"}, Mode: "ordered"}}
 	req.Left = forestInput(t, "dev", "SOURCE", []any{forestEntry("a", true), forestEntry("b", true)})
