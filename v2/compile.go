@@ -376,7 +376,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if e := claim(r.Selector, "ignore", r.ID); e != nil {
 			return nil, ruleError(e, r.ID)
 		}
-		if identityOverlap(r.Selector, idents) {
+		if ignoreIdentityOverlap(r.Selector, idents) {
 			return nil, ruleError(errors.New("ignore overlaps identity"), r.ID)
 		}
 	}
@@ -595,6 +595,27 @@ func collectionContains(parent, child Selector, mode string) bool {
 	}
 	return false
 }
+
+// Matching reads original documents before comparison exclusions. An exact
+// physical parent reference can therefore be excluded after it has established
+// the parent's logical identity. Logical components, ancestors and descendants
+// remain protected; equivalences retain the stricter identityOverlap check.
+func ignoreIdentityOverlap(s Selector, ids map[string]Identity) bool {
+	if !identityOverlap(s, ids) {
+		return false
+	}
+	r := ids[s.Type]
+	if r.Strategy != "dependent" || s.Path != r.ParentPath {
+		return true
+	}
+	for _, path := range r.Paths {
+		if overlap(s, Selector{Type: s.Type, Path: path}) {
+			return true
+		}
+	}
+	return false
+}
+
 func identityOverlap(s Selector, ids map[string]Identity) bool {
 	if space(s.Space) != "content" {
 		return false

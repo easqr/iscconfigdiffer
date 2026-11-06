@@ -32,6 +32,13 @@
           }
         ]
       }
+    ],
+    "ignores": [
+      {
+        "id": "isc.ATTR_SYNC_SOURCE_CONFIG.source-id",
+        "type": "ATTR_SYNC_SOURCE_CONFIG",
+        "path": "/source/id"
+      }
     ]
   }
 }

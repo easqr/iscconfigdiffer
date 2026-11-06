@@ -176,6 +176,13 @@ matching; duplicate logical keys remain ambiguous even with pairings. Unknown
 types need explicit strategies. Dependency cycles fail compilation; unavailable
 parents or endpoints prevent runtime completeness. A rename remains value drift.
 
+An ignore may select exactly a dependent identity's physical `parent_path` when
+that path is not also a logical component in `paths`. Matching still uses the
+original reference and establishes parent correspondence before exclusions run.
+Logical identity components, broader parent objects, wildcard overlaps, and
+parent-reference descendants remain protected. Equivalence rules retain the
+stricter identity-overlap prohibition.
+
 `pairs` is an array of typed `{left,right}` values, applicable in the declared
 direction and environment pair. `groups` is an array of environment-to-value
 objects; each group explicitly establishes symmetric equivalence among its
@@ -657,7 +664,13 @@ Matching by target aligns entries; it does not approve differences in their
 values. `name`, `displayName`, `enabled`, and other fields remain comparable.
 Added or removed targets still produce findings. Reports retain original input
 indices and show Target/Name context. Deployment still requires explicit field
-expectations. Reference IDs such as `/source/id` remain comparable.
+expectations. `/source/id` is excluded from value comparison by
+`isc.ATTR_SYNC_SOURCE_CONFIG.source-id`; source names, types, and other fields
+remain comparable. The original ID is still required to resolve the parent SOURCE
+before comparison. Missing, invalid, or unresolved parent references remain
+incomplete; changing the logical parent still produces differences. The exclusion
+does not substitute name-based lookup.
+Disable this rule to restore parent-reference ID comparison and deployment coverage.
 
 The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes` in
 `internal/iscprofile/packs/attribute-sync.json`. It applies to all parent source

@@ -45,7 +45,7 @@ func TestAttributeSyncKeyedTargets(t *testing.T) {
 					status, role = "violation", "source"
 					req.Operations = []v2.Operation{{Type: "SOURCE", Key: "Invented Source", Action: "update"}, {Type: "ATTR_SYNC_SOURCE_CONFIG", Key: "Invented Source", Action: "update"}}
 					p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule("copy-parent-name"), Selector: v2.Selector{Type: "SOURCE", Path: "/name"}, Operation: "copy_source", Authority: "invented-release"})
-					for i, path := range []string{"/source/id", "/source/name", "/source/type", "/attributes/*/target", "/attributes/*/name", "/attributes/*/displayName", "/attributes/*/enabled"} {
+					for i, path := range []string{"/source/name", "/source/type", "/attributes/*/target", "/attributes/*/name", "/attributes/*/displayName", "/attributes/*/enabled"} {
 						p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule(fmt.Sprintf("copy-%d", i)), Selector: v2.Selector{Type: "ATTR_SYNC_SOURCE_CONFIG", Path: path}, Operation: "copy_source", Authority: "invented-release"})
 					}
 					if profile != "isc-portable-v2" {

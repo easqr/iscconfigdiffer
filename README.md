@@ -1502,7 +1502,13 @@ Matching by target aligns entries; it does not approve differences in their
 values. `name`, `displayName`, `enabled`, and other fields remain comparable.
 Added or removed targets still produce findings. Reports retain original input
 indices and show Target/Name context. Deployment still requires explicit field
-expectations. Reference IDs such as `/source/id` remain comparable.
+expectations. `/source/id` is excluded from value comparison by
+`isc.ATTR_SYNC_SOURCE_CONFIG.source-id`; source names, types, and other fields
+remain comparable. The original ID is still required to resolve the parent SOURCE
+before comparison. Missing, invalid, or unresolved parent references remain
+incomplete; changing the logical parent still produces differences. The exclusion
+does not substitute name-based lookup.
+Disable this rule to restore parent-reference ID comparison and deployment coverage.
 
 The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes` in
 `internal/iscprofile/packs/attribute-sync.json`. It applies to all parent source
