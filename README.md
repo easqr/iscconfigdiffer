@@ -1391,6 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
@@ -1487,6 +1488,21 @@ The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
 implementation-specific mapping.
+
+### ACCESS_REQUEST_CONFIG approval scheme references
+
+All ISC profiles exclude
+`/entitlementRequestConfig/grantRequestApprovalSchemes/*/id` for
+ACCESS_REQUEST_CONFIG in drift and deployment. The wildcard covers every scheme
+array member, including `/entitlementRequestConfig/grantRequestApprovalSchemes/0/id`.
+Names, types, and other scheme/configuration fields remain comparable. Missing
+schemes and array ordering still produce findings. Other nested IDs, other
+approval-scheme paths, and other configuration types retain normal comparison.
+
+The rule is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id` in
+`internal/iscprofile/packs/access-request-config.json`. No local mapping is needed.
+List the rule ID in `disabled_rules` to restore ID comparison and deployment
+coverage requirements.
 
 ### ROLE access profile and entitlement references
 

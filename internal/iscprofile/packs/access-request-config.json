@@ -1,0 +1,21 @@
+{
+  "id": "isc.access-request-config",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.access-request-config",
+    "ignores": [
+      {
+        "id": "isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id",
+        "type": "ACCESS_REQUEST_CONFIG",
+        "path": "/entitlementRequestConfig/grantRequestApprovalSchemes/*/id"
+      }
+    ]
+  }
+}

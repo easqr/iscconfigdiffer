@@ -645,6 +645,21 @@ excluded by this rule. Reports attribute it to the common portable pack.
 Disable the concrete expanded rule ID (for example `isc.ROLE.owner-id`) to restore
 normal comparison/deployment coverage for that type.
 
+## ACCESS_REQUEST_CONFIG approval scheme references
+
+All ISC profiles exclude
+`/entitlementRequestConfig/grantRequestApprovalSchemes/*/id` for
+ACCESS_REQUEST_CONFIG in drift and deployment. The wildcard covers every scheme
+array member, including `/entitlementRequestConfig/grantRequestApprovalSchemes/0/id`.
+Names, types, and other scheme/configuration fields remain comparable. Missing
+schemes and array ordering still produce findings. Other nested IDs, other
+approval-scheme paths, and other configuration types retain normal comparison.
+
+The rule is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id` in
+`internal/iscprofile/packs/access-request-config.json`. No local mapping is needed.
+List the rule ID in `disabled_rules` to restore ID comparison and deployment
+coverage requirements.
+
 ## ROLE access profile and entitlement references
 
 All ISC profiles exclude these ROLE reference IDs in drift and deployment:
