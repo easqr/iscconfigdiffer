@@ -1391,6 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
+| ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target | `attribute-sync.json` in the same directory |
 | ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
@@ -1488,6 +1489,30 @@ The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
 implementation-specific mapping.
+
+### ATTR_SYNC_SOURCE_CONFIG attribute matching
+
+All ISC profiles compare `/attributes` as a keyed collection using each complex
+object's `/target` string. Entry order has no meaning for this comparison.
+Targets must be nonblank strings and unique within each configuration's array;
+missing, null, structured, non-string, blank, or duplicate targets produce a
+conflict. The same target can be used by different source configurations.
+
+Matching by target aligns entries; it does not approve differences in their
+values. `name`, `displayName`, `enabled`, and other fields remain comparable.
+Added or removed targets still produce findings. Reports retain original input
+indices and show Target/Name context. Deployment still requires explicit field
+expectations. Reference IDs such as `/source/id` remain comparable.
+
+The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes` in
+`internal/iscprofile/packs/attribute-sync.json`. It applies to all parent source
+connectors. Use `disabled_rules` to restore ordinary ordered comparison, or an
+explicit same-selector replacement for a structural exception.
+
+Attribute-sync identity depends on SOURCE matching. Include both types with
+`--scope SOURCE,ATTR_SYNC_SOURCE_CONFIG`; the current engine also compares SOURCE
+objects under that scope. Selecting only ATTR_SYNC_SOURCE_CONFIG still leaves
+its parent matching context unavailable and returns an incomplete result.
 
 ### ACCESS_REQUEST_CONFIG approval scheme references
 

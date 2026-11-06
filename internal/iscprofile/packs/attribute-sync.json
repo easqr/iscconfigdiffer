@@ -1,0 +1,37 @@
+{
+  "id": "isc.attribute-sync",
+  "version": 1,
+  "layer": "type",
+  "profiles": [
+    "isc-identity-v2",
+    "isc-envelope-v2",
+    "isc-portable-v2"
+  ],
+  "rules": {
+    "version": 2,
+    "id": "isc.attribute-sync",
+    "collections": [
+      {
+        "id": "isc.ATTR_SYNC_SOURCE_CONFIG.attributes",
+        "type": "ATTR_SYNC_SOURCE_CONFIG",
+        "path": "/attributes",
+        "mode": "keyed",
+        "keys": [
+          "/target"
+        ],
+        "component_type": "string",
+        "item_label": "Attribute sync mapping",
+        "display_fields": [
+          {
+            "label": "Target",
+            "path": "/target"
+          },
+          {
+            "label": "Name",
+            "path": "/name"
+          }
+        ]
+      }
+    ]
+  }
+}
