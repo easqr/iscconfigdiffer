@@ -900,6 +900,24 @@ by a renderer. This option does not alter counts, decisions, matching, policy
 usage, exit status or request digest. Rendering uses captured, redacted report
 values and does not reopen configuration artifacts.
 
+Human reports group repetitive, unruled missing-container decisions and their
+missing descendants into one finding. HTML and Markdown retain all child paths,
+values, and provenance in expandable `Nested decisions` sections. Parent values
+come from the captured report; value exclusion and sensitive-rule redaction are
+preserved. Explicit rule checks stay separate. Grouping requires consistent
+physical ancestry, object identity, section, status, and presence direction across
+the input roles. Reordered keyed items use each side's own pointers; redacted
+combined identities stay ungrouped. The renderer indexes missing-container
+ancestors rather than comparing every pair of decisions.
+
+`Displayed findings` and object status badges count grouped entries; object rows
+also show their underlying displayed decision count. `Decision counts` retain the
+engine's full counts, including omitted equal leaves. HTML filters count findings
+and their represented decisions, and a search matching a child path opens that
+subtree's details. Markdown uses `<details>` blocks for compatible viewers.
+Grouping leaves JSON, policy/request digests, rule usage, completeness, correctness,
+and exit codes unchanged.
+
 Counts are evaluated decision units, not object counts or percentage leaf
 coverage. A whole-subtree expectation/exclusion counts once. Object coverage
 separately records scoped inputs, compared groups, selected operations, objects

@@ -11,11 +11,21 @@
 {{end}}
 {{.ValueNotice}} Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
 
-Decision counts are not object counts or independent problems. A missing container and its descendants can each produce decisions. Ordinary equal leaves are counted but omitted from details unless `--matching` is enabled. Object counts describe selected scope, not the entire tenant.
+Missing subtrees are shown once as grouped findings, with repetitive nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless `--matching` is enabled. These counts are not object counts or independent problems.
+
+## Displayed findings
+{{if .FindingCounts}}
+| Status | Grouped findings |
+| --- | ---: |
+{{range .FindingCounts}}| {{cell .Status}} | {{.Count}} |
+{{end}}{{else}}
+No findings to display.
+{{end}}
+{{.NestedDecisions}} repetitive decisions are nested within the findings below.
 
 ## Decision counts
 {{if .Counts}}
-| Status | Count |
+| Status | Underlying decisions |
 | --- | ---: |
 {{range .Counts}}| {{cell .Status}} | {{.Count}} |
 {{end}}{{else}}
@@ -53,9 +63,9 @@ No input metadata available.
 {{end}}
 ## Objects
 {{if .Groups}}
-| Type | Object | Presence | Shown decisions |
-| --- | --- | --- | --- |
-{{range .Groups}}| {{cell .Type}} | {{cell .Key}} | {{cell .Presence}} | {{range .Counts}}{{cell .Status}}: {{.Count}}; {{else}}No displayed decisions{{end}} |
+| Type | Object | Presence | Grouped findings | Underlying displayed decisions |
+| --- | --- | --- | --- | ---: |
+{{range .Groups}}| {{cell .Type}} | {{cell .Key}} | {{cell .Presence}} | {{range .Counts}}{{cell .Status}}: {{.Count}}; {{else}}No displayed findings{{end}} | {{.DecisionCount}} |
 {{end}}{{else}}
 No object groups available.
 {{end}}
@@ -64,6 +74,8 @@ No object groups available.
 ### {{cell .Type}} — {{cell .Key}}
 
 {{cell .Presence}}
+
+{{len .Decisions}} grouped findings representing {{.DecisionCount}} underlying displayed decisions.
 {{if .Matching}}
 Object matching and artifacts:
 
@@ -71,10 +83,35 @@ Object matching and artifacts:
 | --- | --- |
 {{range .Matching}}| {{cell .Name}} | {{cell .Value}} |
 {{end}}{{end}}{{range .Decisions}}
-#### {{cell .Status}} — {{cell .Code}}
+{{template "decision" .}}
+{{else}}
+No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.
+{{end}}{{else}}
+No decisions to display.
+{{end}}
+## Diagnostics
+{{if .Diagnostics}}
+| Diagnostic | Rule | Type | Side | Required |
+| --- | --- | --- | --- | --- |
+{{range .Diagnostics}}| {{cell .Code}} | {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} | {{.Required}} |
+{{end}}{{else}}
+No diagnostics to display.
+{{end}}{{if .UnusedOptional}}
+### Unused optional rules: {{.UnusedOptional}}
+
+These rules did not apply. They do not by themselves make the comparison incomplete.
+
+| Rule | Type | Side |
+| --- | --- | --- |
+{{range .OptionalDiagnostics}}| {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} |
+{{end}}{{end}}
+
+{{define "decision"}}{{if .Nested}}#####{{else}}####{{end}} {{cell .Status}} — {{if .Children}}missing subtree{{else}}{{cell .Code}}{{end}}
 
 {{cell .Explanation}}
-
+{{if .Children}}
+Reason: {{cell .Code}}
+{{end}}
 Section: {{cell .Space}}
 {{if .HasContext}}
 | Role | Containing items |
@@ -130,24 +167,13 @@ Expected result derived from:
 | Field | Value |
 | --- | --- |
 {{range .Derivation}}| {{cell .Name}} | {{cell .Value}} |
-{{end}}{{end}}{{else}}
-No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.
-{{end}}{{else}}
-No decisions to display.
-{{end}}
-## Diagnostics
-{{if .Diagnostics}}
-| Diagnostic | Rule | Type | Side | Required |
-| --- | --- | --- | --- | --- |
-{{range .Diagnostics}}| {{cell .Code}} | {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} | {{.Required}} |
-{{end}}{{else}}
-No diagnostics to display.
-{{end}}{{if .UnusedOptional}}
-### Unused optional rules: {{.UnusedOptional}}
+{{end}}{{end}}{{if .Children}}
+<details>
+<summary>Nested decisions ({{len .Children}})</summary>
 
-These rules did not apply. They do not by themselves make the comparison incomplete.
+This finding represents {{.DecisionCount}} underlying decisions, including the parent. These details describe the same missing subtree.
 
-| Rule | Type | Side |
-| --- | --- | --- |
-{{range .OptionalDiagnostics}}| {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} |
+{{range .Children}}{{template "decision" .}}{{end}}
+</details>
+
 {{end}}{{end}}

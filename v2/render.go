@@ -27,6 +27,9 @@ type humanLocation struct {
 	Context                                                         []ItemContext
 }
 type humanDecision struct {
+	Children                                                      []humanDecision
+	Nested                                                        bool
+	DecisionCount                                                 int
 	HasContext                                                    bool
 	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
 	Normalization                                                 string
@@ -40,6 +43,7 @@ type humanDecision struct {
 	Derivation                                                    []reportField
 }
 type humanGroup struct {
+	DecisionCount           int
 	ID, Type, Key, Presence string
 	Matches                 int
 	Matching                []reportField
@@ -52,6 +56,8 @@ type humanReport struct {
 	Complete, Correct                                      bool
 	ExitCode                                               int
 	Counts                                                 []statusCount
+	FindingCounts                                          []statusCount
+	NestedDecisions                                        int
 	Provenance, Coverage                                   []reportField
 	Inputs                                                 []humanInput
 	Groups                                                 []humanGroup
@@ -162,7 +168,7 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 	case "object missing":
 		out.Explanation = "The object is absent from one of the primary inputs."
 	case "container presence differs":
-		out.Explanation = "An object or array exists on only one side. Its descendants may produce additional decisions."
+		out.Explanation = "An object or array exists on only one side. Repetitive descendant decisions are grouped below when their relationship is known."
 	case "type mismatch":
 		out.Explanation = "The JSON value types differ, including possible null versus non-null values."
 	case "missing left":
@@ -254,7 +260,8 @@ func (r Report) humanView() humanReport {
 		}
 	}
 	groups := map[string]*humanGroup{}
-	counts := map[string]map[string]int{}
+	decisions := map[string][]Decision{}
+	findingCounts := map[string]int{}
 	presence := map[string]map[string]bool{}
 	getGroup := func(typ, key string) *humanGroup {
 		token := physical(typ, key)
@@ -263,7 +270,7 @@ func (r Report) humanView() humanReport {
 		}
 		g := &humanGroup{Type: typ, Key: key}
 		groups[token] = g
-		counts[token] = map[string]int{}
+		decisions[token] = []Decision{}
 		presence[token] = map[string]bool{}
 		return g
 	}
@@ -291,7 +298,7 @@ func (r Report) humanView() humanReport {
 		}
 		g.Decisions = append(g.Decisions, view)
 		token := physical(d.Type, d.Key)
-		counts[token][d.Status]++
+		decisions[token] = append(decisions[token], d)
 		for role := range d.Locations {
 			presence[token][role] = true
 		}
@@ -308,7 +315,15 @@ func (r Report) humanView() humanReport {
 	}
 	for _, g := range groups {
 		token := physical(g.Type, g.Key)
-		g.Counts = countView(counts[token])
+		g.DecisionCount = len(g.Decisions)
+		g.Decisions = groupMissingSubtrees(decisions[token], g.Decisions, roles)
+		counts := map[string]int{}
+		for _, d := range g.Decisions {
+			counts[d.Status]++
+			findingCounts[d.Status]++
+		}
+		g.Counts = countView(counts)
+		v.NestedDecisions += g.DecisionCount - len(g.Decisions)
 		var parts []string
 		for _, role := range roles {
 			state := "absent"
@@ -323,6 +338,7 @@ func (r Report) humanView() humanReport {
 		}
 		v.Groups = append(v.Groups, *g)
 	}
+	v.FindingCounts = countView(findingCounts)
 	sort.Slice(v.Groups, func(i, j int) bool {
 		a, b := v.Groups[i], v.Groups[j]
 		if a.Type != b.Type {

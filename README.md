@@ -169,17 +169,30 @@ comparison decisions, not independent problems. The breakdown separates missing
 objects, container-presence differences, and other field or operation differences;
 a missing container can also contribute descendant decisions.
 
-The object index groups results by type and logical name. Each group's counts
-cover its **displayed decisions**; ordinary equal leaves may be counted in the
-report totals without appearing in the details. Matched objects with no displayed
-findings still appear in the index. Redacted identities are combined explicitly,
-without claiming individual object presence.
+The object index groups results by type and logical name. Its status badges count
+**grouped findings**; a separate column shows the underlying displayed decisions.
+A missing subtree appears once with its per-input path, presence, and value. Open
+**Nested decisions** to inspect its repetitive container and leaf decisions, each
+with its original path and provenance. For example, one missing branch and its
+seven descendants count as one finding representing eight decisions. Other fields
+and explicit policy checks remain separate findings.
+
+The summary distinguishes **Displayed findings** from **Decision counts**. The
+latter retain every underlying comparison decision, including ordinary equal
+leaves that may be omitted from the details. Grouping changes presentation only:
+JSON decisions, comparison totals, rule usage, digests, and exit codes are
+unchanged. Redacted identities are combined explicitly; their findings remain
+ungrouped because per-object subtree relationships cannot be established. Matched
+objects with no displayed findings still appear in the index.
 
 HTML offers expandable object sections, search by object/path/rule, status
 filtering, and expand/collapse controls. Filters affect only the displayed details,
 not the comparison totals. Everything works locally; with JavaScript disabled,
 all details remain accessible through the expandable sections. Markdown provides
-the same information in sections and tables.
+the same information in sections and tables, with nested decisions inside
+`<details>` blocks for viewers that support expansion. All child content remains
+in the Markdown file. Searching for a nested path in HTML opens its child details;
+status filters and the visible-result counter operate on grouped findings.
 
 Each decision shows its reason, content/metadata section, per-input JSON Pointer,
 presence and JSON type. Artifact paths and IDs identify the source files. Keyed

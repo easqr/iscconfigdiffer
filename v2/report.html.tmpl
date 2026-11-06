@@ -26,9 +26,12 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 {{if .ObjectKey}}<tr><th scope="row">Object filter</th><td>{{.ObjectType}} &quot;{{.ObjectKey}}&quot;</td></tr>{{end}}
 </tbody></table>
 <p>{{.ValueNotice}} Paths are relative to the decision's <strong>content</strong> payload or <strong>metadata</strong> envelope. A <code>(root)</code> path selects that entire section. Array indices in locations are the original positions in each input; collection item keys explain alignment.</p>
-<p>Decision counts are not object counts or independent problems. A missing container and its descendants can each produce decisions. Ordinary equal leaves are counted but omitted from the details unless <code>--matching</code> is enabled. Object counts describe selected scope, not the entire tenant.</p>
+<p>Missing subtrees are shown once as grouped findings, with repetitive nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless --matching is enabled. These counts are not object counts or independent problems.</p>
+<h2>Displayed findings</h2>
+{{if .FindingCounts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Grouped findings</th></tr></thead><tbody>{{range .FindingCounts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>{{end}}</tbody></table>{{else}}<p>No findings to display.</p>{{end}}
+<p>{{.NestedDecisions}} repetitive decisions are nested within the findings below.</p>
 <h2>Decision counts</h2>
-{{if .Counts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Count</th></tr></thead><tbody>{{range .Counts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>{{end}}</tbody></table>{{else}}<p>No decisions counted.</p>{{end}}
+{{if .Counts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Underlying decisions</th></tr></thead><tbody>{{range .Counts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>{{end}}</tbody></table>{{else}}<p>No decisions counted.</p>{{end}}
 <table class="summary"><caption>Breakdown of different / violation decisions</caption><tbody>
 <tr><th scope="row">Object missing</th><td>{{.MissingObjects}}</td></tr><tr><th scope="row">Container presence differs</th><td>{{.ContainerDifferences}}</td></tr><tr><th scope="row">Other field / operation differences</th><td>{{.FieldDifferences}}</td></tr>
 </tbody></table>
@@ -37,7 +40,7 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 <details><summary>Policy and provenance</summary><table><tbody>{{range .Provenance}}{{if .Value}}<tr><th scope="row">{{.Name}}</th><td><code>{{.Value}}</code></td></tr>{{end}}{{end}}</tbody></table></details>
 <details><summary>Object coverage</summary><p><code>*_in_scope</code> counts the full selected type inventory. <code>*_outside_object_filter</code> counts skipped objects. <code>compared_groups</code> counts groups reached for comparison; it is separate from decision counts.</p><table><tbody>{{range .Coverage}}<tr><th scope="row">{{.Name}}</th><td>{{.Value}}</td></tr>{{end}}</tbody></table></details>
 <h2>Objects</h2>
-{{if .Groups}}<div class="table-wrap"><table><thead><tr><th scope="col">Type</th><th scope="col">Object</th><th scope="col">Presence</th><th scope="col">Shown decisions</th></tr></thead><tbody>{{range .Groups}}<tr data-group="{{.ID}}"><td>{{.Type}}</td><td><a href="#{{.ID}}">{{.Key}}</a></td><td>{{.Presence}}</td><td>{{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{else}}No displayed decisions{{end}}</td></tr>{{end}}</tbody></table></div>{{else}}<p>No object groups available.</p>{{end}}
+{{if .Groups}}<div class="table-wrap"><table><thead><tr><th scope="col">Type</th><th scope="col">Object</th><th scope="col">Presence</th><th scope="col">Grouped findings</th><th scope="col">Underlying displayed decisions</th></tr></thead><tbody>{{range .Groups}}<tr data-group="{{.ID}}"><td>{{.Type}}</td><td><a href="#{{.ID}}">{{.Key}}</a></td><td>{{.Presence}}</td><td>{{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{else}}No displayed findings{{end}}</td><td>{{.DecisionCount}}</td></tr>{{end}}</tbody></table></div>{{else}}<p>No object groups available.</p>{{end}}
 <h2>Decisions</h2>
 <div id="controls" hidden>
 <label>Search objects, paths or rules <input id="search" type="search" placeholder="Object name, field path, rule…"></label>
@@ -48,18 +51,15 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 <noscript><p>Filtering requires JavaScript. All report content remains available through the expandable sections below.</p></noscript>
 {{range .Groups}}<details class="object-group" id="{{.ID}}" data-search="{{.Type}} {{.Key}}">
 <summary><strong>{{.Type}} — {{.Key}}</strong> {{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{end}}</summary>
-<div class="object-body"><p>{{.Presence}}</p>
+<div class="object-body"><p>{{.Presence}}</p><p>{{len .Decisions}} grouped findings representing {{.DecisionCount}} underlying displayed decisions.</p>
 {{if .Matching}}<details><summary>Object matching and artifacts</summary><table><tbody>{{range .Matching}}<tr><th scope="row">{{.Name}}</th><td><code>{{.Value}}</code></td></tr>{{end}}</tbody></table></details>{{end}}
-{{if .Decisions}}<div class="table-wrap"><table><thead><tr><th scope="col">Status / explanation</th><th scope="col">Locations</th><th scope="col">Policy and provenance</th></tr></thead><tbody>
-{{range .Decisions}}<tr class="decision-row" data-status="{{.Status}}"><td><strong>{{.Status}}</strong><p>{{.Explanation}}</p><p>Reason: <code>{{.Code}}</code></p>{{if .Space}}<p>Section: {{.Space}}</p>{{end}}</td>
-<td>{{range .Locations}}<div class="location"><strong>{{.Role}}</strong>: {{.State}}{{if .Kind}} ({{.Kind}}){{end}}<br>{{range .Context}}<p class="item-context"><strong>{{.Label}}</strong>{{range .Fields}}<br>{{.Label}}: <strong class="pre">{{.Value}}</strong>{{end}}</p>{{end}}<code>{{.Pointer}}</code><p>Value: <code>{{.Value}}</code></p>{{if .Artifact}}<details><summary>Artifact</summary><p><code>{{.Artifact}}</code></p><p>ID: <code>{{.ID}}</code></p></details>{{end}}</div>{{end}}{{if .ItemKeys}}<p>Collection item keys (outer to inner):</p><ul>{{range .ItemKeys}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}</td>
-<td>{{if .Normalization}}<p>Normalization: <code>{{.Normalization}}</code></p>{{end}}{{if .ExpectedRole}}<p>Expected ({{.ExpectedRole}}): <code>{{.ExpectedValue}}</code></p>{{end}}{{if .RuleID}}Rule: <code>{{.RuleID}}</code>{{else}}No policy rule applied.{{end}}{{if .Authority}}<p>Authority: {{.Authority}}</p>{{end}}{{if .Replaces}}<p>Replaces: {{.Replaces}}</p>{{end}}
-{{if .Evidence}}<details><summary>Evidence</summary><dl>{{range .Evidence}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
-{{if .Extensions}}<details><summary>Collection mapping extensions</summary><dl>{{range .Extensions}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
-{{if .ItemScope}}<details><summary>Collection item scope</summary><dl>{{range .ItemScope}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}</dl></details>{{end}}
-{{if .PolicyFiles}}<details><summary>Policy file origin</summary><dl>{{range .PolicyFiles}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}</dl></details>{{end}}
-{{if .Derivation}}<details><summary>Expected result derived from</summary><dl>{{range .Derivation}}<dt>{{.Name}}</dt><dd><code>{{.Value}}</code></dd>{{end}}</dl></details>{{end}}</td></tr>{{end}}
-</tbody></table></div>{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
+{{if .Decisions}}<div class="table-wrap"><table>{{template "decision-head"}}
+{{range .Decisions}}<tbody class="finding" data-status="{{.Status}}" data-decisions="{{.DecisionCount}}">
+{{template "decision-row" .}}
+{{if .Children}}<tr><td colspan="3"><details class="subtree-details"><summary>Nested decisions ({{len .Children}})</summary><p>This finding represents {{.DecisionCount}} underlying decisions, including the parent. These details describe the same missing subtree.</p>
+<table>{{template "decision-head"}}<tbody>{{range .Children}}{{template "decision-row" .}}{{end}}</tbody></table>
+</details></td></tr>{{end}}
+</tbody>{{end}}</table></div>{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
 </div></details>{{else}}<p>No decisions to display.</p>{{end}}
 <h2>Diagnostics</h2>
 {{if .Diagnostics}}<table><thead><tr><th scope="col">Diagnostic</th><th scope="col">Rule</th><th scope="col">Type</th><th scope="col">Side</th><th scope="col">Required</th></tr></thead><tbody>{{range .Diagnostics}}<tr><td>{{.Code}}</td><td>{{.RuleID}}</td><td>{{.Type}}</td><td>{{.Side}}</td><td>{{.Required}}</td></tr>{{end}}</tbody></table>{{else}}<p>No diagnostics to display.</p>{{end}}
@@ -70,25 +70,31 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
   const groups = Array.from(document.querySelectorAll('.object-group'));
   const search = document.getElementById('search');
   const status = document.getElementById('status');
-  const rows = groups.flatMap(group => Array.from(group.querySelectorAll('.decision-row')));
+  const rows = groups.flatMap(group => Array.from(group.querySelectorAll('.finding')));
   document.getElementById('controls').hidden = false;
   function filter() {
     const query = search.value.trim().toLowerCase();
-    let shown = 0, visibleGroups = 0;
+    let shown = 0, represented = 0, visibleGroups = 0;
     groups.forEach(group => {
       let visibleRows = 0;
       const groupMatch = group.dataset.search.toLowerCase().includes(query);
-      const groupRows = Array.from(group.querySelectorAll('.decision-row'));
+      const groupRows = Array.from(group.querySelectorAll('.finding'));
       groupRows.forEach(row => {
         row.hidden = Boolean((status.value && row.dataset.status !== status.value) || (query && !groupMatch && !row.textContent.toLowerCase().includes(query)));
-        if (!row.hidden) visibleRows++;
+        if (!row.hidden) {
+          visibleRows++;
+          represented += Number(row.dataset.decisions);
+          if (query && !groupMatch) row.querySelectorAll('.subtree-details').forEach(detail => {
+            if (detail.textContent.toLowerCase().includes(query)) detail.open = true;
+          });
+        }
       });
       group.hidden = groupRows.length ? visibleRows === 0 : Boolean(status.value || !groupMatch);
       if (!group.hidden) { visibleGroups++; shown += visibleRows; if (query || status.value) group.open = true; }
       const index = document.querySelector('[data-group="' + group.id + '"]');
       if (index) index.hidden = group.hidden;
     });
-    document.getElementById('filter-count').textContent = shown + ' of ' + rows.length + ' displayed decisions; ' + visibleGroups + ' object groups visible.';
+    document.getElementById('filter-count').textContent = shown + ' of ' + rows.length + ' displayed findings representing ' + represented + ' decisions; ' + visibleGroups + ' object groups visible.';
   }
   search.addEventListener('input', filter);
   status.addEventListener('change', filter);
@@ -100,3 +106,13 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 }());
 </script>
 </body></html>
+
+{{define "decision-head"}}<thead><tr><th scope="col">Status / explanation</th><th scope="col">Locations</th><th scope="col">Policy and provenance</th></tr></thead>{{end}}
+{{define "decision-row"}}<tr class="decision-row" data-status="{{.Status}}"><td><strong>{{.Status}}</strong>{{if .Children}}<p><strong>Missing subtree</strong> · {{.DecisionCount}} underlying decisions</p>{{end}}<p>{{.Explanation}}</p><p>Reason: <code>{{.Code}}</code></p>{{if .Space}}<p>Section: {{.Space}}</p>{{end}}</td>
+<td>{{range .Locations}}<div class="location"><strong>{{.Role}}</strong>: {{.State}}{{if .Kind}} ({{.Kind}}){{end}}<br>{{range .Context}}<p class="item-context"><strong>{{.Label}}</strong>{{range .Fields}}<br>{{.Label}}: <strong class="pre">{{.Value}}</strong>{{end}}</p>{{end}}<code>{{.Pointer}}</code><p>Value: <code>{{.Value}}</code></p>{{if .Artifact}}<details><summary>Artifact</summary><p><code>{{.Artifact}}</code></p><p>ID: <code>{{.ID}}</code></p></details>{{end}}</div>{{end}}{{if .ItemKeys}}<p>Collection item keys (outer to inner):</p><ul>{{range .ItemKeys}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}</td>
+<td>{{if .Normalization}}<p>Normalization: <code>{{.Normalization}}</code></p>{{end}}{{if .ExpectedRole}}<p>Expected ({{.ExpectedRole}}): <code>{{.ExpectedValue}}</code></p>{{end}}{{if .RuleID}}Rule: <code>{{.RuleID}}</code>{{else}}No policy rule applied.{{end}}{{if .Authority}}<p>Authority: {{.Authority}}</p>{{end}}{{if .Replaces}}<p>Replaces: {{.Replaces}}</p>{{end}}
+{{if .Evidence}}<details><summary>Evidence</summary><dl>{{range .Evidence}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
+{{if .Extensions}}<details><summary>Collection mapping extensions</summary><dl>{{range .Extensions}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
+{{if .ItemScope}}<details><summary>Collection item scope</summary><dl>{{range .ItemScope}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}</dl></details>{{end}}
+{{if .PolicyFiles}}<details><summary>Policy file origin</summary><dl>{{range .PolicyFiles}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}</dl></details>{{end}}
+{{if .Derivation}}<details><summary>Expected result derived from</summary><dl>{{range .Derivation}}<dt>{{.Name}}</dt><dd><code>{{.Value}}</code></dd>{{end}}</dl></details>{{end}}</td></tr>{{end}}

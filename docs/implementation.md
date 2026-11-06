@@ -61,6 +61,15 @@ and exact semantic error ownership across rule categories and files. The neutral
 [review findings](review.md#root-policy-includes-review).
 Tenant exports are development checks only.
 
+## Missing-subtree presentation
+
+`v2/render_subtrees.go` groups redundant missing-subtree decisions only in the
+human view. `v2/render_subtrees_test.go` covers nested and empty containers,
+JSON Pointer escaping, keyed/ordered arrays, reordered physical indices,
+explicit checks, role/section/status boundaries, deployment baselines, value
+omission, redacted combined objects, rendering, and structured-report immutability.
+The comparison engine and JSON report schema are unchanged.
+
 ## Checks
 
 Run `go test ./...`, `go test -race ./...`, `go vet ./...`, and `go build ./...`
