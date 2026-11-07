@@ -30,7 +30,7 @@ func TestIdentityObjectConfigReferenceIDs(t *testing.T) {
 	for _, profile := range []string{"isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"} {
 		for _, mode := range []string{"drift", "deployment"} {
 			t.Run(profile+"/"+mode, func(t *testing.T) {
-				p := v2.Policy{Version: 2, ID: "identity-references", Profile: profile}
+				p := v2.Policy{Version: 2, ID: "identity-references", Profile: profile, DisabledRules: []string{"isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority"}}
 				req := Request{Mode: mode, Left: identityAttributeInput(t, "dev", "IDENTITY_OBJECT_CONFIG", identityReferenceDetails("dev")), Right: identityAttributeInput(t, "prod", "IDENTITY_OBJECT_CONFIG", identityReferenceDetails("prod"))}
 				status := "different"
 				if mode == "deployment" {
@@ -84,7 +84,7 @@ func TestIdentityObjectConfigReferenceIDs(t *testing.T) {
 				}
 				req.Right = identityAttributeInput(t, "prod", "IDENTITY_OBJECT_CONFIG", identityReferenceDetails("prod"))
 				for _, id := range rules {
-					p.DisabledRules = []string{id}
+					p.DisabledRules = []string{"isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority", id}
 					want, decision := 1, "different"
 					if mode == "deployment" {
 						want, decision = 2, "unverified"

@@ -83,6 +83,16 @@ type Collection struct {
 	KeyMappings   []CollectionKeyMapping `json:"key_mappings,omitempty"`
 	ItemLabel     string                 `json:"item_label,omitempty"`
 	DisplayFields []DisplayField         `json:"display_fields,omitempty"`
+	PriorityOrder *PriorityOrder         `json:"priority_order,omitempty"`
+}
+
+// PriorityOrder derives collection precedence from referenced context documents.
+// Lower numeric priorities precede higher ones; observed documents are immutable.
+type PriorityOrder struct {
+	Type          string `json:"type"`
+	ReferencePath string `json:"reference_path"`
+	MatchPath     string `json:"match_path"`
+	PriorityPath  string `json:"priority_path"`
 }
 
 // CollectionMapping adds implementation-specific mappings to an existing
@@ -105,6 +115,7 @@ type ValuePair struct {
 type Equivalence struct {
 	Rule
 	Selector
+	Operation   string                   `json:"operation,omitempty"`
 	Item        *CollectionItemSelector  `json:"item,omitempty"`
 	Items       []CollectionItemSelector `json:"items,omitempty"`
 	LeftEnv     string                   `json:"left_env"`

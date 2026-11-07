@@ -38,6 +38,7 @@ type execution struct {
 	expected      *State
 	expectedRole  string
 	normalization string
+	orderContext  [2][]ContextField
 	operations    map[string]Operation
 }
 
@@ -397,6 +398,11 @@ func (x *execution) record(f frame, status, code string, r Rule, authority strin
 				present = true
 			}
 			d.Locations[x.roles[i]] = Location{ID: o.doc.ID, Artifact: o.doc.Path, Pointer: n.pointer, Present: present, ValueKind: valueKind(n.value, present), Value: x.slotValue(n), Context: x.locationContext(o.doc, x.current.key, f.space, n.pointer)}
+			if i < 2 && len(x.orderContext[i]) > 0 {
+				loc := d.Locations[x.roles[i]]
+				loc.Context = append(loc.Context, ItemContext{Label: "Priority order", Pointer: n.pointer, Fields: x.orderContext[i]})
+				d.Locations[x.roles[i]] = loc
+			}
 			if f.space == "" {
 				loc := d.Locations[x.roles[i]]
 				loc.ValueKind = "document"
@@ -472,6 +478,10 @@ func (x *execution) walk(f frame) {
 			nf := f
 			nf.itemScope = r.Item
 			nf.itemScopes = r.Items
+			if r.Operation == "relative_order" {
+				x.relativeOrder(nf, r)
+				return
+			}
 			l, rr := x.inputs[0], x.inputs[1]
 			if (r.LeftTenant != "" && r.LeftTenant != l.Tenant) || (r.RightTenant != "" && r.RightTenant != rr.Tenant) {
 				x.record(nf, "unverified", "equivalence tenant context mismatch", r.Rule, "")
@@ -809,6 +819,9 @@ func (x *execution) arrays(f frame, r Collection) {
 		}
 		a[i] = v
 	}
+	if r.PriorityOrder != nil && x.positionalPriorityCollection(a, r) {
+		r.Mode = "ordered"
+	}
 	if r.Mode == "ordered" && r.ID != "" {
 		x.record(f, "equal", "ordered array alignment", r.Rule, "")
 	}
@@ -872,6 +885,9 @@ func (x *execution) arrays(f frame, r Collection) {
 			}
 		}
 		status := "equal"
+		if r.PriorityOrder != nil {
+			x.collectionPriority(f, r, a, idx)
+		}
 		if x.request.Mode == "deployment" {
 			status = "excluded"
 		}

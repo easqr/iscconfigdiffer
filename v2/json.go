@@ -144,6 +144,9 @@ func shape(v any, t reflect.Type) error {
 			}
 		}
 		for k, f := range fields {
+			if t == reflect.TypeFor[Equivalence]() && m["operation"] == "relative_order" && (k == "left_env" || k == "right_env") {
+				continue
+			}
 			if !strings.Contains(f.Tag.Get("json"), "omitempty") {
 				if _, ok := m[k]; !ok {
 					return errors.New("missing policy property: " + k)

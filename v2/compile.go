@@ -442,6 +442,15 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if contains(r.Modes, "deployment") {
 			return nil, ruleError(errors.New("equivalence is drift-only"), r.ID)
 		}
+		if r.Operation == "relative_order" {
+			if !concrete(r.Path) || r.Path == "" || r.Key != "" || r.Variant != "" || space(r.Space) != "content" || idents[r.Type].Strategy == "" || r.Item != nil || len(r.Items) > 0 || r.LeftEnv != "" || r.RightEnv != "" || r.LeftTenant != "" || r.RightTenant != "" || len(r.Pairs) > 0 || len(r.Groups) > 0 {
+				return nil, ruleError(errors.New("relative_order requires a concrete content priority path and a type identity; value cases, item selectors and environment restrictions are not supported"), r.ID)
+			}
+			continue
+		}
+		if r.Operation != "" {
+			return nil, ruleError(errors.New("invalid equivalence operation"), r.ID)
+		}
 		if r.LeftEnv == "" || r.RightEnv == "" || (len(r.Pairs) == 0) == (len(r.Groups) == 0) {
 			return nil, ruleError(errors.New("equivalence context/cases required"), r.ID)
 		}
@@ -506,6 +515,11 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		}
 		if err := validateCollectionDisplay(r); err != nil {
 			return nil, ruleError(fmt.Errorf("collection %s: %w", r.ID, err), r.ID)
+		}
+		if o := r.PriorityOrder; o != nil {
+			if r.Mode != "keyed" || o.Type == "" || !concrete(o.ReferencePath) || o.ReferencePath == "" || !concrete(o.MatchPath) || o.MatchPath == "" || !concrete(o.PriorityPath) || o.PriorityPath == "" || len(r.KeyCases) > 0 {
+				return nil, ruleError(errors.New("priority_order requires keyed mode, concrete reference/match/priority paths and no key cases"), r.ID)
+			}
 		}
 	}
 	if err := validateCollectionExtensions(p, collectionsByID, coactive); err != nil {

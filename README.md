@@ -1391,7 +1391,8 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
-| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; nested attribute-source reference IDs excluded | `identity-object-config.json` in the same directory |
+| IDENTITY_PROFILE defaults | Relative priority order in drift | `identity-profile.json` in the same directory |
+| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; attribute-source precedence and reference-ID exclusions | `identity-object-config.json` in the same directory |
 | ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target | `attribute-sync.json` in the same directory |
 | ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
@@ -1499,8 +1500,9 @@ strings and unique within the array; missing, null, invalid, or duplicate names
 produce a conflict rather than positional matching. Added, removed, or renamed
 attributes remain differences.
 
-The outer collection rule only aligns attribute definitions; nested
-`attributeSources` arrays retain ordered comparison. All ISC profiles also exclude
+The outer collection rule aligns attribute definitions. Nested `attributeSources`
+use identity-profile precedence for multi-application entries, as described below.
+All ISC profiles also exclude
 these nested reference IDs through the same type pack:
 
 | Path | Rule ID |
@@ -1519,6 +1521,90 @@ The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
 `internal/iscprofile/packs/identity-object-config.json`. No local policy entry is
 needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
 explicit same-selector replacement for a structural exception.
+
+### Relative priority and attribute-source precedence
+
+All ISC profiles compare `IDENTITY_PROFILE` `/priority` by relative precedence,
+using `isc.IDENTITY_PROFILE.priority-order`. Lower numbers precede higher numbers.
+For corresponding profiles, priorities `5, 10, 40` and `10, 20, 30` are equivalent
+when they produce the same order. A reversal is reported even if a profile's own
+number did not change. Profiles present on only one side remain object-presence
+findings; they do not shift the relative order of the shared profiles. An exact
+`--name` filter still uses the other matching profiles as priority context.
+Original priority values remain in the profile findings unless values are omitted.
+
+For `IDENTITY_OBJECT_CONFIG`, `isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority`
+aligns multi-application `attributeSources` entries by `/applicationRef/name` and
+compares the application order derived from identity-profile priorities. It resolves
+each original `/applicationRef/id` against a profile's `/authoritativeSource/id`
+in the same input, then reads `/priority`. Exported array positions and numeric
+spacing do not determine equivalence. Other entry fields remain comparable, and
+reports retain their original paths. A precedence reversal is one finding with a
+named **Priority order** list for each side, rather than mismatched application
+names at different array positions.
+
+Both exports must include the relevant `IDENTITY_PROFILE` documents. They can be
+used as context with `--scope IDENTITY_OBJECT_CONFIG`; they are not added to the
+comparison scope. Context comes only from the supplied exports, without fetching
+live tenant data. Missing, null, or nonnumeric required priorities, unresolved
+references, duplicate reference matches, and tied priorities prevent a conclusive
+result (exit 2). Source IDs remain available for lookup despite their exclusion
+from value comparison. Collections with at most one item on every input, or with
+no application references at all, retain ordinary positional comparison. Mixed
+multi-entry collections with unavailable references remain incomplete.
+
+Priority ordering compares shared entries; added or removed applications still
+produce ordinary membership findings. Source names must be unique in each keyed
+collection. Pure global-rule arrays retain their existing ordering semantics.
+
+The scalar relative-order equivalence is drift-only. In deployment, priority values
+still need explicit expectations; the contextual collection order needs an
+authoritative whole-value expectation. Alignment never supplies deployment approval.
+Use `disabled_rules` with either shipped rule ID to restore ordinary numeric or
+positional comparison. The rules live in `identity-profile.json` and
+`identity-object-config.json` under `internal/iscprofile/packs`.
+
+The neutral policy mechanisms can also be authored explicitly:
+
+```json
+{
+  "equivalences": [
+    {
+      "id": "profile-priority-order",
+      "type": "IDENTITY_PROFILE",
+      "path": "/priority",
+      "operation": "relative_order",
+      "replaces": "isc.IDENTITY_PROFILE.priority-order"
+    }
+  ],
+  "collections": [
+    {
+      "id": "attribute-source-precedence",
+      "replaces": "isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority",
+      "type": "IDENTITY_OBJECT_CONFIG",
+      "path": "/objectAttributeDetails/*/attributeSources",
+      "mode": "keyed",
+      "keys": ["/applicationRef/name"],
+      "component_type": "string",
+      "priority_order": {
+        "type": "IDENTITY_PROFILE",
+        "reference_path": "/applicationRef/id",
+        "match_path": "/authoritativeSource/id",
+        "priority_path": "/priority"
+      }
+    }
+  ]
+}
+```
+
+This is a rule fragment illustrating explicit replacements; the shipped defaults
+need no local policy entries. `relative_order` takes a concrete content path and
+uses the type's matched objects; it cannot also declare value pairs, groups,
+environment restrictions, or item selectors. `priority_order` requires a keyed
+collection with concrete reference, match, and priority paths and no key cases.
+The context type need not be selected for comparison. Existing collection key
+mappings can still align environment-specific application names; value equivalence
+for those names remains a separate implementation decision.
 
 ### ATTR_SYNC_SOURCE_CONFIG attribute matching
 

@@ -166,6 +166,10 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 		out.Explanation = "A conflict prevents a conclusive result."
 	}
 	switch d.Code {
+	case "relative priority order differs":
+		out.Explanation = "Relative precedence changed. Lower numeric priorities take precedence; the Priority order context lists entries from highest to lowest precedence."
+	case "relative priority order unchanged":
+		out.Explanation = "Relative precedence is unchanged. Numeric priority spacing and exported array positions do not determine equivalence."
 	case "object missing":
 		out.Explanation = "The object is absent from one of the primary inputs."
 	case "container presence differs":

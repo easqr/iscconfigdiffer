@@ -16,6 +16,22 @@
         "component_type": "string",
         "item_label": "Identity attribute",
         "display_fields": [{"label": "Name", "path": "/name"}]
+      },
+      {
+        "id": "isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority",
+        "type": "IDENTITY_OBJECT_CONFIG",
+        "path": "/objectAttributeDetails/*/attributeSources",
+        "mode": "keyed",
+        "keys": ["/applicationRef/name"],
+        "component_type": "string",
+        "item_label": "Attribute source",
+        "display_fields": [{"label": "Application", "path": "/applicationRef/name"}],
+        "priority_order": {
+          "type": "IDENTITY_PROFILE",
+          "reference_path": "/applicationRef/id",
+          "match_path": "/authoritativeSource/id",
+          "priority_path": "/priority"
+        }
       }
     ],
     "ignores": [

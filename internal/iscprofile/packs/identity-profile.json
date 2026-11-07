@@ -1,0 +1,18 @@
+{
+  "id": "isc.identity-profile",
+  "version": 1,
+  "layer": "type",
+  "profiles": ["isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"],
+  "rules": {
+    "version": 2,
+    "id": "isc.identity-profile",
+    "equivalences": [
+      {
+        "id": "isc.IDENTITY_PROFILE.priority-order",
+        "type": "IDENTITY_PROFILE",
+        "path": "/priority",
+        "operation": "relative_order"
+      }
+    ]
+  }
+}
