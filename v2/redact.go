@@ -8,6 +8,9 @@ func (x *execution) redact() {
 		if !active(r.Rule, x.request.Mode) {
 			continue
 		}
+		if _, ok := x.report.ObjectFilters[r.Type]; ok {
+			hidden[r.Type] = true
+		}
 		// Priority context can be read without selecting its type for comparison.
 		// Conservatively protect consumers of a sensitive context type too; a
 		// keyed sensitivity restriction must not leak through a derived ordering.
@@ -140,6 +143,29 @@ func (x *execution) redact() {
 		if hidden[m.Type] {
 			m.Key = "[redacted]"
 			mask(m.Locations)
+		}
+	}
+	for typ, filter := range x.report.ObjectFilters {
+		if hidden[typ] {
+			if len(filter.Include) > 0 {
+				filter.Include = []string{"[redacted]"}
+			}
+			if len(filter.Exclude) > 0 {
+				filter.Exclude = []string{"[redacted]"}
+			}
+			x.report.ObjectFilters[typ] = filter
+		}
+	}
+	for i := range x.report.ExcludedObjects {
+		o := &x.report.ExcludedObjects[i]
+		if hidden[o.Type] {
+			o.Key = "[redacted]"
+			mask(o.Locations)
+		}
+	}
+	for i := range x.report.Diagnostics {
+		if hidden[x.report.Diagnostics[i].Type] && x.report.Diagnostics[i].Key != "" {
+			x.report.Diagnostics[i].Key = "[redacted]"
 		}
 	}
 	for i := range x.report.Operations {

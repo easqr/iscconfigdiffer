@@ -92,7 +92,7 @@ func decodePack(data []byte) (rulePack, error) {
 	if err != nil {
 		return p, err
 	}
-	if rules.ID != p.ID || rules.Profile != "" || len(rules.Modes) > 0 || len(rules.Bindings) > 0 || len(rules.CollectionMappings) > 0 || len(rules.DisabledRules) > 0 || len(rules.Evidence) > 0 {
+	if rules.ID != p.ID || rules.Profile != "" || len(rules.Modes) > 0 || len(rules.Bindings) > 0 || len(rules.CollectionMappings) > 0 || len(rules.DisabledRules) > 0 || len(rules.Evidence) > 0 || len(rules.ObjectFilters) > 0 {
 		return p, errors.New("invalid rule pack policy header")
 	}
 	for _, cat := range ruleCategories(&rules) {

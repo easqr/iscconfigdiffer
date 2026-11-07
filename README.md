@@ -354,7 +354,7 @@ Use your own export paths and policy file. `--name` is an exact, case-sensitive
 logical key, normally the object's `name` under ISC profiles. It is not a physical
 ID, substring, or pattern. For custom/composite identities, supply the logical key
 shown in the report; explicit pairings use the source/left key. Omit `--name` to
-compare every object in the selected types.
+compare all objects permitted by the policy within the selected types.
 
 The filter requires exactly one type in `--scope` and works in drift and deployment
 modes. An object present on only one side still produces a difference. If no
@@ -368,6 +368,68 @@ Required policy rules remain enforced. JSON reports record `object_key`, include
 it in the request digest, and count objects skipped by the filter separately from
 the full type inventory. A filtered result makes no claim about other objects.
 
+
+### Include or exclude named configurations by type
+
+Keep using `--scope` to choose types. For reusable name lists across those types,
+add `object_filters` to the **root policy**:
+
+```json
+{
+  "version": 2,
+  "id": "filtered-drift",
+  "profile": "isc-portable-v2",
+  "object_filters": {
+    "SOURCE": {
+      "exclude": ["Dev - Active Directory"]
+    },
+    "ROLE": {
+      "include": ["Employee Access", "Finance Analyst"]
+    }
+  }
+}
+```
+
+With `--scope SOURCE,ROLE`, this compares every source except
+`Dev - Active Directory`, and only the two listed roles. Other types are selected
+only when included in the command's type scope. A type without an `object_filters`
+entry keeps its ordinary scope behavior. See the complete
+[filtered policy example](examples/policy-filtered-drift.json).
+
+- `include` is a whitelist: when supplied, only those logical names are validated
+  for that type. Omit it to permit all names not excluded.
+- `exclude` is a blacklist. It wins when a name occurs in both lists.
+- Names are exact and case-sensitive. There are no wildcards, regular expressions,
+  substrings, or physical-ID matching. Composite identities use the logical key
+  shown in reports; explicit pairings use the left/source key, just like `--name`.
+- Omit unused lists instead of writing empty arrays. Blank or duplicate names,
+  empty filter entries, and types without an identity strategy fail compilation.
+- A listed include name missing from both primary inputs and any baseline makes
+  the active comparison incomplete. A name present on one side still produces
+  an object-presence finding. An unused exclusion is reported as a diagnostic
+  without failing the result. Checks apply only to types in scope and names not
+  narrowed away by `--name`.
+- Filters that select no configurations in the active scope produce an incomplete
+  result (exit `2`). `--name` narrows the policy lists further; it cannot re-enable
+  a configuration excluded by policy.
+
+These lists work in drift and deployment. Excluded configurations and operations
+are not validated, but remain context for references, dependent identities, and
+relative priority comparisons. A referenced target scheduled for deletion is
+still treated as such, even when its own validation is excluded. Input integrity,
+identity matching, policy compilation, and required-rule checks remain enforced;
+a filter is not permission to accept malformed exports or ambiguous identities.
+A filtered result makes no claim about the excluded configurations.
+
+Reports list **Configurations excluded by policy**, including each name and reason.
+JSON includes `object_filters` and `excluded_objects`; `*_excluded_by_policy` and
+`excluded_groups` distinguish policy exclusions from `--name` filtering and value
+normalization. Filters contribute to policy/request digests. Sensitive type rules
+also redact filter names, skipped-object identities, and named diagnostics.
+
+`object_filters` is a root-policy setting, not a rule array. Keep it out of
+rule-only include fragments; the same names apply consistently to both inputs.
+Your existing local policy need not change unless you want to enable filtering.
 
 Roots can be separate directories or root symlinks. Nested links and special
 files are rejected. Keep editable trees unchanged while they are being read.

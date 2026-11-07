@@ -46,6 +46,9 @@ func categories(p *Policy) []reflect.Value {
 	return a
 }
 func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
+	if err := validateObjectFilterLists(p.ObjectFilters); err != nil {
+		return nil, err
+	}
 	if err := validateItemForms(p); err != nil {
 		return nil, err
 	}
@@ -100,7 +103,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		return nil, err
 	}
 	base = detachedProfile
-	if base.Version != 0 || base.ID != "" || base.Profile != "" || len(base.Modes) > 0 || len(base.Bindings) > 0 || len(base.DisabledRules) > 0 {
+	if base.Version != 0 || base.ID != "" || base.Profile != "" || len(base.Modes) > 0 || len(base.Bindings) > 0 || len(base.DisabledRules) > 0 || len(base.ObjectFilters) > 0 {
 		return nil, errors.New("profile rules may supply comparison defaults, rule arrays and evidence only")
 	}
 	for _, setting := range []string{p.NullHandling, base.NullHandling} {
@@ -355,6 +358,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if e := visit(t); e != nil {
 			return nil, e
 		}
+	}
+	if err := validateObjectFilters(p.ObjectFilters, idents); err != nil {
+		return nil, err
 	}
 	endpoints := map[string]string{}
 	for _, r := range p.Pairings {

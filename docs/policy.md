@@ -37,7 +37,8 @@ There are no globs, recursive includes, directory scanning, or implicit override
 The root itself may contain rules. No `includes` means a normal single-file policy.
 `DecodePolicy` and `v2.Decode` do no I/O and reject `includes`.
 
-Root settings (`version`, `id`, `profile`, `bindings`, `null_handling`, `modes`)
+Root settings (`version`, `id`, `profile`, `bindings`, `null_handling`, `modes`,
+`object_filters`)
 are never merged from fragments. Fragments accept only these fields:
 
 ```text
@@ -127,10 +128,72 @@ Reports include optional `object_key` and bind it into `request_digest`.
 counts skipped inventory objects, and `compared_groups` counts selected groups.
 Sensitive selectors redact the filter key along with other object identities.
 
+## Named object selection
+
+Keep using `--scope` to choose types. For reusable name lists across those types,
+add `object_filters` to the **root policy**:
+
+```json
+{
+  "version": 2,
+  "id": "filtered-drift",
+  "profile": "isc-portable-v2",
+  "object_filters": {
+    "SOURCE": {
+      "exclude": ["Dev - Active Directory"]
+    },
+    "ROLE": {
+      "include": ["Employee Access", "Finance Analyst"]
+    }
+  }
+}
+```
+
+With `--scope SOURCE,ROLE`, this compares every source except
+`Dev - Active Directory`, and only the two listed roles. Other types are selected
+only when included in the command's type scope. A type without an `object_filters`
+entry keeps its ordinary scope behavior. See the complete
+[filtered policy example](../examples/policy-filtered-drift.json).
+
+- `include` is a whitelist: when supplied, only those logical names are validated
+  for that type. Omit it to permit all names not excluded.
+- `exclude` is a blacklist. It wins when a name occurs in both lists.
+- Names are exact and case-sensitive. There are no wildcards, regular expressions,
+  substrings, or physical-ID matching. Composite identities use the logical key
+  shown in reports; explicit pairings use the left/source key, just like `--name`.
+- Omit unused lists instead of writing empty arrays. Blank or duplicate names,
+  empty filter entries, and types without an identity strategy fail compilation.
+- A listed include name missing from both primary inputs and any baseline makes
+  the active comparison incomplete. A name present on one side still produces
+  an object-presence finding. An unused exclusion is reported as a diagnostic
+  without failing the result. Checks apply only to types in scope and names not
+  narrowed away by `--name`.
+- Filters that select no configurations in the active scope produce an incomplete
+  result (exit `2`). `--name` narrows the policy lists further; it cannot re-enable
+  a configuration excluded by policy.
+
+These lists work in drift and deployment. Excluded configurations and operations
+are not validated, but remain context for references, dependent identities, and
+relative priority comparisons. A referenced target scheduled for deletion is
+still treated as such, even when its own validation is excluded. Input integrity,
+identity matching, policy compilation, and required-rule checks remain enforced;
+a filter is not permission to accept malformed exports or ambiguous identities.
+A filtered result makes no claim about the excluded configurations.
+
+Reports list **Configurations excluded by policy**, including each name and reason.
+JSON includes `object_filters` and `excluded_objects`; `*_excluded_by_policy` and
+`excluded_groups` distinguish policy exclusions from `--name` filtering and value
+normalization. Filters contribute to policy/request digests. Sensitive type rules
+also redact filter names, skipped-object identities, and named diagnostics.
+
+`object_filters` is a root-policy setting, not a rule array. Keep it out of
+rule-only include fragments; the same names apply consistently to both inputs.
+Your existing local policy need not change unless you want to enable filtering.
+
 ## Schema
 
 The root has `version:2`, `id`, optional `modes`, `profile`, `bindings`,
-`null_handling`, `disabled_rules`, `collection_mappings`, and rule arrays.
+`null_handling`, `object_filters`, `disabled_rules`, `collection_mappings`, and rule arrays.
 Root `modes` restricts permitted comparison modes; an omitted restriction permits both execution modes.
 JSON is strict: exact property spelling, no unknown properties or duplicate keys,
 valid UTF-8, no trailing JSON, and exact numbers. Policy/rule IDs use 1–200 ASCII

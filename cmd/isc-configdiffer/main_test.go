@@ -190,6 +190,34 @@ func TestCLIObjectNameFilter(t *testing.T) {
 	}
 }
 
+func TestCLIPolicyObjectFilters(t *testing.T) {
+	root := tree(t, "same")
+	base := []string{"--left", root, "--right", root, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--scope", "ROLE", "--format", "json"}
+	for _, tc := range []struct {
+		filter  string
+		code    int
+		skipped int
+	}{
+		{`{"include":["Invented"]}`, 0, 0},
+		{`{"exclude":["Invented"]}`, 2, 1},
+		{`{"include":["invented"]}`, 2, 1},
+	} {
+		policyPath := filepath.Join(t.TempDir(), "policy.json")
+		body := `{"version":2,"id":"filtered","profile":"isc-portable-v2","object_filters":{"ROLE":` + tc.filter + `}}`
+		if err := os.WriteFile(policyPath, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		var out, errOut bytes.Buffer
+		if code := runWithReports(t, append(append([]string{}, base...), "--policy", policyPath), &out, &errOut); code != tc.code {
+			t.Fatal(code, errOut.String())
+		}
+		var r v2.Report
+		if err := json.Unmarshal(out.Bytes(), &r); err != nil || len(r.ExcludedObjects) != tc.skipped {
+			t.Fatal("filter report unavailable", err, r)
+		}
+	}
+}
+
 // Read the saved report for assertions while isolating each CLI invocation.
 func runWithReports(t *testing.T, args []string, reportContents, errOut *bytes.Buffer) int {
 	t.Helper()

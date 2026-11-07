@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "id": "filtered-drift",
+  "profile": "isc-portable-v2",
+  "object_filters": {
+    "SOURCE": {
+      "exclude": [
+        "Development Directory"
+      ]
+    },
+    "ROLE": {
+      "include": [
+        "Employee Access",
+        "Finance Analyst"
+      ]
+    }
+  }
+}

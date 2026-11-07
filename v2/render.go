@@ -61,6 +61,7 @@ type humanReport struct {
 	NestedDecisions                                        int
 	Provenance, Coverage                                   []reportField
 	Inputs                                                 []humanInput
+	ExcludedObjects                                        []ExcludedObject
 	Groups                                                 []humanGroup
 	Diagnostics, OptionalDiagnostics                       []Diagnostic
 	UnusedOptional                                         int
@@ -234,6 +235,16 @@ func (r Report) humanView() humanReport {
 		v.ObjectKey = r.ObjectKey
 	}
 	v.Provenance = []reportField{{"Policy", r.PolicyID}, {"Profile", r.Profile}, {"Null handling", r.NullHandling}, {"Scope", strings.Join(r.Scope, ", ")}, {"Policy digest", r.PolicyDigest}, {"Profile digest", r.ProfileDigest}, {"Request digest", r.RequestDigest}}
+	v.ExcludedObjects = r.ExcludedObjects
+	for _, typ := range keys(r.ObjectFilters) {
+		filter := r.ObjectFilters[typ]
+		if len(filter.Include) > 0 {
+			v.Provenance = append(v.Provenance, reportField{typ + " included names", strings.Join(filter.Include, "; ")})
+		}
+		if len(filter.Exclude) > 0 {
+			v.Provenance = append(v.Provenance, reportField{typ + " excluded names", strings.Join(filter.Exclude, "; ")})
+		}
+	}
 	fileOrigins := map[string]Evidence{}
 	if len(r.DisabledRules) > 0 {
 		v.Provenance = append(v.Provenance, reportField{"Disabled shipped rules", strings.Join(r.DisabledRules, ", ")})

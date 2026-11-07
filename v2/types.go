@@ -163,7 +163,8 @@ type Reference struct {
 	External   map[string]string `json:"external,omitempty"`
 }
 type Policy struct {
-	DisabledRules []string `json:"disabled_rules,omitempty"`
+	ObjectFilters map[string]ObjectFilter `json:"object_filters,omitempty"`
+	DisabledRules []string                `json:"disabled_rules,omitempty"`
 	// NullHandling controls content-property comparison; neutral default is strict.
 	NullHandling       string              `json:"null_handling,omitempty"`
 	Version            int                 `json:"version"`
@@ -181,6 +182,13 @@ type Policy struct {
 	CollectionMappings []CollectionMapping `json:"collection_mappings,omitempty"`
 	Sensitive          []Sensitive         `json:"sensitive,omitempty"`
 	Evidence           []Evidence          `json:"evidence,omitempty"`
+}
+
+// ObjectFilter narrows validation by exact logical object key within a type.
+// Exclusions win; omitted include lists allow every key not excluded.
+type ObjectFilter struct {
+	Include []string `json:"include,omitempty"`
+	Exclude []string `json:"exclude,omitempty"`
 }
 
 // Profile is supplied by an adapter; the compiler has no built-in vendor types.
@@ -282,10 +290,18 @@ type Derivation struct {
 }
 type Diagnostic struct {
 	Code     string `json:"code"`
+	Key      string `json:"key,omitempty"`
 	RuleID   string `json:"rule_id,omitempty"`
 	Type     string `json:"type,omitempty"`
 	Side     string `json:"side,omitempty"`
 	Required bool   `json:"required,omitempty"`
+}
+
+type ExcludedObject struct {
+	Type      string              `json:"type"`
+	Key       string              `json:"key"`
+	Reason    string              `json:"reason"`
+	Locations map[string]Location `json:"locations"`
 }
 type Match struct {
 	Type      string              `json:"type"`
@@ -294,31 +310,33 @@ type Match struct {
 	Locations map[string]Location `json:"locations"`
 }
 type Report struct {
-	DisabledRules  []string            `json:"disabled_rules,omitempty"`
-	NullHandling   string              `json:"null_handling"`
-	ValuesExcluded bool                `json:"values_excluded"`
-	Version        int                 `json:"version"`
-	Mode           string              `json:"mode"`
-	Complete       bool                `json:"complete"`
-	Correct        bool                `json:"correct"`
-	PolicyID       string              `json:"policy_id"`
-	PolicyDigest   string              `json:"policy_digest"`
-	RequestDigest  string              `json:"request_digest"`
-	ProfileDigest  string              `json:"profile_digest,omitempty"`
-	Profile        string              `json:"profile,omitempty"`
-	Inputs         map[string]Input    `json:"inputs"`
-	Scope          []string            `json:"scope"`
-	ObjectKey      string              `json:"object_key,omitempty"`
-	Operations     []Operation         `json:"operations,omitempty"`
-	ObjectCoverage map[string]int      `json:"object_coverage"`
-	Excluded       map[string][]string `json:"excluded"`
-	Counts         map[string]int      `json:"counts"`
-	RuleUsage      map[string]int      `json:"rule_usage"`
-	Replacements   map[string]string   `json:"replacements"`
-	Evidence       []Evidence          `json:"evidence,omitempty"`
-	Matches        []Match             `json:"matches"`
-	Decisions      []Decision          `json:"decisions"`
-	Diagnostics    []Diagnostic        `json:"diagnostics"`
+	ObjectFilters   map[string]ObjectFilter `json:"object_filters,omitempty"`
+	ExcludedObjects []ExcludedObject        `json:"excluded_objects,omitempty"`
+	DisabledRules   []string                `json:"disabled_rules,omitempty"`
+	NullHandling    string                  `json:"null_handling"`
+	ValuesExcluded  bool                    `json:"values_excluded"`
+	Version         int                     `json:"version"`
+	Mode            string                  `json:"mode"`
+	Complete        bool                    `json:"complete"`
+	Correct         bool                    `json:"correct"`
+	PolicyID        string                  `json:"policy_id"`
+	PolicyDigest    string                  `json:"policy_digest"`
+	RequestDigest   string                  `json:"request_digest"`
+	ProfileDigest   string                  `json:"profile_digest,omitempty"`
+	Profile         string                  `json:"profile,omitempty"`
+	Inputs          map[string]Input        `json:"inputs"`
+	Scope           []string                `json:"scope"`
+	ObjectKey       string                  `json:"object_key,omitempty"`
+	Operations      []Operation             `json:"operations,omitempty"`
+	ObjectCoverage  map[string]int          `json:"object_coverage"`
+	Excluded        map[string][]string     `json:"excluded"`
+	Counts          map[string]int          `json:"counts"`
+	RuleUsage       map[string]int          `json:"rule_usage"`
+	Replacements    map[string]string       `json:"replacements"`
+	Evidence        []Evidence              `json:"evidence,omitempty"`
+	Matches         []Match                 `json:"matches"`
+	Decisions       []Decision              `json:"decisions"`
+	Diagnostics     []Diagnostic            `json:"diagnostics"`
 }
 
 func (r Report) ExitCode() int {

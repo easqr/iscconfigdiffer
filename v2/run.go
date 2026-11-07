@@ -141,6 +141,7 @@ func Run(request Request, c *Compiled) (Report, error) {
 	x.report.ProfileDigest = c.profileDigest
 	x.report.Scope = keys(scope)
 	x.report.ObjectKey = request.ObjectKey
+	x.report.ObjectFilters = cloneObjectFilters(c.policy.ObjectFilters)
 	x.report.Complete = true
 	x.report.Correct = true
 	x.report.Evidence = []Evidence{}
@@ -193,11 +194,11 @@ func Run(request Request, c *Compiled) (Report, error) {
 	sort.Slice(x.report.Operations, func(i, j int) bool { return stable(x.report.Operations[i]) < stable(x.report.Operations[j]) })
 	x.report.ObjectCoverage["selected_operations"] = 0
 	for _, op := range ops {
-		if request.ObjectKey == "" || op.Key == request.ObjectKey {
+		if (request.ObjectKey == "" || op.Key == request.ObjectKey) && objectFilterReason(c.policy.ObjectFilters, op.Type, op.Key) == "" {
 			x.report.ObjectCoverage["selected_operations"]++
 		}
 	}
-	if request.ObjectKey != "" && request.Mode == "deployment" && x.report.ObjectCoverage["selected_operations"] == 0 {
+	if request.ObjectKey != "" && request.Mode == "deployment" && x.report.ObjectCoverage["selected_operations"] == 0 && objectFilterReason(c.policy.ObjectFilters, request.Scope[0], request.ObjectKey) == "" {
 		x.report.Complete = false
 		x.report.Correct = false
 		return x.report, errors.New("selected object requires a deployment operation")
@@ -212,13 +213,19 @@ func Run(request Request, c *Compiled) (Report, error) {
 	x.report.RequestDigest = hash(requestBytes)
 	seenOps := map[string]bool{}
 	foundObject := false
+	filterKeys := map[string]bool{}
 	for _, g := range x.inventory.groups {
+		filterKeys[physical(g.typ, g.key)] = true
 		if request.ObjectKey != "" && g.key != request.ObjectKey {
 			for i, n := range g.nodes {
 				if n != nil {
 					x.report.ObjectCoverage[x.roles[i]+"_outside_object_filter"]++
 				}
 			}
+			continue
+		}
+		if reason := objectFilterReason(c.policy.ObjectFilters, g.typ, g.key); reason != "" {
+			x.excludeObject(g, reason)
 			continue
 		}
 		foundObject = true
@@ -298,10 +305,18 @@ func Run(request Request, c *Compiled) (Report, error) {
 		}
 	}
 	if request.ObjectKey != "" && !foundObject {
-		x.diagnose(Diagnostic{Code: "selected object unavailable", Type: request.Scope[0]})
+		code := "selected object unavailable"
+		if objectFilterReason(c.policy.ObjectFilters, request.Scope[0], request.ObjectKey) != "" {
+			code = "selected object excluded by policy"
+		}
+		x.diagnose(Diagnostic{Code: code, Type: request.Scope[0], Key: request.ObjectKey})
 	}
+	x.checkObjectFilters(scope, filterKeys)
 	for k, op := range ops {
 		if request.ObjectKey != "" && op.Key != request.ObjectKey {
+			continue
+		}
+		if objectFilterReason(c.policy.ObjectFilters, op.Type, op.Key) != "" {
 			continue
 		}
 		if !seenOps[k] {

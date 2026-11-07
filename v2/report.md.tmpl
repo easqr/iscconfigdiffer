@@ -55,12 +55,21 @@ No input metadata available.
 {{end}}{{end}}
 ### Object coverage
 
-`*_in_scope` counts the full selected type inventory. `*_outside_object_filter` counts skipped objects. `compared_groups` counts groups reached for comparison, separately from decision counts.
+`*_in_scope` counts the full selected type inventory. `*_outside_object_filter` counts objects skipped by `--name`; `*_excluded_by_policy` counts objects skipped by policy name lists. `compared_groups` counts groups reached for comparison, separately from decision counts.
 
 | Metric | Count |
 | --- | ---: |
 {{range .Coverage}}| {{cell .Name}} | {{cell .Value}} |
 {{end}}
+{{if .ExcludedObjects}}
+### Configurations excluded by policy
+
+These configurations were not validated. They remain available as matching and reference context.
+
+| Type | Object | Reason |
+| --- | --- | --- |
+{{range .ExcludedObjects}}| {{cell .Type}} | {{cell .Key}} | {{cell .Reason}} |
+{{end}}{{end}}
 ## Objects
 {{if .Groups}}
 | Type | Object | Presence | Grouped findings | Underlying displayed decisions |
@@ -91,9 +100,9 @@ No decisions to display.
 {{end}}
 ## Diagnostics
 {{if .Diagnostics}}
-| Diagnostic | Rule | Type | Side | Required |
-| --- | --- | --- | --- | --- |
-{{range .Diagnostics}}| {{cell .Code}} | {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} | {{.Required}} |
+| Diagnostic | Rule | Type | Object | Side | Required |
+| --- | --- | --- | --- | --- | --- |
+{{range .Diagnostics}}| {{cell .Code}} | {{cell .RuleID}} | {{cell .Type}} | {{cell .Key}} | {{cell .Side}} | {{.Required}} |
 {{end}}{{else}}
 No diagnostics to display.
 {{end}}{{if .UnusedOptional}}
