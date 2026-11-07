@@ -1391,7 +1391,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
-| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name | `identity-object-config.json` in the same directory |
+| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; nested attribute-source reference IDs excluded | `identity-object-config.json` in the same directory |
 | ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target | `attribute-sync.json` in the same directory |
 | ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
@@ -1499,11 +1499,21 @@ strings and unique within the array; missing, null, invalid, or duplicate names
 produce a conflict rather than positional matching. Added, removed, or renamed
 attributes remain differences.
 
-Other fields remain comparable, including nested `attributeSources`. This rule
-only aligns the outer attribute definitions; it does not change nested array
-ordering, exclude reference IDs, approve different values, or supply deployment
-expectations. Reports show the identity attribute name alongside the original
-input paths.
+The outer collection rule only aligns attribute definitions; nested
+`attributeSources` arrays retain ordered comparison. All ISC profiles also exclude
+these nested reference IDs through the same type pack:
+
+| Path | Rule ID |
+| --- | --- |
+| `/objectAttributeDetails/*/attributeSources/*/ruleRef/id` | `isc.IDENTITY_OBJECT_CONFIG.attribute-source-rule-id` |
+| `/objectAttributeDetails/*/attributeSources/*/applicationRef/id` | `isc.IDENTITY_OBJECT_CONFIG.attribute-source-application-id` |
+
+Reference names, types, and other fields remain comparable. These exclusions apply
+to every attribute and source entry in drift and deployment. List either rule ID
+in `disabled_rules` to restore its ID comparison and deployment coverage
+requirements. Matching and exclusions do not approve differing values or supply
+deployment expectations. Reports show the identity attribute name alongside the
+original input paths.
 
 The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
 `internal/iscprofile/packs/identity-object-config.json`. No local policy entry is

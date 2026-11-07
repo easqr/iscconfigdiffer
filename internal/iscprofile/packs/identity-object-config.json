@@ -17,6 +17,18 @@
         "item_label": "Identity attribute",
         "display_fields": [{"label": "Name", "path": "/name"}]
       }
+    ],
+    "ignores": [
+      {
+        "id": "isc.IDENTITY_OBJECT_CONFIG.attribute-source-rule-id",
+        "type": "IDENTITY_OBJECT_CONFIG",
+        "path": "/objectAttributeDetails/*/attributeSources/*/ruleRef/id"
+      },
+      {
+        "id": "isc.IDENTITY_OBJECT_CONFIG.attribute-source-application-id",
+        "type": "IDENTITY_OBJECT_CONFIG",
+        "path": "/objectAttributeDetails/*/attributeSources/*/applicationRef/id"
+      }
     ]
   }
 }

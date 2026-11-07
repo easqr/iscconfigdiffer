@@ -660,11 +660,21 @@ strings and unique within the array; missing, null, invalid, or duplicate names
 produce a conflict rather than positional matching. Added, removed, or renamed
 attributes remain differences.
 
-Other fields remain comparable, including nested `attributeSources`. This rule
-only aligns the outer attribute definitions; it does not change nested array
-ordering, exclude reference IDs, approve different values, or supply deployment
-expectations. Reports show the identity attribute name alongside the original
-input paths.
+The outer collection rule only aligns attribute definitions; nested
+`attributeSources` arrays retain ordered comparison. All ISC profiles also exclude
+these nested reference IDs through the same type pack:
+
+| Path | Rule ID |
+| --- | --- |
+| `/objectAttributeDetails/*/attributeSources/*/ruleRef/id` | `isc.IDENTITY_OBJECT_CONFIG.attribute-source-rule-id` |
+| `/objectAttributeDetails/*/attributeSources/*/applicationRef/id` | `isc.IDENTITY_OBJECT_CONFIG.attribute-source-application-id` |
+
+Reference names, types, and other fields remain comparable. These exclusions apply
+to every attribute and source entry in drift and deployment. List either rule ID
+in `disabled_rules` to restore its ID comparison and deployment coverage
+requirements. Matching and exclusions do not approve differing values or supply
+deployment expectations. Reports show the identity attribute name alongside the
+original input paths.
 
 The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
 `internal/iscprofile/packs/identity-object-config.json`. No local policy entry is

@@ -36,7 +36,7 @@ func TestIdentityObjectConfigNamedAttributes(t *testing.T) {
 				if mode == "deployment" {
 					status, role, other = "violation", "source", "actual"
 					req.Operations = []v2.Operation{{Type: "IDENTITY_OBJECT_CONFIG", Key: "Invented", Action: "update"}}
-					for i, path := range []string{"/name", "/objectAttributeDetails/*/name", "/objectAttributeDetails/*/displayName", "/objectAttributeDetails/*/attributeSources/*/ruleRef/id", "/objectAttributeDetails/*/attributeSources/*/ruleRef/name", "/objectAttributeDetails/*/attributeSources/*/ruleRef/type"} {
+					for i, path := range []string{"/name", "/objectAttributeDetails/*/name", "/objectAttributeDetails/*/displayName", "/objectAttributeDetails/*/attributeSources/*/ruleRef/name", "/objectAttributeDetails/*/attributeSources/*/ruleRef/type"} {
 						p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule("copy-" + strconv.Itoa(i)), Selector: v2.Selector{Type: "IDENTITY_OBJECT_CONFIG", Path: path}, Operation: "copy_source", Authority: "invented-release"})
 					}
 					if profile != "isc-portable-v2" {
