@@ -652,6 +652,25 @@ excluded by this rule. Reports attribute it to the common portable pack.
 Disable the concrete expanded rule ID (for example `isc.ROLE.owner-id`) to restore
 normal comparison/deployment coverage for that type.
 
+## IDENTITY_OBJECT_CONFIG attribute matching
+
+All ISC profiles match `/objectAttributeDetails` entries by their exact,
+case-sensitive `/name`, independently of array order. Names must be nonblank
+strings and unique within the array; missing, null, invalid, or duplicate names
+produce a conflict rather than positional matching. Added, removed, or renamed
+attributes remain differences.
+
+Other fields remain comparable, including nested `attributeSources`. This rule
+only aligns the outer attribute definitions; it does not change nested array
+ordering, exclude reference IDs, approve different values, or supply deployment
+expectations. Reports show the identity attribute name alongside the original
+input paths.
+
+The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
+`internal/iscprofile/packs/identity-object-config.json`. No local policy entry is
+needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
+explicit same-selector replacement for a structural exception.
+
 ## ATTR_SYNC_SOURCE_CONFIG attribute matching
 
 All ISC profiles compare `/attributes` as a keyed collection using each complex

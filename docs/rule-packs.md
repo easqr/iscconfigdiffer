@@ -8,6 +8,7 @@ An implementation policy adds environment decisions without copying those files.
 | --- | --- | --- |
 | Common ISC defaults | `common`, `envelope`, `portable` | Identities, null handling, envelope expectations, selected metadata exclusions |
 | SOURCE defaults | `source`, `source-portable` | Schema/provisioning structure and specific generated/reference ID exclusions |
+| IDENTITY_OBJECT_CONFIG defaults | `identity-object-config` | Attribute definitions matched by name |
 | Connector defaults | `active-directory`, `microsoft-entra` | Connector-specific array keys, conditional applicability, display labels |
 | Implementation | The user's policy | Environment mapping extensions, approved differences, authoritative expectations, explicit overrides |
 

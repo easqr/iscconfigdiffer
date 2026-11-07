@@ -1,0 +1,22 @@
+{
+  "id": "isc.identity-object-config",
+  "version": 1,
+  "layer": "type",
+  "profiles": ["isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"],
+  "rules": {
+    "version": 2,
+    "id": "isc.identity-object-config",
+    "collections": [
+      {
+        "id": "isc.IDENTITY_OBJECT_CONFIG.object-attribute-details",
+        "type": "IDENTITY_OBJECT_CONFIG",
+        "path": "/objectAttributeDetails",
+        "mode": "keyed",
+        "keys": ["/name"],
+        "component_type": "string",
+        "item_label": "Identity attribute",
+        "display_fields": [{"label": "Name", "path": "/name"}]
+      }
+    ]
+  }
+}
