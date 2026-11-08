@@ -7,7 +7,7 @@ Those numbers belong to exported data and do not select a comparison implementat
 
 ## Schema and inventory
 
-The SDK-free exporter `snapshot` package owns `Artifact`, `Changes`, `Manifest`, and `Snapshot`. Exporter root types remain compatible aliases. Existing `Organize`, `FileStore`, `CurrentPath`, library consumers, and exporter CLI remain available. Exporter JSON/path helpers delegate to the shared package.
+The SDK-free exporter `snapshot` package owns `Artifact`, `Changes`, `Manifest`, and `Snapshot`, along with the shared JSON decoding, checksums and path validation. Exporter APIs use these types directly. For exporter filenames, manifest fields and Go reader modes, see the exporter's [Snapshot files and readers](https://gitlab.com/easqrtech/iam/iscconfigexporter/-/blob/main/docs/SNAPSHOTS.md) reference. This document describes the additional requirements for comparison inputs.
 
 Manifest schema 1 has `schema:1`, nonempty portable `tenant`, nonempty `job_id`, nonzero RFC3339 `completed`, distinct portable selected `types`, nonnegative per-type `counts`, `artifacts` (`path`, lowercase SHA-256), and publication `changes`. Unknown manifest metadata is represented in the manifest hash. Required contract property spellings are exact. Schema 1 has **no success-status field**; completion metadata does not prove remote job success or cryptographic authenticity.
 
