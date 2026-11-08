@@ -296,6 +296,32 @@ Exit `1` is an expected result when drift is found. If using a shell with
 `set -e` or a CI runner, handle exit `1` separately from exit `2` when collecting
 reports.
 
+### Reading source report sections
+
+Source findings are separated into **Connection settings**, **Schemas**,
+**Provisioning policies**, **Other settings**, and **Export metadata**. Connection
+settings come first, so paths such as `/connectorAttributes/clientID` and
+`/connectorAttributes/domainName` are not buried among schema details. HTML reports
+provide section links and a Section filter that combines with status and search.
+Markdown reports use the same section order and headings.
+
+An entirely missing `/schemas/<index>` item appears as one named finding, such as
+`Schema "group" missing from left (dev)`. Expand **Schema details** for its
+attributes, field comparisons, and informational normalization results. Full schema
+values are collapsed separately. A missing attribute inside a shared schema is
+still an attribute finding; it is not labeled as an entire missing schema.
+Explicit assertions, violations, conflicts, and unverified rule checks remain
+independent so grouping cannot hide a policy problem. Ordinary missing-subtree
+summaries also remain available for changes within shared schemas.
+
+Grouped finding counts count the summaries. Underlying decision counts retain
+all original comparisons, including nested details. Status and search filters can
+match nested details and automatically open the relevant details; they do not
+change totals or the comparison outcome. Container values and long text values are expandable, while short connection values remain visible.
+`--exclude-values` continues to omit values completely. Schema names and paths come
+from captured report context; renderers do not reread exports. JSON output, policy
+behavior, and exit codes are unchanged by this presentation.
+
 ## Input format and scope
 
 Inputs use the format produced by the sibling

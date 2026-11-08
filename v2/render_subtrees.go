@@ -76,6 +76,9 @@ func groupMissingSubtrees(decisions []Decision, views []humanDecision, roles []s
 	type parentKey struct{ space, status, role, id, artifact, path string }
 	parents := map[parentKey][]int{}
 	for i, d := range decisions {
+		if views[i].WholeSchema {
+			continue
+		}
 		role, ok := missingSubtreeSide(d, roles)
 		if !ok || d.Code != "container presence differs" {
 			continue
@@ -98,6 +101,9 @@ func groupMissingSubtrees(decisions []Decision, views []humanDecision, roles []s
 	owner := make([]int, len(decisions))
 	for i, d := range decisions {
 		owner[i] = -1
+		if views[i].WholeSchema {
+			continue
+		}
 		role, ok := missingSubtreeSide(d, roles)
 		if !ok {
 			continue
@@ -147,6 +153,10 @@ func groupMissingSubtrees(decisions []Decision, views []humanDecision, roles []s
 	out := make([]humanDecision, 0, len(views))
 	for i, view := range views {
 		if owner[i] >= 0 {
+			continue
+		}
+		if view.WholeSchema {
+			out = append(out, view)
 			continue
 		}
 		view.DecisionCount = 1 + len(view.Children)

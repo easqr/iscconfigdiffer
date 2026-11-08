@@ -26,7 +26,7 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 {{if .ObjectKey}}<tr><th scope="row">Object filter</th><td>{{.ObjectType}} &quot;{{.ObjectKey}}&quot;</td></tr>{{end}}
 </tbody></table>
 <p>{{.ValueNotice}} Paths are relative to the decision's <strong>content</strong> payload or <strong>metadata</strong> envelope. A <code>(root)</code> path selects that entire section. Array indices in locations are the original positions in each input; collection item keys explain alignment.</p>
-<p>Missing subtrees and changed transform implementations are shown as grouped findings, with nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless --matching is enabled. These counts are not object counts or independent problems.</p>
+<p>Missing schemas, missing subtrees, and changed transform implementations are shown as grouped findings, with nested decisions available in expandable details. Missing-schema summaries also include informational policy outcomes; explicit assertions and actionable rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless --matching is enabled. These counts are not object counts or independent problems.</p>
 <h2>Displayed findings</h2>
 {{if .FindingCounts}}<table class="summary"><thead><tr><th scope="col">Status</th><th scope="col">Grouped findings</th></tr></thead><tbody>{{range .FindingCounts}}<tr><td>{{.Status}}</td><td>{{.Count}}</td></tr>{{end}}</tbody></table>{{else}}<p>No findings to display.</p>{{end}}
 <p>{{.NestedDecisions}} decisions are nested within the findings below.</p>
@@ -44,22 +44,26 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 <h2>Decisions</h2>
 <div id="controls" hidden>
 <label>Search objects, paths or rules <input id="search" type="search" placeholder="Object name, field path, rule…"></label>
+<label>Section <select id="category"><option value="">All sections</option><option value="connection">Connection settings</option><option value="schemas">Schemas</option><option value="provisioning">Provisioning policies</option><option value="other">Other settings</option><option value="metadata">Export metadata</option></select></label>
 <label>Status <select id="status"><option value="">All statuses</option>{{range .Counts}}<option value="{{.Status}}">{{.Status}}</option>{{end}}</select></label>
 <button type="button" id="expand">Expand visible objects</button><button type="button" id="collapse">Collapse visible objects</button>
-<p id="filter-count" role="status" aria-live="polite"></p><p class="muted">Filters change only the displayed details. Comparison totals above remain unchanged.</p>
+<p id="filter-count" role="status" aria-live="polite"></p><p class="muted">Section, status, and search filters change only the displayed details. Status and search also match nested details. Comparison totals above remain unchanged.</p>
 </div>
 <noscript><p>Filtering requires JavaScript. All report content remains available through the expandable sections below.</p></noscript>
 {{range .Groups}}<details class="object-group" id="{{.ID}}" data-search="{{.Type}} {{.Key}}">
 <summary><strong>{{.Type}} — {{.Key}}</strong> {{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{end}}</summary>
 <div class="object-body"><p>{{.Presence}}</p><p>{{len .Decisions}} grouped findings representing {{.DecisionCount}} underlying displayed decisions.</p>
 {{if .Matching}}<details><summary>Object matching and artifacts</summary><table><tbody>{{range .Matching}}<tr><th scope="row">{{.Name}}</th><td><code>{{.Value}}</code></td></tr>{{end}}</tbody></table></details>{{end}}
-{{if .Decisions}}<div class="table-wrap"><table>{{template "decision-head"}}
-{{range .Decisions}}<tbody class="finding" data-status="{{.Status}}" data-decisions="{{.DecisionCount}}">
+{{if .Sections}}<nav aria-label="Report sections">{{range .Sections}}<a class="badge" href="#{{.ID}}">{{.Title}} ({{len .Decisions}})</a> {{end}}</nav>
+{{range .Sections}}<section class="finding-section" id="{{.ID}}" data-category="{{.Category}}">
+<h4>{{.Title}}</h4><p>{{len .Decisions}} grouped findings representing {{.DecisionCount}} underlying displayed decisions. {{range .Counts}}<span class="badge">{{.Status}}: {{.Count}}</span>{{end}}</p>
+<div class="table-wrap"><table>{{template "decision-head"}}
+{{range .Decisions}}<tbody class="finding" data-category="{{.Category}}" data-status="{{.Status}}" data-statuses="{{.StatusTokens}}" data-decisions="{{.DecisionCount}}">
 {{template "decision-row" .}}
-{{if .Children}}<tr><td colspan="3"><details class="subtree-details"><summary>Nested decisions ({{len .Children}})</summary><p>This finding represents {{.DecisionCount}} underlying decisions, including the parent. {{.ChildrenNotice}}</p>
+{{if .Children}}<tr><td colspan="3"><details class="subtree-details"><summary>{{if .WholeSchema}}Schema details{{else}}Nested decisions{{end}} ({{len .Children}})</summary><p>This finding represents {{.DecisionCount}} underlying decisions, including the parent. {{.ChildrenNotice}}</p>
 <table>{{template "decision-head"}}<tbody>{{range .Children}}{{template "decision-row" .}}{{end}}</tbody></table>
 </details></td></tr>{{end}}
-</tbody>{{end}}</table></div>{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
+</tbody>{{end}}</table></div></section>{{end}}{{else}}<p>No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.</p>{{end}}
 </div></details>{{else}}<p>No decisions to display.</p>{{end}}
 {{if .ExcludedObjects}}<details><summary>Configurations excluded by policy: {{len .ExcludedObjects}}</summary><p>These configurations were not validated. They remain available as matching and reference context.</p><table><thead><tr><th>Type</th><th>Object</th><th>Reason</th></tr></thead><tbody>{{range .ExcludedObjects}}<tr><td>{{.Type}}</td><td>{{.Key}}</td><td>{{.Reason}}</td></tr>{{end}}</tbody></table></details>{{end}}
 <h2>Diagnostics</h2>
@@ -71,6 +75,7 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
   const groups = Array.from(document.querySelectorAll('.object-group'));
   const search = document.getElementById('search');
   const status = document.getElementById('status');
+  const category = document.getElementById('category');
   const rows = groups.flatMap(group => Array.from(group.querySelectorAll('.finding')));
   document.getElementById('controls').hidden = false;
   function filter() {
@@ -81,17 +86,18 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
       const groupMatch = group.dataset.search.toLowerCase().includes(query);
       const groupRows = Array.from(group.querySelectorAll('.finding'));
       groupRows.forEach(row => {
-        row.hidden = Boolean((status.value && row.dataset.status !== status.value) || (query && !groupMatch && !row.textContent.toLowerCase().includes(query)));
+        row.hidden = Boolean((category.value && row.dataset.category !== category.value) || (status.value && !row.dataset.statuses.split(' ').includes(status.value)) || (query && !groupMatch && !row.textContent.toLowerCase().includes(query)));
         if (!row.hidden) {
           visibleRows++;
           represented += Number(row.dataset.decisions);
-          if (query && !groupMatch) row.querySelectorAll('.subtree-details').forEach(detail => {
-            if (detail.textContent.toLowerCase().includes(query)) detail.open = true;
+          if ((query && !groupMatch) || (status.value && row.dataset.status !== status.value)) row.querySelectorAll('.subtree-details').forEach(detail => {
+            if ((query && detail.textContent.toLowerCase().includes(query)) || status.value) detail.open = true;
           });
         }
       });
-      group.hidden = groupRows.length ? visibleRows === 0 : Boolean(status.value || !groupMatch);
-      if (!group.hidden) { visibleGroups++; shown += visibleRows; if (query || status.value) group.open = true; }
+      group.querySelectorAll('.finding-section').forEach(section => { section.hidden = !Array.from(section.querySelectorAll('.finding')).some(row => !row.hidden); });
+      group.hidden = groupRows.length ? visibleRows === 0 : Boolean(status.value || category.value || !groupMatch);
+      if (!group.hidden) { visibleGroups++; shown += visibleRows; if (query || status.value || category.value) group.open = true; }
       const index = document.querySelector('[data-group="' + group.id + '"]');
       if (index) index.hidden = group.hidden;
     });
@@ -99,9 +105,10 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
   }
   search.addEventListener('input', filter);
   status.addEventListener('change', filter);
+  category.addEventListener('change', filter);
   document.getElementById('expand').addEventListener('click', () => groups.forEach(group => { if (!group.hidden) group.open = true; }));
   document.getElementById('collapse').addEventListener('click', () => groups.forEach(group => { if (!group.hidden) group.open = false; }));
-  function openAnchor() { const group = document.getElementById(location.hash.slice(1)); if (group && group.classList.contains('object-group')) group.open = true; }
+  function openAnchor() { const target = document.getElementById(location.hash.slice(1)); const group = target && (target.classList.contains('object-group') ? target : target.closest('.object-group')); if (group) group.open = true; }
   window.addEventListener('hashchange', openAnchor);
   filter(); openAnchor();
 }());
@@ -109,8 +116,8 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 </body></html>
 
 {{define "decision-head"}}<thead><tr><th scope="col">Status / explanation</th><th scope="col">Locations</th><th scope="col">Policy and provenance</th></tr></thead>{{end}}
-{{define "decision-row"}}<tr class="decision-row" data-status="{{.Status}}"><td><strong>{{.Status}}</strong>{{if .FindingTitle}}<p><strong>{{.FindingTitle}}</strong> · Underlying decisions: {{.DecisionCount}}</p>{{end}}<p>{{.Explanation}}</p><p>Reason: <code>{{.Code}}</code></p>{{if .Space}}<p>Section: {{.Space}}</p>{{end}}</td>
-<td>{{range .Locations}}<div class="location"><strong>{{.Role}}</strong>: {{.State}}{{if .Kind}} ({{.Kind}}){{end}}<br>{{range .Context}}<p class="item-context"><strong>{{.Label}}</strong>{{range .Fields}}<br>{{.Label}}: <strong class="pre">{{.Value}}</strong>{{end}}</p>{{end}}<code>{{.Pointer}}</code><p>Value: <code>{{.Value}}</code></p>{{if .Artifact}}<details><summary>Artifact</summary><p><code>{{.Artifact}}</code></p><p>ID: <code>{{.ID}}</code></p></details>{{end}}</div>{{end}}{{if .ItemKeys}}<p>Collection item keys (outer to inner):</p><ul>{{range .ItemKeys}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}</td>
+{{define "decision-row"}}{{$decision := .}}<tr class="decision-row" data-status="{{.Status}}"><td><strong>{{.Status}}</strong>{{if .FindingTitle}}<p><strong>{{.FindingTitle}}</strong> · Underlying decisions: {{.DecisionCount}}</p>{{end}}<p>{{.Explanation}}</p><p>Reason: <code>{{.Code}}</code></p>{{if .Space}}<p>Section: {{.Space}}</p>{{end}}</td>
+<td>{{range .Locations}}<div class="location"><strong>{{.Role}}</strong>: {{.State}}{{if .Kind}} ({{.Kind}}){{end}}<br>{{range .Context}}<p class="item-context"><strong>{{.Label}}</strong>{{range .Fields}}<br>{{.Label}}: <strong class="pre">{{.Value}}</strong>{{end}}</p>{{end}}<code>{{.Pointer}}</code>{{if or $decision.WholeSchema .CollapseValue}}<details><summary>{{if $decision.WholeSchema}}Schema value{{else}}Configuration value{{end}}</summary><code>{{.Value}}</code></details>{{else}}<p>Value: <code>{{.Value}}</code></p>{{end}}{{if .Artifact}}<details><summary>Artifact</summary><p><code>{{.Artifact}}</code></p><p>ID: <code>{{.ID}}</code></p></details>{{end}}</div>{{end}}{{if .ItemKeys}}<p>Collection item keys (outer to inner):</p><ul>{{range .ItemKeys}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}</td>
 <td>{{if .Normalization}}<p>Normalization: <code>{{.Normalization}}</code></p>{{end}}{{if .ExpectedRole}}<p>Expected ({{.ExpectedRole}}): <code>{{.ExpectedValue}}</code></p>{{end}}{{if .RuleID}}Rule: <code>{{.RuleID}}</code>{{else}}No policy rule applied.{{end}}{{if .Authority}}<p>Authority: {{.Authority}}</p>{{end}}{{if .Replaces}}<p>Replaces: {{.Replaces}}</p>{{end}}
 {{if .Evidence}}<details><summary>Evidence</summary><dl>{{range .Evidence}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}
 {{if .Extensions}}<details><summary>Collection mapping extensions</summary><dl>{{range .Extensions}}{{if .Value}}<dt>{{.Name}}</dt><dd class="pre">{{.Value}}</dd>{{end}}{{end}}</dl></details>{{end}}

@@ -11,7 +11,7 @@
 {{end}}
 {{.ValueNotice}} Locations are JSON Pointers relative to the content payload or metadata envelope; `(root)` means the entire section. Array indices identify original input positions; item keys explain alignment.
 
-Missing subtrees and changed transform implementations are shown as grouped findings, with nested decisions available in expandable details. Explicit rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless `--matching` is enabled. These counts are not object counts or independent problems.
+Missing schemas, missing subtrees, and changed transform implementations are shown as grouped findings, with nested decisions available in expandable details. Missing-schema summaries also include informational policy outcomes; explicit assertions and actionable rule checks remain separate. Grouped finding counts describe displayed entries; underlying decision counts retain every comparison decision, including ordinary equal leaves that may be omitted unless `--matching` is enabled. These counts are not object counts or independent problems.
 
 ## Displayed findings
 {{if .FindingCounts}}
@@ -91,8 +91,12 @@ Object matching and artifacts:
 | Field | Value |
 | --- | --- |
 {{range .Matching}}| {{cell .Name}} | {{cell .Value}} |
-{{end}}{{end}}{{range .Decisions}}
-{{template "decision" .}}
+{{end}}{{end}}{{range .Sections}}
+#### {{cell .Title}}
+
+{{len .Decisions}} grouped findings representing {{.DecisionCount}} underlying displayed decisions.
+{{range .Decisions}}
+{{template "decision" .}}{{end}}
 {{else}}
 No displayed decisions for this object. Ordinary equal leaves may be omitted; review the comparison totals and diagnostics.
 {{end}}{{else}}
@@ -115,7 +119,7 @@ These rules did not apply. They do not by themselves make the comparison incompl
 {{range .OptionalDiagnostics}}| {{cell .RuleID}} | {{cell .Type}} | {{cell .Side}} |
 {{end}}{{end}}
 
-{{define "decision"}}{{if .Nested}}#####{{else}}####{{end}} {{cell .Status}} — {{if .FindingTitle}}{{cell .FindingTitle}}{{else}}{{cell .Code}}{{end}}
+{{define "decision"}}{{$decision := .}}{{if .Nested}}######{{else}}#####{{end}} {{cell .Status}} — {{if .FindingTitle}}{{cell .FindingTitle}}{{else}}{{cell .Code}}{{end}}
 
 {{cell .Explanation}}
 {{if .FindingTitle}}
@@ -129,7 +133,16 @@ Section: {{cell .Space}}
 {{end}}{{end}}
 | Role | Presence | JSON type | Path | Value | Artifact | ID |
 | --- | --- | --- | --- | --- | --- | --- |
-{{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{cell .Value}} | {{cell .Artifact}} | {{cell .ID}} |
+{{range .Locations}}| {{cell .Role}} | {{cell .State}} | {{cell .Kind}} | {{cell .Pointer}} | {{if or $decision.WholeSchema .CollapseValue}}See expandable values{{else}}{{cell .Value}}{{end}} | {{cell .Artifact}} | {{cell .ID}} |
+{{end}}{{if .HasCollapsedValues}}
+<details>
+<summary>{{if .WholeSchema}}Schema values{{else}}Configuration values{{end}}</summary>
+
+| Role | Value |
+| --- | --- |
+{{range .Locations}}| {{cell .Role}} | {{cell .Value}} |
+{{end}}
+</details>
 {{end}}{{if .ItemKeys}}
 Collection item keys (outer to inner):
 
@@ -178,7 +191,7 @@ Expected result derived from:
 {{range .Derivation}}| {{cell .Name}} | {{cell .Value}} |
 {{end}}{{end}}{{if .Children}}
 <details>
-<summary>Nested decisions ({{len .Children}})</summary>
+<summary>{{if .WholeSchema}}Schema details{{else}}Nested decisions{{end}} ({{len .Children}})</summary>
 
 This finding represents {{.DecisionCount}} underlying decisions, including the parent. {{.ChildrenNotice}}
 

@@ -23,10 +23,14 @@ type humanInput struct {
 	Fields []reportField
 }
 type humanLocation struct {
+	CollapseValue                                                   bool
 	Role, State, Kind, Pointer, ID, Artifact, Value, ContextSummary string
 	Context                                                         []ItemContext
 }
 type humanDecision struct {
+	HasCollapsedValues                                            bool
+	Category, StatusTokens                                        string
+	WholeSchema                                                   bool
 	FindingTitle, ChildrenNotice                                  string
 	Children                                                      []humanDecision
 	Nested                                                        bool
@@ -44,12 +48,19 @@ type humanDecision struct {
 	Derivation                                                    []reportField
 }
 type humanGroup struct {
+	Sections                []humanSection
 	DecisionCount           int
 	ID, Type, Key, Presence string
 	Matches                 int
 	Matching                []reportField
 	Counts                  []statusCount
 	Decisions               []humanDecision
+}
+type humanSection struct {
+	ID, Category, Title string
+	Decisions           []humanDecision
+	Counts              []statusCount
+	DecisionCount       int
 }
 type humanReport struct {
 	ValueNotice                                            string
@@ -122,10 +133,13 @@ func locationView(role string, loc Location) humanLocation {
 	if path == "" {
 		path = "(root)"
 	}
-	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: valueView(loc.Value), Context: loc.Context, ContextSummary: contextSummary(loc.Context)}
+	value := valueView(loc.Value)
+	collapse := loc.Value != nil && loc.Value.State == "present" && (loc.ValueKind == "object" || loc.ValueKind == "array" || len(value) > 240)
+	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: value, CollapseValue: collapse, Context: loc.Context, ContextSummary: contextSummary(loc.Context)}
 }
 func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
 	out := humanDecision{Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	out.Category = decisionCategory(d)
 	scopes := d.Items
 	if d.Item != nil {
 		scopes = []CollectionItemSelector{*d.Item}
@@ -332,10 +346,14 @@ func (r Report) humanView() humanReport {
 	for _, g := range groups {
 		token := physical(g.Type, g.Key)
 		g.DecisionCount = len(g.Decisions)
-		remaining, views := groupTransformImplementations(decisions[token], g.Decisions, roles)
+		remaining, views := groupMissingSchemas(decisions[token], g.Decisions, roles, r.Inputs)
+		remaining, views = groupTransformImplementations(remaining, views, roles)
 		g.Decisions = groupMissingSubtrees(remaining, views, roles)
 		counts := map[string]int{}
-		for _, d := range g.Decisions {
+		for i := range g.Decisions {
+			d := &g.Decisions[i]
+			d.StatusTokens = decisionStatuses(*d)
+			markCollapsedValues(d)
 			counts[d.Status]++
 			findingCounts[d.Status]++
 		}
@@ -365,6 +383,7 @@ func (r Report) humanView() humanReport {
 	})
 	for i := range v.Groups {
 		v.Groups[i].ID = fmt.Sprintf("object-%d", i+1)
+		v.Groups[i].Sections = decisionSections(v.Groups[i])
 	}
 	for _, d := range r.Diagnostics {
 		if d.Code == "unused rule" && !d.Required {

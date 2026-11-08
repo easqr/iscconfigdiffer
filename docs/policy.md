@@ -1257,3 +1257,27 @@ comparison semantics. Omitting `--mode` selects drift and still produces report 
 Automated verification uses invented data only. Both module test suites, race
 tests, vet, build and formatting checks are required before marking the seven
 slices complete. See [implementation evidence](implementation.md).
+
+## Human report sections and missing-schema summaries
+
+HTML and Markdown divide findings by captured content paths: `connectorAttributes`
+(Connection settings), `schemas` (Schemas), `provisioningPolicies` (Provisioning
+policies), other content (Other settings), and the metadata envelope (Export
+metadata). Sections retain separate grouped-finding and underlying-decision counts.
+The HTML Section filter composes with status and text search. A decision whose
+roles do not agree on a section remains in Other settings.
+
+A missing concrete `/schemas/<index>` object is a single named finding with
+expandable descendants and schema values. Only physical ancestry consistent across
+all roles establishes ownership. Redacted, malformed, or ambiguous locations are
+not used to infer a schema relationship. Missing attributes inside a shared schema
+remain separate from whole-schema absence. Informational equal/equivalent/excluded
+outcomes can be nested with their original provenance; authoritative assertions,
+violations, conflicts, and ruled unverified checks remain independent.
+
+HTML filters also match nested statuses and text. A matching summary can therefore
+contain details with other statuses; counts and outcomes are never recomputed from
+filters. Container values and long text values are collapsed
+in both human formats. This is presentation only: JSON decisions, locations,
+values, policy usage, and completeness/correctness remain unchanged. Value omission
+and sensitive-data redaction apply before rendering.
