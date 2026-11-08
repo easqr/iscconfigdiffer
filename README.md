@@ -1486,6 +1486,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs, and modifier name | `workflow.json` in the same directory |
+| LIFECYCLE_STATE defaults | Account-action source references matched by name; reference IDs and redundant account actions excluded | `lifecycle-state.json` in the same directory |
 | Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
@@ -1821,6 +1822,30 @@ The exported field is `creator`, not `create`. These rules are declared in
 other fields remain comparable, as do identical paths on other configuration types.
 List a rule ID in `disabled_rules` to restore that field's comparison and deployment coverage
 requirements. No implementation-policy mapping is needed.
+
+### LIFECYCLE_STATE account actions
+
+All ISC profiles match `/accountActionRefs/*/sourceIdsRefs` entries by `/name`,
+so source-reference array order does not affect equivalence. Names must be unique
+within each source-reference array; missing or duplicate keys are reported as
+conflicts. Reference types and other fields remain comparable.
+
+These defaults apply in drift and deployment and are declared in
+`internal/iscprofile/packs/lifecycle-state.json`:
+
+| Rule ID | Behavior |
+| --- | --- |
+| `isc.LIFECYCLE_STATE.account-action-sources` | Match source references by name |
+| `isc.LIFECYCLE_STATE.account-action-source-id` | Exclude `/accountActionRefs/*/sourceIdsRefs/*/id` |
+| `isc.LIFECYCLE_STATE.account-actions` | Exclude the redundant `/accountActions` subtree |
+| `isc.LIFECYCLE_STATE.identity-profile-id` | Exclude `/identityProfileRef/id`; keep comparing its name and type |
+
+The wildcard covers every account-action entry. The outer `/accountActionRefs`
+array retains its normal positional comparison. Other configuration types are
+unaffected. No local policy entries are needed; use `disabled_rules` to disable
+individual defaults. The identity-profile ID still resolves the parent when
+matching lifecycle states; excluding it from comparison does not change that
+association.
 
 ### SOURCE correlation references
 

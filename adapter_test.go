@@ -72,6 +72,8 @@ func TestISCDependenciesAndProfiles(t *testing.T) {
 	}
 	left, right := makeIn("dev", "l"), makeIn("prod", "r")
 	p := portable()
+	// This test explicitly validates parent-reference correspondence instead of exclusion.
+	p.DisabledRules = []string{"isc.LIFECYCLE_STATE.identity-profile-id"}
 	p.References = []v2.Reference{{Rule: rule("parent"), Selector: v2.Selector{Type: "LIFECYCLE_STATE", Path: "/identityProfileRef/id"}, TargetType: "IDENTITY_PROFILE"}}
 	r := compareTest(t, Request{Mode: "drift", Left: left, Right: right}, p)
 	if r.ExitCode() != 0 || r.Counts["equivalent"] != 1 {

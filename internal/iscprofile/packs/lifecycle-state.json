@@ -1,0 +1,39 @@
+{
+  "id": "isc.lifecycle-state",
+  "version": 1,
+  "layer": "type",
+  "profiles": ["isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"],
+  "rules": {
+    "version": 2,
+    "id": "isc.lifecycle-state",
+    "collections": [
+      {
+        "id": "isc.LIFECYCLE_STATE.account-action-sources",
+        "type": "LIFECYCLE_STATE",
+        "path": "/accountActionRefs/*/sourceIdsRefs",
+        "mode": "keyed",
+        "keys": ["/name"],
+        "component_type": "string",
+        "item_label": "Account action source",
+        "display_fields": [{"label": "Name", "path": "/name"}]
+      }
+    ],
+    "ignores": [
+      {
+        "id": "isc.LIFECYCLE_STATE.identity-profile-id",
+        "type": "LIFECYCLE_STATE",
+        "path": "/identityProfileRef/id"
+      },
+      {
+        "id": "isc.LIFECYCLE_STATE.account-action-source-id",
+        "type": "LIFECYCLE_STATE",
+        "path": "/accountActionRefs/*/sourceIdsRefs/*/id"
+      },
+      {
+        "id": "isc.LIFECYCLE_STATE.account-actions",
+        "type": "LIFECYCLE_STATE",
+        "path": "/accountActions"
+      }
+    ]
+  }
+}
