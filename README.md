@@ -1486,6 +1486,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs, and modifier name | `workflow.json` in the same directory |
+| SPS_PARAMETER defaults | Public/private modification timestamps and modifier subtrees excluded | `sps-parameter.json` in the same directory |
 | LIFECYCLE_STATE defaults | Account-action source references matched by name; reference IDs and redundant account actions excluded | `lifecycle-state.json` in the same directory |
 | Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
@@ -1839,6 +1840,25 @@ and identical paths on other configuration types retain normal comparison.
 These declarations live in `internal/iscprofile/packs/access-profile.json`.
 No local policy mapping is needed. Add either rule ID to `disabled_rules` to
 restore its ID comparison and deployment coverage requirements.
+
+### SPS_PARAMETER modification metadata
+
+All ISC profiles exclude these SPS_PARAMETER fields in drift and deployment:
+
+| Path | Rule ID |
+| --- | --- |
+| `/lastModifiedAt` | `isc.SPS_PARAMETER.last-modified-at` |
+| `/lastModifiedBy` | `isc.SPS_PARAMETER.last-modified-by` |
+| `/privateFieldsLastModifiedAt` | `isc.SPS_PARAMETER.private-fields-last-modified-at` |
+| `/privateFieldsLastModifiedBy` | `isc.SPS_PARAMETER.private-fields-last-modified-by` |
+
+Both modifier exclusions cover the entire subtree, including IDs, names, types,
+and any other nested attributes. Parameter settings remain comparable, and these
+exclusions do not apply to other configuration types.
+
+The rules live in `internal/iscprofile/packs/sps-parameter.json`. No local policy
+entries are needed. Add a rule ID to `disabled_rules` to restore comparison and
+deployment coverage requirements for that field.
 
 ### WORKFLOW creator and modifier references
 
