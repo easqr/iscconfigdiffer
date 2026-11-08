@@ -1460,7 +1460,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
-| Connector defaults | AD forest/domain structure; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
+| Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
 The [JSON rule packs](internal/iscprofile/packs) are embedded in the executable.
@@ -1503,6 +1503,17 @@ replacing a disabled rule, or extending a disabled collection are errors. These
 are explicit choices, not file-order precedence. Reports retain shipped-pack
 versions/digests, rule evidence, extension provenance, replacements, and disabled
 IDs so a result can be traced to its effective policy.
+
+### Active Directory recommendation status
+
+Active Directory sources exclude `/connectorAttributes/recommendationStatus`
+under all ISC profiles in drift and deployment. The shipped connector rule
+`isc.SOURCE.ad-recommendation-status` applies to every recognized Active Directory
+source, regardless of its name. It excludes the field even when missing, null,
+or differently shaped on the other side. Other connector types and adjacent
+attributes remain comparable. This is a shipped comparison choice; no local policy
+entry is needed. Add the rule ID to `disabled_rules` to restore comparison and
+normal deployment coverage requirements.
 
 ### Microsoft Entra subscribed SKUs
 

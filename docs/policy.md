@@ -1010,6 +1010,15 @@ extensions; definitions are not automatically reused. Separate drift equivalence
 accept the mapped field values. Structural exceptions require full same-selector
 replacements, including the connector variant.
 
+Active Directory sources exclude `/connectorAttributes/recommendationStatus`
+under all ISC profiles in drift and deployment. The shipped connector rule
+`isc.SOURCE.ad-recommendation-status` applies to every recognized Active Directory
+source, regardless of its name. It excludes the field even when missing, null,
+or differently shaped on the other side. Other connector types and adjacent
+attributes remain comparable. This is a shipped comparison choice; no local policy
+entry is needed. Add the rule ID to `disabled_rules` to restore comparison and
+normal deployment coverage requirements.
+
 The Entra pack excludes the entire `/connectorAttributes/subscribedSkus`
 subtree with `isc.SOURCE.entra-subscribed-skus`, scoped to
 `variant:"microsoft-entra"`, in all built-in profiles and both modes. Nested

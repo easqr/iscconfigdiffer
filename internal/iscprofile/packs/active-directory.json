@@ -10,6 +10,14 @@
   "rules": {
     "version": 2,
     "id": "isc.active-directory",
+    "ignores": [
+      {
+        "id": "isc.SOURCE.ad-recommendation-status",
+        "type": "SOURCE",
+        "variant": "active-directory",
+        "path": "/connectorAttributes/recommendationStatus"
+      }
+    ],
     "collections": [
       {
         "id": "isc.SOURCE.ad-forests",
