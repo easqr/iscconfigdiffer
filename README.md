@@ -1479,7 +1479,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | --- | --- | --- |
 | ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
 | SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
-| IDENTITY_PROFILE defaults | Relative priority order in drift | `identity-profile.json` in the same directory |
+| IDENTITY_PROFILE defaults | Relative priority order in drift; attribute transforms matched by identity attribute name and source IDs excluded | `identity-profile.json` in the same directory |
 | IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; attribute-source precedence and reference-ID exclusions | `identity-object-config.json` in the same directory |
 | ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target | `attribute-sync.json` in the same directory |
 | ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
@@ -1638,6 +1638,35 @@ The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
 `internal/iscprofile/packs/identity-object-config.json`. No local policy entry is
 needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
 explicit same-selector replacement for a structural exception.
+
+### IDENTITY_PROFILE attribute transforms
+
+All ISC profiles match `/identityAttributeConfig/attributeTransforms` entries by
+`identityAttributeName` in drift and deployment. Array order does not affect
+equivalence; duplicate or missing names produce conflicts.
+
+Every nested transform setting remains comparable except
+`/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceId`.
+For example, `sourceName`, `attributeName`, transform types, and nested transform
+inputs are checked normally. The exclusion does not cover other `sourceId` paths
+deeper inside a transform. Matching aligns entries; it does not approve different
+transform definitions or supply deployment expectations.
+
+HTML and Markdown reports group findings into sections named for each identity
+attribute, with context identifying the attribute and the original JSON paths
+from both inputs. Missing context falls back to a general identity-transform
+section. JSON reports retain the individual decisions and captured context.
+
+These defaults live in `internal/iscprofile/packs/identity-profile.json`:
+
+| Rule ID | Behavior |
+| --- | --- |
+| `isc.IDENTITY_PROFILE.attribute-transforms` | Match entries by `identityAttributeName` and capture report context |
+| `isc.IDENTITY_PROFILE.attribute-transform-source-id` | Exclude the direct transform source ID |
+
+No local policy entries are needed. Add a rule ID to `disabled_rules` to restore
+positional comparison or source-ID comparison, respectively. Other configuration
+types retain normal comparison.
 
 ### Relative priority and attribute-source precedence
 

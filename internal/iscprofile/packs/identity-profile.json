@@ -6,6 +6,25 @@
   "rules": {
     "version": 2,
     "id": "isc.identity-profile",
+    "collections": [
+      {
+        "id": "isc.IDENTITY_PROFILE.attribute-transforms",
+        "type": "IDENTITY_PROFILE",
+        "path": "/identityAttributeConfig/attributeTransforms",
+        "mode": "keyed",
+        "keys": ["/identityAttributeName"],
+        "component_type": "string",
+        "item_label": "Identity attribute transform",
+        "display_fields": [{"label": "Identity attribute", "path": "/identityAttributeName"}]
+      }
+    ],
+    "ignores": [
+      {
+        "id": "isc.IDENTITY_PROFILE.attribute-transform-source-id",
+        "type": "IDENTITY_PROFILE",
+        "path": "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceId"
+      }
+    ],
     "equivalences": [
       {
         "id": "isc.IDENTITY_PROFILE.priority-order",

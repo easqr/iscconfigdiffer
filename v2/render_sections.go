@@ -1,6 +1,9 @@
 package v2
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 func markCollapsedValues(d *humanDecision) {
 	d.HasCollapsedValues = d.WholeSchema
@@ -32,6 +35,10 @@ func decisionCategory(d Decision) string {
 			current = "schemas"
 		case "provisioningPolicies":
 			current = "provisioning"
+		case "identityAttributeConfig":
+			if len(parts) > 1 && parts[1] == "attributeTransforms" {
+				current = "identity-transforms"
+			}
 		}
 		if category != "" && category != current {
 			return "other"
@@ -61,7 +68,11 @@ func decisionStatuses(d humanDecision) string {
 
 func decisionSections(g humanGroup) []humanSection {
 	out := []humanSection{}
-	for _, section := range []struct{ id, title string }{{"connection", "Connection settings"}, {"schemas", "Schemas"}, {"provisioning", "Provisioning policies"}, {"other", "Other settings"}, {"metadata", "Export metadata"}} {
+	for _, section := range []struct{ id, title string }{{"connection", "Connection settings"}, {"schemas", "Schemas"}, {"provisioning", "Provisioning policies"}, {"identity-transforms", "Identity attribute transforms"}, {"other", "Other settings"}, {"metadata", "Export metadata"}} {
+		if section.id == "identity-transforms" {
+			out = append(out, identityTransformSections(g)...)
+			continue
+		}
 		s := humanSection{ID: g.ID + "-" + section.id, Category: section.id, Title: section.title}
 		counts := map[string]int{}
 		for _, d := range g.Decisions {
@@ -75,6 +86,54 @@ func decisionSections(g humanGroup) []humanSection {
 			s.Counts = countView(counts)
 			out = append(out, s)
 		}
+	}
+	return out
+}
+
+// Group by captured item context, never by configuration values or input rereads.
+// A missing, redacted, or inconsistent name falls back to the general section.
+func identityTransformSections(g humanGroup) []humanSection {
+	byName := map[string][]humanDecision{}
+	for _, d := range g.Decisions {
+		if d.Category != "identity-transforms" {
+			continue
+		}
+		name := ""
+		ambiguous := false
+		for _, loc := range d.Locations {
+			for _, c := range loc.Context {
+				parts, err := pointer(c.Pointer)
+				if err != nil || len(parts) != 3 || parts[0] != "identityAttributeConfig" || parts[1] != "attributeTransforms" {
+					continue
+				}
+				for _, f := range c.Fields {
+					if f.Label == "Identity attribute" {
+						if name != "" && name != f.Value {
+							ambiguous = true
+						}
+						name = f.Value
+					}
+				}
+			}
+		}
+		if ambiguous {
+			name = ""
+		}
+		byName[name] = append(byName[name], d)
+	}
+	out := []humanSection{}
+	for i, name := range keys(byName) {
+		s := humanSection{ID: g.ID + "-identity-transforms-" + strconv.Itoa(i), Category: "identity-transforms", Title: "Identity attribute transforms", Decisions: byName[name]}
+		if name != "" {
+			s.Title = "Identity attribute transform: " + name
+		}
+		counts := map[string]int{}
+		for _, d := range s.Decisions {
+			s.DecisionCount += d.DecisionCount
+			counts[d.Status]++
+		}
+		s.Counts = countView(counts)
+		out = append(out, s)
 	}
 	return out
 }

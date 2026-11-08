@@ -44,7 +44,7 @@ label { display: inline-block; margin: .4rem 1rem .4rem 0; } input, select, butt
 <h2>Decisions</h2>
 <div id="controls" hidden>
 <label>Search objects, paths or rules <input id="search" type="search" placeholder="Object name, field path, rule…"></label>
-<label>Section <select id="category"><option value="">All sections</option><option value="connection">Connection settings</option><option value="schemas">Schemas</option><option value="provisioning">Provisioning policies</option><option value="other">Other settings</option><option value="metadata">Export metadata</option></select></label>
+<label>Section <select id="category"><option value="">All sections</option><option value="connection">Connection settings</option><option value="schemas">Schemas</option><option value="provisioning">Provisioning policies</option><option value="identity-transforms">Identity attribute transforms</option><option value="other">Other settings</option><option value="metadata">Export metadata</option></select></label>
 <label>Status <select id="status"><option value="">All statuses</option>{{range .Counts}}<option value="{{.Status}}">{{.Status}}</option>{{end}}</select></label>
 <button type="button" id="expand">Expand visible objects</button><button type="button" id="collapse">Collapse visible objects</button>
 <p id="filter-count" role="status" aria-live="polite"></p><p class="muted">Section, status, and search filters change only the displayed details. Status and search also match nested details. Comparison totals above remain unchanged.</p>
