@@ -61,10 +61,9 @@ go install ./cmd/isc-configdiffer
 ```
 
 The current `go.mod` requires `configexporter v0.0.0` and replaces it with
-`../configexporter`. A `go.work` file is unnecessary. A standalone versioned
-installation requires publishing a real exporter version and replacing that local
-dependency first; `go install ...@latest` is not the installation procedure for
-this checkout.
+`../configexporter`. Both projects are unpublished and require local checkouts.
+Use the build or install commands above; standalone `go install ...@latest` is
+not available. A `go.work` file is unnecessary.
 
 ## Quick start
 
@@ -2290,8 +2289,8 @@ filesystem access and reject `includes`. File composition belongs to the adapter
 the neutral compiler receives one assembled policy.
 
 For a separate consuming Go module, replacement directives in a dependency's
-`go.mod` are not inherited. Until published versions are used, add replacements
-for **both** modules in your application's `go.mod`, using your local paths:
+`go.mod` are not inherited. The current unpublished modules require replacements
+for **both** local checkouts in your application's `go.mod`:
 
 ```gomod
 go 1.27.2

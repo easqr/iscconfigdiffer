@@ -101,5 +101,5 @@ checked. All example policies use schema `2`.
   coverage percentages for whole-subtree assertions or exclusions.
 * No deployment, remediation, destination-impact analysis or authorization gate
   is implemented. SDK/authentication stay in the exporter.
-* The sibling-module replacement is a development setup; publication needs real
-  dependency versions and independently verified external builds.
+* Builds use a local replacement for the sibling configexporter checkout.
+  Standalone versioned installation is unavailable while the modules are unpublished.
