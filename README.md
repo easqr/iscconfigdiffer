@@ -1485,7 +1485,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
-| WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
+| WORKFLOW defaults | Creator and modifier reference IDs, and modifier name | `workflow.json` in the same directory |
 | Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
@@ -1808,17 +1808,18 @@ restore its ID comparison and deployment coverage requirements.
 
 ### WORKFLOW creator and modifier references
 
-All ISC profiles exclude these WORKFLOW reference IDs in drift and deployment:
+All ISC profiles exclude these WORKFLOW reference fields in drift and deployment:
 
 | Path | Rule ID |
 | --- | --- |
 | `/creator/id` | `isc.WORKFLOW.creator-id` |
 | `/modifiedBy/id` | `isc.WORKFLOW.modified-by-id` |
+| `/modifiedBy/name` | `isc.WORKFLOW.modified-by-name` |
 
 The exported field is `creator`, not `create`. These rules are declared in
-`internal/iscprofile/packs/workflow.json`. Reference names, types, and other fields
-remain comparable, as do identical paths on other configuration types. List either
-rule ID in `disabled_rules` to restore its ID comparison and deployment coverage
+`internal/iscprofile/packs/workflow.json`. The creator name, reference types, and
+other fields remain comparable, as do identical paths on other configuration types.
+List a rule ID in `disabled_rules` to restore that field's comparison and deployment coverage
 requirements. No implementation-policy mapping is needed.
 
 ### SOURCE correlation references

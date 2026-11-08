@@ -20,6 +20,11 @@
         "id": "isc.WORKFLOW.modified-by-id",
         "type": "WORKFLOW",
         "path": "/modifiedBy/id"
+      },
+      {
+        "id": "isc.WORKFLOW.modified-by-name",
+        "type": "WORKFLOW",
+        "path": "/modifiedBy/name"
       }
     ]
   }
