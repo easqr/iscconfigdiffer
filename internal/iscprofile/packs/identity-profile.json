@@ -23,6 +23,11 @@
         "id": "isc.IDENTITY_PROFILE.attribute-transform-source-id",
         "type": "IDENTITY_PROFILE",
         "path": "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceId"
+      },
+      {
+        "id": "isc.IDENTITY_PROFILE.attribute-transform-input-source-id",
+        "type": "IDENTITY_PROFILE",
+        "path": "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/attributes/sourceId"
       }
     ],
     "equivalences": [

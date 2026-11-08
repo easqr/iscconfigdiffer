@@ -19,7 +19,7 @@ func identityProfileTransformsInput(t *testing.T, env string, alter func([]any))
 			"identityAttributeName": name,
 			"transformDefinition": map[string]any{"type": "accountAttribute", "attributes": map[string]any{
 				"sourceId": env + "-source", "sourceName": "Invented Directory", "attributeName": name,
-				"input": map[string]any{"type": "static", "attributes": map[string]any{"value": "invented-value", "sourceId": "nested-id"}},
+				"input": map[string]any{"type": "static", "attributes": map[string]any{"value": "invented-value", "sourceId": env + "-nested-id"}},
 			}},
 		})
 	}
@@ -35,6 +35,7 @@ func identityProfileTransformsInput(t *testing.T, env string, alter func([]any))
 func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 	const collection = "isc.IDENTITY_PROFILE.attribute-transforms"
 	const exclusion = "isc.IDENTITY_PROFILE.attribute-transform-source-id"
+	const inputExclusion = "isc.IDENTITY_PROFILE.attribute-transform-input-source-id"
 	for _, profile := range []string{"isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"} {
 		for _, mode := range []string{"drift", "deployment"} {
 			t.Run(profile+"/"+mode, func(t *testing.T) {
@@ -42,7 +43,7 @@ func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 				req := Request{Mode: mode, Left: identityProfileTransformsInput(t, "dev", nil), Right: identityProfileTransformsInput(t, "prod", nil), IncludeMatching: true}
 				if mode == "deployment" {
 					req.Operations = []v2.Operation{{Type: "IDENTITY_PROFILE", Key: "Invented Profile", Action: "update"}}
-					for i, path := range []string{"/name", "/identityAttributeConfig/enabled", "/identityAttributeConfig/attributeTransforms/*/identityAttributeName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/type", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/attributeName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/type", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/attributes/value", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/attributes/sourceId"} {
+					for i, path := range []string{"/name", "/identityAttributeConfig/enabled", "/identityAttributeConfig/attributeTransforms/*/identityAttributeName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/type", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/attributeName", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/type", "/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/attributes/value"} {
 						p.Expectations = append(p.Expectations, v2.Expectation{Rule: rule(fmt.Sprintf("copy-%d", i)), Selector: v2.Selector{Type: "IDENTITY_PROFILE", Path: path}, Operation: "copy_source", Authority: "invented-release"})
 					}
 					if profile != "isc-portable-v2" {
@@ -50,7 +51,7 @@ func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 					}
 				}
 				r := compareTest(t, req, p)
-				if r.ExitCode() != 0 || r.RuleUsage[collection] != 1 || r.RuleUsage[exclusion] != 2 {
+				if r.ExitCode() != 0 || r.RuleUsage[collection] != 1 || r.RuleUsage[exclusion] != 2 || r.RuleUsage[inputExclusion] != 2 {
 					t.Fatal("order or source IDs affected equivalence", r.Counts)
 				}
 				leftRole, rightRole := "left", "right"
@@ -71,7 +72,7 @@ func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 							}
 						}
 					}
-					if d.RuleID == exclusion && (d.Status != "excluded" || d.Evidence == nil || d.Evidence.Attributes["rule_pack"] != "isc.identity-profile") {
+					if (d.RuleID == exclusion || d.RuleID == inputExclusion) && (d.Status != "excluded" || d.Evidence == nil || d.Evidence.Attributes["rule_pack"] != "isc.identity-profile") {
 						t.Fatal("exclusion provenance missing", d)
 					}
 				}
@@ -88,8 +89,8 @@ func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 					{"nested value", func(o map[string]any) {
 						o["attributes"].(map[string]any)["input"].(map[string]any)["attributes"].(map[string]any)["value"] = "changed"
 					}},
-					{"other nested source ID", func(o map[string]any) {
-						o["attributes"].(map[string]any)["input"].(map[string]any)["attributes"].(map[string]any)["sourceId"] = "changed"
+					{"input transform type", func(o map[string]any) {
+						o["attributes"].(map[string]any)["input"].(map[string]any)["type"] = "changed"
 					}},
 				}
 				for _, change := range changes {
@@ -101,7 +102,9 @@ func TestIdentityProfileAttributeTransformAlignment(t *testing.T) {
 				}
 				req.Right = identityProfileTransformsInput(t, "prod", func(items []any) {
 					for _, item := range items {
-						delete(item.(map[string]any)["transformDefinition"].(map[string]any)["attributes"].(map[string]any), "sourceId")
+						attrs := item.(map[string]any)["transformDefinition"].(map[string]any)["attributes"].(map[string]any)
+						delete(attrs, "sourceId")
+						delete(attrs["input"].(map[string]any)["attributes"].(map[string]any), "sourceId")
 					}
 				})
 				if r = compareTest(t, req, p); r.ExitCode() != 0 {
@@ -125,7 +128,7 @@ func TestIdentityProfileAttributeTransformConflictsAndOptOut(t *testing.T) {
 			t.Fatal("ambiguous key accepted", missing, r.Counts)
 		}
 	}
-	for _, id := range []string{"isc.IDENTITY_PROFILE.attribute-transforms", "isc.IDENTITY_PROFILE.attribute-transform-source-id"} {
+	for _, id := range []string{"isc.IDENTITY_PROFILE.attribute-transforms", "isc.IDENTITY_PROFILE.attribute-transform-source-id", "isc.IDENTITY_PROFILE.attribute-transform-input-source-id"} {
 		p := portable()
 		p.DisabledRules = []string{id}
 		req := Request{Mode: "drift", Left: identityProfileTransformsInput(t, "dev", nil), Right: identityProfileTransformsInput(t, "prod", nil)}

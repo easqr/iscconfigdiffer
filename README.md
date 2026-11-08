@@ -1645,10 +1645,13 @@ All ISC profiles match `/identityAttributeConfig/attributeTransforms` entries by
 `identityAttributeName` in drift and deployment. Array order does not affect
 equivalence; duplicate or missing names produce conflicts.
 
-Every nested transform setting remains comparable except
-`/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceId`.
+Every nested transform setting remains comparable except these two paths:
+
+- `/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/sourceId`
+- `/identityAttributeConfig/attributeTransforms/*/transformDefinition/attributes/input/attributes/sourceId`
+
 For example, `sourceName`, `attributeName`, transform types, and nested transform
-inputs are checked normally. The exclusion does not cover other `sourceId` paths
+inputs are checked normally. The exclusions do not cover other `sourceId` paths
 deeper inside a transform. Matching aligns entries; it does not approve different
 transform definitions or supply deployment expectations.
 
@@ -1663,6 +1666,7 @@ These defaults live in `internal/iscprofile/packs/identity-profile.json`:
 | --- | --- |
 | `isc.IDENTITY_PROFILE.attribute-transforms` | Match entries by `identityAttributeName` and capture report context |
 | `isc.IDENTITY_PROFILE.attribute-transform-source-id` | Exclude the direct transform source ID |
+| `isc.IDENTITY_PROFILE.attribute-transform-input-source-id` | Exclude the immediate input transform's source ID |
 
 No local policy entries are needed. Add a rule ID to `disabled_rules` to restore
 positional comparison or source-ID comparison, respectively. Other configuration
