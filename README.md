@@ -197,10 +197,32 @@ unchanged. Redacted identities are combined explicitly; their findings remain
 ungrouped because per-object subtree relationships cannot be established. Matched
 objects with no displayed findings still appear in the index.
 
-HTML offers expandable object sections, search by object/path/rule, status
-filtering, and expand/collapse controls. Filters affect only the displayed details,
-not the comparison totals. Everything works locally; with JavaScript disabled,
-all details remain accessible through the expandable sections. Markdown provides
+HTML is a single self-contained file with embedded styles and JavaScript; it needs
+no internet connection, server, hosted libraries, or companion pages. Its layout
+provides:
+
+- An **Overview** with counts, expandable input/policy information, and diagnostics.
+- An **Objects** index with collapsed type headers. Expand a type to see its
+  object table, then select an object to view its findings.
+- A persistent **Browse and filter** navigator on wide screens. On narrow screens,
+  use **Browse** in the top navigation to reach the expandable navigator.
+- A focused object view with sticky **Back to objects**, **Previous**, and **Next**
+  controls. Previous/Next follow the filtered object list across types. Returning
+  to the index expands the type containing the last selected object.
+- **All object details** for reviewing several objects in one continuous view.
+  Browser Back/Forward and links to individual objects or report sections work
+  within the same file.
+
+Search by object/path/rule, section filters, and status filters update both the
+navigator and object tables. **Clear filters** restores the full list. Counts in
+the overview retain the comparison totals; object badges retain their full
+displayed-finding counts. The navigator's result counter reflects the current
+filters. Printing includes the overview and all matching objects with details
+expanded, rather than only the focused object.
+
+With JavaScript disabled, all report content remains available through native
+expandable sections, including the type tables and object details. Interactive
+filtering and the focused object view require JavaScript. Markdown provides
 the same information in sections and tables, with nested decisions inside
 `<details>` blocks for viewers that support expansion. All child content remains
 in the Markdown file. Searching for a nested path in HTML opens its child details;

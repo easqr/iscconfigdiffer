@@ -56,6 +56,10 @@ type humanGroup struct {
 	Counts                  []statusCount
 	Decisions               []humanDecision
 }
+type humanTypeGroup struct {
+	ID, Type string
+	Groups   []humanGroup
+}
 type humanSection struct {
 	ID, Category, Title string
 	Decisions           []humanDecision
@@ -74,6 +78,7 @@ type humanReport struct {
 	Inputs                                                 []humanInput
 	ExcludedObjects                                        []ExcludedObject
 	Groups                                                 []humanGroup
+	Types                                                  []humanTypeGroup
 	Diagnostics, OptionalDiagnostics                       []Diagnostic
 	UnusedOptional                                         int
 	MissingObjects, ContainerDifferences, FieldDifferences int
@@ -384,6 +389,12 @@ func (r Report) humanView() humanReport {
 	for i := range v.Groups {
 		v.Groups[i].ID = fmt.Sprintf("object-%d", i+1)
 		v.Groups[i].Sections = decisionSections(v.Groups[i])
+		g := v.Groups[i]
+		if len(v.Types) == 0 || v.Types[len(v.Types)-1].Type != g.Type {
+			v.Types = append(v.Types, humanTypeGroup{ID: fmt.Sprintf("type-%d", len(v.Types)+1), Type: g.Type})
+		}
+		last := &v.Types[len(v.Types)-1]
+		last.Groups = append(last.Groups, g)
 	}
 	for _, d := range r.Diagnostics {
 		if d.Code == "unused rule" && !d.Required {
