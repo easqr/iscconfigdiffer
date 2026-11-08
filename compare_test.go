@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	exporter "github.com/elianderson/iscutilities/configexporter"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	exporter "gitlab.com/easqrtech/iam/iscconfigexporter"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +15,7 @@ import (
 func TestExporterPublicationAndReaders(t *testing.T) {
 	root := t.TempDir()
 	raw, _ := json.Marshal(map[string]any{"tenant": "invented", "objects": []any{obj("ROLE", "one", "Synthetic", nil)}})
-	snap, err := exporter.Organize("invented", exporter.Download{JobID: "synthetic-job", Types: []string{"ROLE", "SOURCE"}, Raw: raw}, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	snap, err := exporter.BuildSnapshot("invented", exporter.Download{JobID: "synthetic-job", Types: []string{"ROLE", "SOURCE"}, Raw: raw}, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}

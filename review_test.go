@@ -2,7 +2,7 @@ package differ
 
 import (
 	"encoding/json"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 	"testing"
 	"time"
 )

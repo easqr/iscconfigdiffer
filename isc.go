@@ -7,7 +7,7 @@ import (
 
 	"github.com/elianderson/iscutilities/configdiffer/internal/iscprofile"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 // Request keeps validated ISC storage inputs outside the neutral engine.

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func nestedProvisioningInput(t *testing.T, env string, reverse, otherTemplates bool, changeTransform bool) snapshot.Input {

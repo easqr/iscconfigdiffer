@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func lifecycleStateInput(t *testing.T, env string, alter func(map[string]any)) snapshot.Input {

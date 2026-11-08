@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 const sourcePriorityRule = "isc.IDENTITY_OBJECT_CONFIG.attribute-source-priority"

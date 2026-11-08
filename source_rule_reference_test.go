@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func sourceRuleInput(t *testing.T, env, typ string, reference map[string]any) snapshot.Input {

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func connectorInput(t *testing.T, env, name, connector string, extra map[string]any) snapshot.Input {

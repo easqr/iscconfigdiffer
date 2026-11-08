@@ -2244,7 +2244,7 @@ package example
 import (
     differ "github.com/elianderson/iscutilities/configdiffer"
     "github.com/elianderson/iscutilities/configdiffer/v2"
-    "github.com/elianderson/iscutilities/configexporter/snapshot"
+    "gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
@@ -2298,11 +2298,11 @@ go 1.27.2
 
 require (
     github.com/elianderson/iscutilities/configdiffer v0.0.0
-    github.com/elianderson/iscutilities/configexporter v0.0.0
+    gitlab.com/easqrtech/iam/iscconfigexporter v0.0.0
 )
 
 replace github.com/elianderson/iscutilities/configdiffer => /path/to/iscutilities/configdiffer
-replace github.com/elianderson/iscutilities/configexporter => /path/to/iscutilities/configexporter
+replace gitlab.com/easqrtech/iam/iscconfigexporter => /path/to/iscutilities/configexporter
 ```
 
 These entries go below your application's own `module` declaration. Run

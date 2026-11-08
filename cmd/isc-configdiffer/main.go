@@ -12,7 +12,7 @@ import (
 
 	differ "github.com/elianderson/iscutilities/configdiffer"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 type inputFlags struct{ dir, mode, label, env, types *string }

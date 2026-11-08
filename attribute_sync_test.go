@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 const syncAttributesRule = "isc.ATTR_SYNC_SOURCE_CONFIG.attributes"

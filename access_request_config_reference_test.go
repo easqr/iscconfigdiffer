@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 const grantApprovalIDRule = "isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id"

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	exporter "github.com/elianderson/iscutilities/configexporter"
-	"github.com/elianderson/iscutilities/configexporter/snapshot"
+	exporter "gitlab.com/easqrtech/iam/iscconfigexporter"
+	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func rule(id string) v2.Rule {
@@ -21,7 +21,7 @@ func portable() v2.Policy { p := DefaultPolicy(); p.Profile = "isc-portable-v2";
 func snapshotInput(t *testing.T, tenant, env string, types []string, objects ...map[string]any) snapshot.Input {
 	t.Helper()
 	raw, _ := json.Marshal(map[string]any{"tenant": tenant, "objects": objects})
-	snap, e := exporter.Organize(tenant, exporter.Download{JobID: "invented-job", Types: types, Raw: raw}, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	snap, e := exporter.BuildSnapshot(tenant, exporter.Download{JobID: "invented-job", Types: types, Raw: raw}, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	if e != nil {
 		t.Fatal(e)
 	}
