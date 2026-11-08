@@ -360,10 +360,31 @@ snapshot-root/
 
 Every object file uses the exporter envelope containing `self.type`, `self.id`, and
 an object-valued `object` payload. The quick-start files illustrate this envelope.
-The canonical
-filename is `TYPE/id-<lowercase hexadecimal UTF-8 ID>.json`: ID `a` becomes
-`SOURCE/id-61.json`. If the payload includes `id`, it must equal `self.id`.
-Arbitrary JSON payload files or filenames are not accepted.
+
+Object paths are derived from the export envelope's `self.type` and `self.id`:
+`<self.type>/id-<lowercase hexadecimal encoding of the UTF-8 bytes of self.id>.json`.
+The ID is read from `self.id`, rather than the nested `object.id` or `self.name`.
+Each byte becomes two hexadecimal characters, so a 32-character ASCII ID produces
+64 hexadecimal characters in the filename. This is a deterministic, reversible
+encoding, not a generated GUID, a hash, or encryption.
+
+For example, an envelope containing:
+
+```json
+{
+  "version": 1,
+  "self": { "type": "ROLE", "id": "abc123", "name": "Example role" },
+  "object": {}
+}
+```
+
+is written to `ROLE/id-616263313233.json`. Hex encoding preserves the exact ID
+while avoiding special characters, substitution collisions, and case collisions
+on filesystems that treat uppercase and lowercase filenames as equivalent.
+The original `self.id` and `self.name` remain readable inside the JSON file.
+
+If the payload includes `id`, it must equal `self.id`. Arbitrary JSON payload
+files or filenames are not accepted.
 
 Each input independently chooses a **reading mode**:
 
