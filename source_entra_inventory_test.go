@@ -7,13 +7,31 @@ import (
 	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
-func TestEntraSubscribedSkusExcluded(t *testing.T) {
-	const id = "isc.SOURCE.entra-subscribed-skus"
+var entraExcludedAttributes = []struct {
+	attribute string
+	id        string
+}{
+	{"subscribedSkus", "isc.SOURCE.entra-subscribed-skus"},
+	{"deleteThresholdPercentage", "isc.SOURCE.entra-delete-threshold-percentage"},
+	{"directoryRolesDeltaToken", "isc.SOURCE.entra-directory-roles-delta-token"},
+	{"groupsDeltaToken", "isc.SOURCE.entra-groups-delta-token"},
+	{"userDeltaToken", "isc.SOURCE.entra-user-delta-token"},
+}
+
+func TestEntraConnectorAttributesExcluded(t *testing.T) {
+	for _, attribute := range entraExcludedAttributes {
+		t.Run(attribute.attribute, func(t *testing.T) {
+			testEntraAttributeExcluded(t, attribute.attribute, attribute.id)
+		})
+	}
+}
+
+func testEntraAttributeExcluded(t *testing.T, attribute, id string) {
 	for _, profile := range []string{"isc-identity-v2", "isc-envelope-v2", "isc-portable-v2"} {
 		for _, mode := range []string{"drift", "deployment"} {
 			t.Run(profile+"/"+mode, func(t *testing.T) {
 				p := v2.Policy{Version: 2, ID: "inventory", Profile: profile}
-				left := connectorInput(t, "dev", "Renamed Directory", "Microsoft Entra", map[string]any{"subscribedSkus": []any{map[string]any{"skuId": "invented-a", "servicePlans": []any{map[string]any{"servicePlanId": "plan-a"}}}}})
+				left := connectorInput(t, "dev", "Renamed Directory", "Microsoft Entra", map[string]any{attribute: []any{map[string]any{"skuId": "invented-a", "servicePlans": []any{map[string]any{"servicePlanId": "plan-a"}}}}})
 				req := Request{Mode: mode, Left: left}
 				if mode == "deployment" {
 					req.Operations = []v2.Operation{{Type: "SOURCE", Key: "Renamed Directory", Action: "update"}}
@@ -25,10 +43,12 @@ func TestEntraSubscribedSkusExcluded(t *testing.T) {
 					}
 				}
 				for _, attrs := range []map[string]any{
-					{"subscribedSkus": []any{map[string]any{"skuId": "invented-b", "servicePlans": []any{map[string]any{"servicePlanId": "changed"}}}}},
+					{attribute: 25},
+					{attribute: "changed-token"},
+					{attribute: []any{map[string]any{"skuId": "invented-b", "servicePlans": []any{map[string]any{"servicePlanId": "changed"}}}}},
 					{},
-					{"subscribedSkus": "different-shape"},
-					{"subscribedSkus": []any{map[string]any{"skuId": "duplicate"}, map[string]any{"skuId": "duplicate"}}},
+					{attribute: "different-shape"},
+					{attribute: []any{map[string]any{"skuId": "duplicate"}, map[string]any{"skuId": "duplicate"}}},
 				} {
 					req.Right = connectorInput(t, "prod", "Renamed Directory", "Microsoft Entra", attrs)
 					r := compareTest(t, req, p)
@@ -44,7 +64,7 @@ func TestEntraSubscribedSkusExcluded(t *testing.T) {
 							}
 						}
 						for _, loc := range d.Locations {
-							if strings.HasPrefix(loc.Pointer, "/connectorAttributes/subscribedSkus/") {
+							if strings.HasPrefix(loc.Pointer, "/connectorAttributes/"+attribute+"/") {
 								t.Fatal("inventory descendants compared", d.Code)
 							}
 						}
@@ -68,18 +88,26 @@ func TestEntraSubscribedSkusExcluded(t *testing.T) {
 	}
 }
 
-func TestEntraSubscribedSkusExclusionScope(t *testing.T) {
+func TestEntraConnectorAttributeExclusionScope(t *testing.T) {
+	for _, attribute := range entraExcludedAttributes {
+		t.Run(attribute.attribute, func(t *testing.T) {
+			testEntraAttributeExclusionScope(t, attribute.attribute, attribute.id)
+		})
+	}
+}
+
+func testEntraAttributeExclusionScope(t *testing.T, attribute, id string) {
 	for _, connector := range []string{"Active Directory", "Unknown Connector", "Microsoft Entra"} {
-		left := connectorInput(t, "dev", "Microsoft Entra", connector, map[string]any{"subscribedSkus": []any{"a"}, "timeout": 30})
-		right := connectorInput(t, "prod", "Microsoft Entra", connector, map[string]any{"subscribedSkus": []any{"b"}, "timeout": 30})
+		left := connectorInput(t, "dev", "Microsoft Entra", connector, map[string]any{attribute: "a", "timeout": 30})
+		right := connectorInput(t, "prod", "Microsoft Entra", connector, map[string]any{attribute: "b", "timeout": 30})
 		if connector == "Microsoft Entra" {
-			right = connectorInput(t, "prod", "Microsoft Entra", connector, map[string]any{"subscribedSkus": []any{"b"}, "timeout": 60})
+			right = connectorInput(t, "prod", "Microsoft Entra", connector, map[string]any{attribute: "b", "timeout": 60})
 		}
 		r := compareTest(t, Request{Mode: "drift", Left: left, Right: right}, portable())
 		if r.ExitCode() != 1 || r.Counts["different"] != 1 {
 			t.Fatal("unrelated difference hidden", connector, r.Counts)
 		}
-		if connector != "Microsoft Entra" && r.RuleUsage["isc.SOURCE.entra-subscribed-skus"] != 0 {
+		if connector != "Microsoft Entra" && r.RuleUsage[id] != 0 {
 			t.Fatal("exclusion escaped connector scope")
 		}
 	}

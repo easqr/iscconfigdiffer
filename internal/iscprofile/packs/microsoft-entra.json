@@ -12,6 +12,30 @@
     "id": "isc.microsoft-entra",
     "ignores": [
       {
+        "id": "isc.SOURCE.entra-delete-threshold-percentage",
+        "type": "SOURCE",
+        "variant": "microsoft-entra",
+        "path": "/connectorAttributes/deleteThresholdPercentage"
+      },
+      {
+        "id": "isc.SOURCE.entra-directory-roles-delta-token",
+        "type": "SOURCE",
+        "variant": "microsoft-entra",
+        "path": "/connectorAttributes/directoryRolesDeltaToken"
+      },
+      {
+        "id": "isc.SOURCE.entra-groups-delta-token",
+        "type": "SOURCE",
+        "variant": "microsoft-entra",
+        "path": "/connectorAttributes/groupsDeltaToken"
+      },
+      {
+        "id": "isc.SOURCE.entra-user-delta-token",
+        "type": "SOURCE",
+        "variant": "microsoft-entra",
+        "path": "/connectorAttributes/userDeltaToken"
+      },
+      {
         "id": "isc.SOURCE.entra-subscribed-skus",
         "type": "SOURCE",
         "variant": "microsoft-entra",

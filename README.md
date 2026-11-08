@@ -1486,7 +1486,7 @@ The first three rule layers ship with the module; your policy supplies the fourt
 | ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
 | ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
 | WORKFLOW defaults | Creator and modifier reference IDs | `workflow.json` in the same directory |
-| Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU inventory exclusion | `active-directory.json`, `microsoft-entra.json` in the same directory |
+| Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions | `active-directory.json`, `microsoft-entra.json` in the same directory |
 | Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
 
 The [JSON rule packs](internal/iscprofile/packs) are embedded in the executable.
@@ -1541,7 +1541,24 @@ attributes remain comparable. This is a shipped comparison choice; no local poli
 entry is needed. Add the rule ID to `disabled_rules` to restore comparison and
 normal deployment coverage requirements.
 
-### Microsoft Entra subscribed SKUs
+### Microsoft Entra connector exclusions
+
+Microsoft Entra SOURCE configurations exclude these connector attributes in both
+drift and deployment modes under all built-in ISC profiles:
+
+| Path | Rule ID |
+| --- | --- |
+| `/connectorAttributes/deleteThresholdPercentage` | `isc.SOURCE.entra-delete-threshold-percentage` |
+| `/connectorAttributes/directoryRolesDeltaToken` | `isc.SOURCE.entra-directory-roles-delta-token` |
+| `/connectorAttributes/groupsDeltaToken` | `isc.SOURCE.entra-groups-delta-token` |
+| `/connectorAttributes/userDeltaToken` | `isc.SOURCE.entra-user-delta-token` |
+
+No local policy entries are needed. To compare one of these attributes, add its
+rule ID to the policy's `disabled_rules` array. These exclusions use recognized
+Entra connector metadata and apply independently of the source's display name;
+other connectors and adjacent settings remain comparable.
+
+#### Subscribed SKUs
 
 Microsoft Entra SOURCE configurations exclude the entire
 `/connectorAttributes/subscribedSkus` subtree, including nested service plans,
