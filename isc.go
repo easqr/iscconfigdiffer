@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/internal/iscprofile"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 // Request keeps validated ISC storage inputs outside the neutral engine.

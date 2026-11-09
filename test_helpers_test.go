@@ -3,8 +3,8 @@ package differ
 import (
 	"context"
 	"encoding/json"
-	exporter "gitlab.com/easqrtech/iam/iscconfigexporter"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
+	exporter "github.com/easqr/iscconfigexporter"
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"testing"
 )
 

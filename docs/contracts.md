@@ -3,11 +3,11 @@
 Comparison policies and reports use schema `2`; their contract is documented in
 [policy.md](policy.md). This document describes the independent exporter storage
 format, whose manifest `schema` and envelope `version` fields are both `1`.
-Those numbers belong to exported data and do not select a comparison implementation.
+These storage-format versions are independent of the policy and report schema.
 
 ## Schema and inventory
 
-The SDK-free exporter `snapshot` package owns `Artifact`, `Changes`, `Manifest`, and `Snapshot`, along with the shared JSON decoding, checksums and path validation. Exporter APIs use these types directly. `exporter.BuildSnapshot` converts a complete download into an in-memory snapshot; `FileStore.Publish` saves it. For exporter filenames, manifest fields and Go reader modes, see the exporter's [Snapshot files and readers](https://gitlab.com/easqrtech/iam/iscconfigexporter/-/blob/main/docs/SNAPSHOTS.md) reference. This document describes the additional requirements for comparison inputs.
+The SDK-free exporter `snapshot` package owns `Artifact`, `Changes`, `Manifest`, and `Snapshot`, along with the shared JSON decoding, checksums and path validation. Exporter APIs use these types directly. `exporter.BuildSnapshot` converts a complete download into an in-memory snapshot; `FileStore.Publish` saves it. For exporter filenames, manifest fields and Go reader modes, see the exporter's [Snapshot files and readers](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/SNAPSHOTS.md) reference. This document describes the additional requirements for comparison inputs.
 
 Manifest schema 1 has `schema:1`, nonempty portable `tenant`, nonempty `job_id`, nonzero RFC3339 `completed`, distinct portable selected `types`, nonnegative per-type `counts`, `artifacts` (`path`, lowercase SHA-256), and publication `changes`. Unknown manifest metadata is represented in the manifest hash. Required contract property spellings are exact. Schema 1 has **no success-status field**; completion metadata does not prove remote job success or cryptographic authenticity.
 

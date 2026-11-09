@@ -1,8 +1,8 @@
 # Comparison policy v2
 
-V2 is an offline, vendor-neutral compiler and comparison engine in `v2/`. The root
-package adapts validated ISC snapshots and Configuration Hub artifacts. Production
-comparison code imports neither exporter authentication nor a generated SDK.
+Comparison policies use schema `2` for offline comparison of validated ISC
+exports and saved Configuration Hub mappings. The `v2` library package also
+supports vendor-neutral documents and policies.
 
 ## Library entry points
 
@@ -77,12 +77,10 @@ not hidden by value exclusion.
 Because file provenance participates in the effective policy digest, splitting,
 reformatting, or reordering a manifest changes policy/request digests without
 necessarily changing decisions. Relocating an unchanged bundle with the same
-root basename and relative layout does not change file provenance. Core rules
-and report JSON schema remain unchanged. The neutral engine accepts the assembled
-policy and knows nothing about file loading.
+root basename and relative layout does not change file provenance. The same comparison rules apply to single-file and assembled policies.
 
 See the [README walkthrough](../README.md#organize-policies-across-files) and the
-[modular example](../examples/policy-includes.json). These are implementation
+[modular example](../examples/policy-includes.json). These are custom
 policy fragments, distinct from the adapter's embedded [rule packs](rule-packs.md).
 
 ## CLI report files
@@ -262,7 +260,7 @@ once. All listed conditions must match, and their collections must form a compat
 nested ancestor chain of the selected field. Condition order is immaterial;
 compilation canonicalizes `items` from outer to inner for stable policy digests.
 The field selector still uses wildcard array segments. Scoping occurs after collection key resolution, including
-implementation mapping extensions; it never uses numeric item positions.
+environment mapping extensions; it never uses numeric item positions.
 
 Each `keys` entry is an item-relative key pointer with exactly one of:
 
@@ -391,7 +389,7 @@ The CREATE policy's UPN template requires two simultaneous constraints: the
 `isc.SOURCE.provisioning-policies` tuple `/usageType = CREATE` and the
 `isc.SOURCE.provisioning-fields` tuple `/name = userPrincipalName`. Both are
 inherited structural keys; no numeric array indices or copied collection rules
-are needed in the implementation policy.
+are needed in the custom policy.
 
 ```json
 {
@@ -496,7 +494,7 @@ conflict handling, and mode restrictions are unchanged.
 
 ### Collection mapping extensions
 
-`collection_mappings` attaches implementation mappings to an existing effective
+`collection_mappings` attaches environment mappings to an existing effective
 keyed collection. Each entry has its own `id`, a `collection` rule ID, optional
 exact object `key`, required `key_mappings`, and optional `modes`, `required`, and
 `evidence`. It inherits type, variant, section, path, key structure, and display
@@ -520,7 +518,7 @@ input documents and expected values are never rewritten.
 ### Explicitly disabling shipped rules
 
 Root `disabled_rules` lists unique shipped/profile rule IDs to omit. It cannot
-name unknown IDs, implementation rules, or a rule also being replaced. Disabling
+name unknown IDs, custom rules, or a rule also being replaced. Disabling
 an ignore restores ordinary comparison and deployment coverage requirements;
 it does not verify the field. Disabling an identity requires a usable replacement
 strategy, otherwise matching remains incomplete. Disabled collection targets
@@ -631,10 +629,8 @@ This default follows the null/absent-property convention in the
 ## ISC profiles
 
 Profiles are assembled from validated embedded [JSON rule packs](rule-packs.md):
-common defaults, SOURCE defaults, and connector defaults. The implementation
-policy extends or explicitly replaces/disables those defaults. Go supplies the
-loader, adapter classification, and comparison mechanisms; rule selectors, keys,
-labels, exclusions, and connector identity aliases are shipped as JSON.
+common defaults, SOURCE defaults, and connector defaults. Your custom policy
+extends or explicitly replaces/disables those defaults.
 
 `Selector.variant` optionally restricts a rule to adapter-classified document
 metadata. `Document.variant` is independent of the display name and participates
@@ -707,7 +703,7 @@ provenance retains the pack and original pointer. Listing the rule ID in
 ## Common portable owner references
 
 `isc.portable` declares `isc.$TYPE.owner-id` at content `/owner/id`, expanding
-for all registered configuration types and implementation-declared identity types.
+for all registered configuration types and custom identity types.
 It applies in drift and deployment only under `isc-portable-v2`. Identity and
 envelope profiles retain owner ID comparison. Owner name, type, and other fields
 within the exported reference remain ordinary comparable values; no other nested IDs are
@@ -740,9 +736,8 @@ requirements. Matching and exclusions do not approve differing values or supply
 deployment expectations. Reports show the identity attribute name alongside the
 original input paths.
 
-The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
-`internal/iscprofile/packs/identity-object-config.json`. No local policy entry is
-needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
+The shipped rule is `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details`.
+No local policy entry is needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
 explicit same-selector replacement for a structural exception.
 
 ## Relative priority and attribute-source precedence
@@ -784,8 +779,7 @@ The scalar relative-order equivalence is drift-only. In deployment, priority val
 still need explicit expectations; the contextual collection order needs an
 authoritative whole-value expectation. Alignment never supplies deployment approval.
 Use `disabled_rules` with either shipped rule ID to restore ordinary numeric or
-positional comparison. The rules live in `identity-profile.json` and
-`identity-object-config.json` under `internal/iscprofile/packs`.
+positional comparison.
 
 The neutral policy mechanisms can also be authored explicitly:
 
@@ -827,7 +821,7 @@ environment restrictions, or item selectors. `priority_order` requires a keyed
 collection with concrete reference, match, and priority paths and no key cases.
 The context type need not be selected for comparison. Existing collection key
 mappings can still align environment-specific application names; value equivalence
-for those names remains a separate implementation decision.
+for those names remains a separate policy decision.
 
 ## ATTR_SYNC_SOURCE_CONFIG attribute matching
 
@@ -849,13 +843,12 @@ incomplete; changing the logical parent still produces differences. The exclusio
 does not substitute name-based lookup.
 Disable this rule to restore parent-reference ID comparison and deployment coverage.
 
-The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes` in
-`internal/iscprofile/packs/attribute-sync.json`. It applies to all parent source
+The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes`. It applies to all parent source
 connectors. Use `disabled_rules` to restore ordinary ordered comparison, or an
 explicit same-selector replacement for a structural exception.
 
 Attribute-sync identity depends on SOURCE matching. Include both types with
-`--scope SOURCE,ATTR_SYNC_SOURCE_CONFIG`; the current engine also compares SOURCE
+`--scope SOURCE,ATTR_SYNC_SOURCE_CONFIG`; this also compares SOURCE
 objects under that scope. Selecting only ATTR_SYNC_SOURCE_CONFIG still leaves
 its parent matching context unavailable and returns an incomplete result.
 
@@ -869,8 +862,7 @@ Names, types, and other scheme/configuration fields remain comparable. Missing
 schemes and array ordering still produce findings. Other nested IDs, other
 approval-scheme paths, and other configuration types retain normal comparison.
 
-The rule is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id` in
-`internal/iscprofile/packs/access-request-config.json`. No local mapping is needed.
+The rule ID is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id`. No local mapping is needed.
 List the rule ID in `disabled_rules` to restore ID comparison and deployment
 coverage requirements.
 
@@ -890,9 +882,8 @@ The wildcards apply to every array member, including `/accessProfiles/0/id`,
 ordering still produce findings. Other nested IDs and ROLE `/source/id` retain
 normal comparison; these rules do not apply to other configuration types.
 
-These declarations live in `internal/iscprofile/packs/role.json`. Add an
-individual rule ID to `disabled_rules` to restore that ID's comparison and
-deployment coverage requirements. No implementation-policy mappings are needed.
+Add an individual rule ID to `disabled_rules` to restore that ID's comparison and
+deployment coverage requirements. No custom-policy mappings are needed.
 
 ## ACCESS_PROFILE entitlement and source references
 
@@ -909,7 +900,6 @@ and other fields remain comparable. Missing entitlements and source references
 still produce findings; entitlement array ordering is unchanged. Other nested IDs
 and identical paths on other configuration types retain normal comparison.
 
-These declarations live in `internal/iscprofile/packs/access-profile.json`.
 No local policy mapping is needed. Add either rule ID to `disabled_rules` to
 restore its ID comparison and deployment coverage requirements.
 
@@ -922,11 +912,10 @@ All ISC profiles exclude these WORKFLOW reference IDs in drift and deployment:
 | `/creator/id` | `isc.WORKFLOW.creator-id` |
 | `/modifiedBy/id` | `isc.WORKFLOW.modified-by-id` |
 
-The exported field is `creator`, not `create`. These rules are declared in
-`internal/iscprofile/packs/workflow.json`. Reference names, types, and other fields
+The exported field is `creator`, not `create`. Reference names, types, and other fields
 remain comparable, as do identical paths on other configuration types. List either
 rule ID in `disabled_rules` to restore its ID comparison and deployment coverage
-requirements. No implementation-policy mapping is needed.
+requirements. No custom-policy mapping is needed.
 
 ## SOURCE correlation reference IDs
 
@@ -947,8 +936,7 @@ The reference's `name`, `type`, and other fields retain ordinary comparison and
 expectation requirements. Missing or changed names/types remain findings; the
 exclusion does not establish equivalence or deployment authority for them.
 Exclusion decisions retain the profile rule ID, evidence, and original pointer.
-The rule is declared in `internal/iscprofile/packs/source.json`; the neutral
-engine has no SOURCE-specific exclusion logic. Other object types and unrelated nested IDs remain comparable.
+Other object types and unrelated nested IDs remain comparable.
 
 ## SOURCE schema rules
 
@@ -975,9 +963,6 @@ parent collection rules do not grant authority.
 
 Custom collection rules at these paths require explicit same-category,
 same-selector `replaces`. Replacements supply their own display annotations.
-The SOURCE declarations are in `internal/iscprofile/packs/source.json` and
-`source-portable.json`; the neutral engine and renderers use generic collection
-and context capabilities.
 
 ## SOURCE Active Directory forest and domain rules
 
@@ -1001,8 +986,7 @@ No DN normalization is implied. Server lists remain ordered, and credentials,
 connection settings, unknown fields, and other values remain comparable.
 Domain-to-forest referential integrity is not validated.
 
-The declarations are in `internal/iscprofile/packs/active-directory.json` and
-use `variant:"active-directory"`. Only matching connector metadata enables them;
+These rules use `variant:"active-directory"`. Only matching connector metadata enables them;
 SOURCE type and array shape alone are insufficient. Server ordering is unchanged.
 Environment mappings belong in `collection_mappings`, targeting the shipped rule
 ID and optional source key. Forest and domain collections receive independent
@@ -1026,10 +1010,8 @@ service plans are included in the exclusion; adjacent settings and other
 connector variants remain comparable. The exclusion applies even when the
 inventory is missing on one side or has a different shape.
 
-This replaces the shipped `isc.SOURCE.entra-skus` and
-`isc.SOURCE.entra-service-plans` collections. Those collection IDs are no longer
-available for extensions/replacements. Disable `isc.SOURCE.entra-subscribed-skus`
-to compare inventory, and declare implementation collection rules if keyed
+Disable `isc.SOURCE.entra-subscribed-skus`
+to compare inventory, and declare custom collection rules if keyed
 SKU/service-plan matching is needed. Disabling restores ordinary comparison;
 it does not infer deployment expectations.
 
@@ -1083,11 +1065,6 @@ object names and evidence, do not select secrets as display metadata.
 All key components remain present and nonnull regardless of null/absent-property
 normalization.
 
-The neutral engine interprets these declarations without SOURCE-specific code.
-ISC profile assembly lives in `internal/iscprofile`; SOURCE schema and
-provisioning declarations are in the SOURCE JSON packs. Existing public `ISCProfile` and
-`Compile` entry points remain unchanged.
-
 Sources: [provisioning policy creation](https://developer.sailpoint.com/docs/api/create-provisioning-policy-v-2/)
 and [subtype provisioning policies](https://developer.sailpoint.com/docs/api/create-source-subtype-provisioning-policy-v-2/).
 
@@ -1140,9 +1117,8 @@ use `--*-label`. `--matching` includes ordinary equal leaves; it does not change
 counts, completeness, request digest, or policy decisions. The same policy schema is used in both comparison modes.
 
 Only exporter-format projected drafts are supported. Native proprietary draft
-files need a separately inspected adapter; no format or substitution semantics
-are guessed. Full three-way destination-impact and change-authorization analysis
-are outside this implementation.
+files, full three-way destination-impact analysis, and change authorization are
+not supported.
 
 ## Optional Hub adapter
 
@@ -1253,10 +1229,6 @@ failure. `correct` is false whenever incomplete. No unverified result can pass.
 Inputs, policies, profiles, and reports are detached; compiled plans can be reused
 concurrently. Policy order and permitted collection reordering do not change
 comparison semantics. Omitting `--mode` selects drift and still produces report schema `2`.
-
-Automated verification uses invented data only. Both module test suites, race
-tests, vet, build and formatting checks are required before marking the seven
-slices complete. See [implementation evidence](implementation.md).
 
 ## Human report sections and missing-schema summaries
 

@@ -1,4 +1,7 @@
-# Implementation and acceptance record
+# Implementation and verification record
+
+Contributor reference for architecture, test coverage, and historical verification.
+For usage, see the [README](../../README.md).
 
 The module has one comparison implementation: the neutral `v2` engine, with ISC
 snapshot and optional Configuration Hub adapters in the root `differ` package.
@@ -13,15 +16,15 @@ or labels. See [the rule-pack format](rule-packs.md).
 Policies and reports use schema `2`. Exporter manifests/envelopes retain their
 independent storage-format numbers.
 
-| Slice | Implemented behavior | Verification |
+| Area | Implemented behavior | Verification |
 | --- | --- | --- |
-| 1 Policy compiler | Strict JSON, typed states, profile expansion/replacement, conflicts, deterministic digests | `v2/compile_test.go`, `v2/review_test.go` |
-| 2 ISC adapters | Validated detached snapshot/tree inputs, ISC profiles, string identity components | `adapter_test.go`, `compare_test.go`, `review_test.go` |
-| 3 Matching and arrays | Logical identities, explicit pairings, dependencies, nested keyed arrays, ordered/multiset semantics | Neutral engine and root adapter tests |
-| 4 Drift | Typed equivalence and assertions, explicit exclusions, references, retained decisions | `v2/run_test.go`, `v2/regression_test.go` |
-| 5 Deployment | Independent expectations, projected draft validation, explicit operations and baseline evidence | Neutral and root deployment tests |
-| 6 Hub adapter | Offline arrays/bundles, supported JSONPath, ambiguity/context/integrity checks, explicit promotion | `hub_test.go`, `adapter_test.go`, CLI integration tests |
-| 7 CLI/reporting | One parser, drift default, explicit deployment, report schema `2`, redaction and provenance | `cmd/isc-configdiffer/main_test.go`, review regression tests |
+| Policy compiler | Strict JSON, typed states, profile expansion/replacement, conflicts, deterministic digests | `v2/compile_test.go`, `v2/review_test.go` |
+| ISC adapters | Validated detached snapshot/tree inputs, ISC profiles, string identity components | `adapter_test.go`, `compare_test.go`, `review_test.go` |
+| Matching and arrays | Logical identities, explicit pairings, dependencies, nested keyed arrays, ordered/multiset semantics | Neutral engine and root adapter tests |
+| Drift | Typed equivalence and assertions, explicit exclusions, references, retained decisions | `v2/run_test.go`, `v2/regression_test.go` |
+| Deployment | Independent expectations, projected draft validation, explicit operations and baseline evidence | Neutral and root deployment tests |
+| Hub adapter | Offline arrays/bundles, supported JSONPath, ambiguity/context/integrity checks, explicit promotion | `hub_test.go`, `adapter_test.go`, CLI integration tests |
+| CLI/reporting | One parser, drift default, explicit deployment, report schema `2`, redaction and provenance | `cmd/isc-configdiffer/main_test.go`, review regression tests |
 
 Synthetic tests cover exporter organization/publication to validated readers and
 comparison, plus mapping retrieval/publication to offline import. No tenant
@@ -79,9 +82,8 @@ The comparison engine and JSON report schema are unchanged.
 
 ## Checks
 
-Run `go test ./...`, `go test -race ./...`, `go vet ./...`, and `go build ./...`
-in both sibling modules. Check formatting with `gofmt` and whitespace with
-`git diff --check`. See [the review record](review.md) for correctness findings.
+Run the [contributor checks](../DEVELOPMENT.md#local-checks). See the
+[review record](review.md) for correctness findings.
 
 The single-engine consolidation was verified on 2026-11-04: tests, race tests,
 vet and builds passed in both modules. The README quick start, default drift
@@ -101,5 +103,14 @@ checked. All example policies use schema `2`.
   coverage percentages for whole-subtree assertions or exclusions.
 * No deployment, remediation, destination-impact analysis or authorization gate
   is implemented. SDK/authentication stay in the exporter.
-* Builds use a local replacement for the sibling configexporter checkout.
-  Standalone versioned installation is unavailable while the modules are unpublished.
+* Builds download `github.com/easqr/iscconfigexporter` v0.8.0 without a local
+  replacement. Standalone versioned installation is unavailable while configdiffer
+  remains unpublished.
+
+## Entra collection compatibility
+
+The subscribed-SKU exclusion replaced the former `isc.SOURCE.entra-skus` and
+`isc.SOURCE.entra-service-plans` collections. Those IDs are unavailable for
+extensions or replacements. Policies using them must remove those references.
+To compare this inventory, disable `isc.SOURCE.entra-subscribed-skus` and declare
+custom collection rules if keyed SKU/service-plan matching is required.

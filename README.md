@@ -32,19 +32,14 @@ adapters.
 - [Configuration reference](#configuration-reference)
 - [Use as a Go library](#use-as-a-go-library)
 - [Troubleshooting](#troubleshooting)
-- [Development and further documentation](#development-and-further-documentation)
+- [Further documentation](#further-documentation)
+- [License](#license)
 
 ## Build and install
 
-Use **Go 1.27.2 or newer**, as required by `go.mod`. The current development setup
-requires the sibling `configexporter` module, which provides the SDK-free snapshot
-reader:
-
-```text
-iscutilities/
-  configdiffer/       # this module
-  configexporter/     # includes the snapshot/ package
-```
+Use **Go 1.27.3 or newer**, as required by `go.mod` and the exporter dependency.
+Builds download [`iscconfigexporter v0.8.0`](https://github.com/easqr/iscconfigexporter/tree/v0.8.0),
+which provides the snapshot reader.
 
 From `configdiffer`:
 
@@ -60,10 +55,8 @@ Use `./bin/isc-configdiffer` in the examples below. To install the CLI into
 go install ./cmd/isc-configdiffer
 ```
 
-The current `go.mod` requires `configexporter v0.0.0` and replaces it with
-`../configexporter`. Both projects are unpublished and require local checkouts.
-Use the build or install commands above; standalone `go install ...@latest` is
-not available. A `go.work` file is unnecessary.
+Run these commands from the configdiffer checkout. Go downloads the exporter
+dependency automatically.
 
 ## Quick start
 
@@ -345,8 +338,8 @@ behavior, and exit codes are unchanged by this presentation.
 
 ## Input format and scope
 
-Inputs use the format produced by the sibling
-[`configexporter`](../configexporter/README.md) module:
+Inputs use the format produced by the
+[`configexporter`](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/README.md) module:
 
 ```text
 snapshot-root/
@@ -773,7 +766,7 @@ for one source, then a separate `equivalences` rule to accept the name differenc
 }
 ```
 
-Replace `Invented Directory` and the environment values for your implementation.
+Replace `Invented Directory` and the example values with those from your exports.
 Run with `--left-env dev --right-env prod` or equivalent policy bindings.
 `corporate-forest` is a policy-defined logical identity used for alignment, not a
 value written to either export. Add another group for another corresponding
@@ -788,7 +781,7 @@ Missing/unlisted input environments and duplicate keys produce conflicts.
 
 Only sources identified as Active Directory activate the AD rules. Renaming a
 source does not change its connector; update the extension's exact object key if
-you rename it. See [shipped rules and implementation policy](#shipped-rules-and-implementation-policy)
+you rename it. See [shipped rules and custom policies](#shipped-rules-and-custom-policies)
 for how connectors are identified and how to override defaults.
 
 Mapped names remain original values in the report. Alignment does not itself
@@ -943,7 +936,7 @@ the comparison incomplete.
 `item` and `items` are supported on drift equivalences. It does not introduce
 per-item deployment expectations or change deployment authority requirements.
 The same selector can scope other drift fields, including complete server arrays,
-or target another keyed collection; it contains no AD-specific engine logic.
+or target another keyed collection.
 
 ### Map a provisioning field within a specific policy
 
@@ -1006,9 +999,9 @@ orders them from outer to inner and rejects duplicate collection conditions.
 
 The differ compares the template strings literally. It does not evaluate `$uid`
 or execute transforms, and this rule does not approve the transform's `type`,
-other attributes, or the field's flags. The same mechanism can combine schema
-and attribute identities or other nested collection keys without source-specific
-logic in the engine. It remains a drift equivalence, not deployment authority.
+other attributes, or the field's flags. The same selectors can combine schema
+and attribute identities or other nested collection keys. This approves only
+drift differences; deployment requires independent expectations.
 
 ## Organize policies across files
 
@@ -1018,8 +1011,9 @@ connector and keep transform mappings in another file. Continue passing only the
 root file to `--policy`; run the command from any directory.
 
 For a complete example, see [policy-includes.json](examples/policy-includes.json)
-and its [rule fragments](examples/policy-rules). The existing
-[policy-drift.json](examples/policy-drift.json) remains a single-file example.
+and its [rule fragments](examples/policy-rules).
+[policy-drift.json](examples/policy-drift.json) shows the same policy syntax in a
+single file.
 The modular example adds invented Entra client-ID and static-transform domain
 mappings to the directory examples; adapt their object names, paths, and values
 to your actual exports.
@@ -1102,7 +1096,7 @@ Rules are combined before compilation. Rule IDs must be unique across all files
 and categories; disabled rule IDs cannot be repeated. Listing a file last gives
 it no special precedence. Existing specificity, conflict checks, `replaces`, and
 `disabled_rules` work across the assembled policy. Keep using the shipped common,
-SOURCE, and connector defaults; fragments organize your implementation rules
+SOURCE, and connector defaults; fragments organize your custom rules
 and overrides, without duplicating those defaults.
 
 Run the included modular example:
@@ -1153,7 +1147,7 @@ examples live separately under `examples/`.
 The source is the starting configuration; actual is the projected deployment
 configuration being checked; baseline is the destination's existing configuration.
 The draft must be readable in exporter envelope format. Native proprietary draft
-formats are not currently supported.
+formats are not supported.
 
 The example policy covers `Invented Directory`'s name, hostname, timeout, and
 target-preserved token endpoint. Adapt it and the operations file to your objects.
@@ -1348,7 +1342,7 @@ ID/time, source organization, target tenant, API origin/version/endpoint, record
 count, SHA-256 of `mappings.json`, and optional export-job correlation. Keep the
 original files together; their context and checksum are validated on import.
 The sidecar is distinct from a configuration snapshot manifest. See the
-[exporter mapping guide](../configexporter/docs/MAPPINGS.md) for retrieval.
+[exporter mapping guide](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/MAPPINGS.md) for retrieval.
 
 To import a bundle, use a portable policy without a competing hostname rule:
 
@@ -1387,7 +1381,7 @@ substitution rules is assumed.
 ## CLI options
 
 For the flag listing, run `./bin/isc-configdiffer --mode drift --help`.
-The current CLI returns `2` after displaying help. All filenames and directories
+The CLI returns `2` after displaying help. All filenames and directories
 are resolved relative to the current working directory unless absolute.
 
 | Option | Default | Meaning |
@@ -1513,32 +1507,30 @@ parent source. `ACCESS_REQUEST_CONFIG` and `AUTH_ORG` are singletons. Ambiguous
 identities do not pass. See the [identity contract](docs/contracts.md#scope-and-identities)
 for the named-type list.
 
-### Shipped rules and implementation policy
+### Shipped rules and custom policies
 
-The first three rule layers ship with the module; your policy supplies the fourth:
+ISC profiles supply the defaults below. Your policy adds environment-specific
+rules and exceptions:
 
-| Layer | Contents | Where it lives |
-| --- | --- | --- |
-| ISC common defaults | Object identities, null handling, envelope and selected metadata rules | `internal/iscprofile/packs/common.json`, `envelope.json`, `portable.json` |
-| SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions | `source.json`, `source-portable.json` in the same directory |
-| IDENTITY_PROFILE defaults | Relative priority order in drift; attribute transforms matched by identity attribute name and source IDs excluded | `identity-profile.json` in the same directory |
-| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; attribute-source precedence and reference-ID exclusions | `identity-object-config.json` in the same directory |
-| ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target | `attribute-sync.json` in the same directory |
-| ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs | `access-request-config.json` in the same directory |
-| ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs | `role.json` in the same directory |
-| ACCESS_PROFILE defaults | Entitlement and source reference IDs | `access-profile.json` in the same directory |
-| WORKFLOW defaults | Creator and modifier reference IDs, and modifier name | `workflow.json` in the same directory |
-| SPS_PARAMETER defaults | Public/private modification timestamps and modifier subtrees excluded | `sps-parameter.json` in the same directory |
-| LIFECYCLE_STATE defaults | Account-action source references matched by name; reference IDs and redundant account actions excluded | `lifecycle-state.json` in the same directory |
-| Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions | `active-directory.json`, `microsoft-entra.json` in the same directory |
-| Implementation policy | Environment mappings/equivalences, expectations, deliberate exceptions | Your `--policy` JSON file |
+| Rule group | Default behavior |
+| --- | --- |
+| ISC common defaults | Object identities, null handling, envelope and selected metadata rules |
+| SOURCE defaults | Schema/attribute and provisioning keys, reference-ID exclusions |
+| IDENTITY_PROFILE defaults | Relative priority order in drift; attribute transforms matched by identity attribute name and source IDs excluded |
+| IDENTITY_OBJECT_CONFIG defaults | Attribute definitions matched by name; attribute-source precedence and reference-ID exclusions |
+| ATTR_SYNC_SOURCE_CONFIG defaults | Attribute arrays matched by target |
+| ACCESS_REQUEST_CONFIG defaults | Grant-request approval scheme reference IDs |
+| ROLE defaults | Access profile, entitlement, and entitlement-source reference IDs |
+| ACCESS_PROFILE defaults | Entitlement and source reference IDs |
+| WORKFLOW defaults | Creator and modifier reference IDs, and modifier name |
+| SPS_PARAMETER defaults | Public/private modification timestamps and modifier subtrees excluded |
+| LIFECYCLE_STATE defaults | Account-action source references matched by name; reference IDs and redundant account actions excluded |
+| Connector defaults | AD forest/domain structure and recommendation-status exclusion; Entra subscribed-SKU, delete-threshold, and delta-token exclusions |
+| Custom policy | Environment mappings/equivalences, expectations, and deliberate exceptions in your `--policy` JSON file |
 
-The [JSON rule packs](internal/iscprofile/packs) are embedded in the executable.
-Users normally leave them unchanged. Maintainers update these files and build a
-new executable to change defaults; adding connector identity patterns does not
-require adding comparison logic. See the [rule-pack format](docs/rule-packs.md).
-The core engine supplies vendor-neutral comparison mechanisms and does not know
-what SOURCE, Active Directory, or Entra mean.
+These defaults are included in the executable and selected through your policy's
+`profile`. See [shipped rules and custom policies](docs/rule-packs.md) for
+connector classification, mapping extensions, and overrides.
 
 The ISC adapter identifies connectors from exact exported metadata declared in
 the packs: AD's connector class, connector type, or `connectorName`; Entra's
@@ -1611,12 +1603,9 @@ connector rule is `isc.SOURCE.entra-subscribed-skus`. It applies by recognized
 Entra connector metadata, independently of the source's display name. Other
 connectors and adjacent Entra settings remain comparable.
 
-The exclusion replaces the SKU/service-plan collection defaults. To compare this
-inventory explicitly, add `"isc.SOURCE.entra-subscribed-skus"` to `disabled_rules`;
+To compare this inventory explicitly, add `"isc.SOURCE.entra-subscribed-skus"` to `disabled_rules`;
 arrays then follow normal comparison unless you define your own collection rules.
-The former `isc.SOURCE.entra-skus` and `isc.SOURCE.entra-service-plans` collection
-IDs are no longer shipped, so remove references to them from implementation
-extensions or replacements. No local mapping is needed for the default exclusion.
+No local mapping is needed for the default exclusion.
 
 ### SOURCE cache-update metadata
 
@@ -1625,8 +1614,7 @@ all SOURCE connector types in drift and deployment. It is treated as operational
 cache-update metadata, rather than an environment-specific configuration value.
 The identity and envelope profiles continue comparing it normally.
 
-This rule is defined in `internal/iscprofile/packs/source-portable.json` with ID
-`isc.SOURCE.cloud-cache-update`. To restore ordinary comparison, add that ID to
+The rule ID is `isc.SOURCE.cloud-cache-update`. To restore ordinary comparison, add that ID to
 your policy's `disabled_rules` array. Other connector attributes remain comparable.
 
 ### SOURCE health-check timing metadata
@@ -1637,8 +1625,7 @@ timing metadata. Identity and envelope profiles continue comparing it normally.
 The rule does not exclude health/status values, aggregation cursors, a top-level
 `/since`, or other similarly named fields.
 
-The declaration is in `internal/iscprofile/packs/source-portable.json`, with rule
-ID `isc.SOURCE.health-since`. Add that ID to `disabled_rules` to restore ordinary
+The rule ID is `isc.SOURCE.health-since`. Add that ID to `disabled_rules` to restore ordinary
 comparison and deployment coverage requirements. This comparison choice does not
 assume that the nested timestamp is updated on every health check.
 
@@ -1650,7 +1637,7 @@ fields remain comparable. Identity/envelope profiles still compare owner IDs.
 The rule expands as `isc.TYPE.owner-id`, for example `isc.ROLE.owner-id` or
 `isc.SOURCE.owner-id`. Add a concrete rule ID to `disabled_rules` to restore ID
 comparison for that type. This is a common portable rule, not an AD-specific or
-implementation-specific mapping.
+environment-specific mapping.
 
 ### IDENTITY_OBJECT_CONFIG attribute matching
 
@@ -1677,9 +1664,8 @@ requirements. Matching and exclusions do not approve differing values or supply
 deployment expectations. Reports show the identity attribute name alongside the
 original input paths.
 
-The shipped rule `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details` lives in
-`internal/iscprofile/packs/identity-object-config.json`. No local policy entry is
-needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
+The shipped rule is `isc.IDENTITY_OBJECT_CONFIG.object-attribute-details`.
+No local policy entry is needed. List its ID in `disabled_rules` to restore ordered comparison, or use an
 explicit same-selector replacement for a structural exception.
 
 ### IDENTITY_PROFILE attribute transforms
@@ -1703,7 +1689,7 @@ attribute, with context identifying the attribute and the original JSON paths
 from both inputs. Missing context falls back to a general identity-transform
 section. JSON reports retain the individual decisions and captured context.
 
-These defaults live in `internal/iscprofile/packs/identity-profile.json`:
+The default rules are:
 
 | Rule ID | Behavior |
 | --- | --- |
@@ -1754,8 +1740,7 @@ The scalar relative-order equivalence is drift-only. In deployment, priority val
 still need explicit expectations; the contextual collection order needs an
 authoritative whole-value expectation. Alignment never supplies deployment approval.
 Use `disabled_rules` with either shipped rule ID to restore ordinary numeric or
-positional comparison. The rules live in `identity-profile.json` and
-`identity-object-config.json` under `internal/iscprofile/packs`.
+positional comparison.
 
 The neutral policy mechanisms can also be authored explicitly:
 
@@ -1797,7 +1782,7 @@ environment restrictions, or item selectors. `priority_order` requires a keyed
 collection with concrete reference, match, and priority paths and no key cases.
 The context type need not be selected for comparison. Existing collection key
 mappings can still align environment-specific application names; value equivalence
-for those names remains a separate implementation decision.
+for those names remains a separate policy decision.
 
 ### ATTR_SYNC_SOURCE_CONFIG attribute matching
 
@@ -1819,13 +1804,12 @@ incomplete; changing the logical parent still produces differences. The exclusio
 does not substitute name-based lookup.
 Disable this rule to restore parent-reference ID comparison and deployment coverage.
 
-The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes` in
-`internal/iscprofile/packs/attribute-sync.json`. It applies to all parent source
+The shipped collection is `isc.ATTR_SYNC_SOURCE_CONFIG.attributes`. It applies to all parent source
 connectors. Use `disabled_rules` to restore ordinary ordered comparison, or an
 explicit same-selector replacement for a structural exception.
 
 Attribute-sync identity depends on SOURCE matching. Include both types with
-`--scope SOURCE,ATTR_SYNC_SOURCE_CONFIG`; the current engine also compares SOURCE
+`--scope SOURCE,ATTR_SYNC_SOURCE_CONFIG`; this also compares SOURCE
 objects under that scope. Selecting only ATTR_SYNC_SOURCE_CONFIG still leaves
 its parent matching context unavailable and returns an incomplete result.
 
@@ -1839,8 +1823,7 @@ Names, types, and other scheme/configuration fields remain comparable. Missing
 schemes and array ordering still produce findings. Other nested IDs, other
 approval-scheme paths, and other configuration types retain normal comparison.
 
-The rule is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id` in
-`internal/iscprofile/packs/access-request-config.json`. No local mapping is needed.
+The rule ID is `isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id`. No local mapping is needed.
 List the rule ID in `disabled_rules` to restore ID comparison and deployment
 coverage requirements.
 
@@ -1860,9 +1843,8 @@ The wildcards apply to every array member, including `/accessProfiles/0/id`,
 ordering still produce findings. Other nested IDs and ROLE `/source/id` retain
 normal comparison; these rules do not apply to other configuration types.
 
-These declarations live in `internal/iscprofile/packs/role.json`. Add an
-individual rule ID to `disabled_rules` to restore that ID's comparison and
-deployment coverage requirements. No implementation-policy mappings are needed.
+Add an individual rule ID to `disabled_rules` to restore that ID's comparison and
+deployment coverage requirements. No custom-policy mappings are needed.
 
 ### ACCESS_PROFILE entitlement and source references
 
@@ -1879,7 +1861,6 @@ and other fields remain comparable. Missing entitlements and source references
 still produce findings; entitlement array ordering is unchanged. Other nested IDs
 and identical paths on other configuration types retain normal comparison.
 
-These declarations live in `internal/iscprofile/packs/access-profile.json`.
 No local policy mapping is needed. Add either rule ID to `disabled_rules` to
 restore its ID comparison and deployment coverage requirements.
 
@@ -1898,7 +1879,7 @@ Both modifier exclusions cover the entire subtree, including IDs, names, types,
 and any other nested attributes. Parameter settings remain comparable, and these
 exclusions do not apply to other configuration types.
 
-The rules live in `internal/iscprofile/packs/sps-parameter.json`. No local policy
+No local policy
 entries are needed. Add a rule ID to `disabled_rules` to restore comparison and
 deployment coverage requirements for that field.
 
@@ -1912,11 +1893,10 @@ All ISC profiles exclude these WORKFLOW reference fields in drift and deployment
 | `/modifiedBy/id` | `isc.WORKFLOW.modified-by-id` |
 | `/modifiedBy/name` | `isc.WORKFLOW.modified-by-name` |
 
-The exported field is `creator`, not `create`. These rules are declared in
-`internal/iscprofile/packs/workflow.json`. The creator name, reference types, and
+The exported field is `creator`, not `create`. The creator name, reference types, and
 other fields remain comparable, as do identical paths on other configuration types.
 List a rule ID in `disabled_rules` to restore that field's comparison and deployment coverage
-requirements. No implementation-policy mapping is needed.
+requirements. No custom-policy mapping is needed.
 
 ### LIFECYCLE_STATE account actions
 
@@ -1925,8 +1905,7 @@ so source-reference array order does not affect equivalence. Names must be uniqu
 within each source-reference array; missing or duplicate keys are reported as
 conflicts. Reference types and other fields remain comparable.
 
-These defaults apply in drift and deployment and are declared in
-`internal/iscprofile/packs/lifecycle-state.json`:
+These defaults apply in drift and deployment:
 
 | Rule ID | Behavior |
 | --- | --- |
@@ -1951,8 +1930,7 @@ All ISC profiles exclude these exact SOURCE paths in drift and deployment:
 | `/correlationConfigDetails/id` | `isc.SOURCE.correlation-config-details-id` |
 | `/managerCorrelationRule/id` | `isc.SOURCE.manager-correlation-rule-id` |
 
-These declarations live in `internal/iscprofile/packs/source.json` and apply to
-all SOURCE connector types. Names, types, correlation details, and other fields
+These rules apply to all SOURCE connector types. Names, types, correlation details, and other fields
 remain comparable. The same paths on other configuration types are unchanged.
 Use `disabled_rules` to restore comparison for an individual exclusion.
 
@@ -2065,7 +2043,7 @@ File order never determines precedence. Conflicting active rules, including an
 ignore that could hide an expectation, are rejected. To override a profile rule,
 name its ID with `replaces`; adding another overlapping rule is not an override.
 Use `disabled_rules` for an explicit opt-out, or `collection_mappings` to add
-implementation mappings without changing structure. Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-profiles).
+environment mappings without changing structure. Profile rule IDs are documented in the [policy contract](docs/policy.md#isc-profiles).
 
 ### Equivalence: approved drift differences
 
@@ -2243,7 +2221,7 @@ package example
 import (
     differ "github.com/elianderson/iscutilities/configdiffer"
     "github.com/elianderson/iscutilities/configdiffer/v2"
-    "gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
+    "github.com/easqr/iscconfigexporter/snapshot"
 )
 
 func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
@@ -2282,26 +2260,21 @@ validation as the disk reader. Construct validated inputs with `Read` or
 `FromFiles`; the ISC adapter rejects arbitrary or mutated `snapshot.Input`
 structures. Comparison operates on detached representations. For neutral document
 formats, use `v2.Compile` and `v2.Run` with your own profiles and adapters; use
-`differ.Compile` or `Compare` to expand built-in ISC profiles. The root package also exposes `DecodePolicy` and aliases for the current `Policy`
+`differ.Compile` or `Compare` to expand built-in ISC profiles. The root package also exposes `DecodePolicy` and aliases for the `Policy`
 and `Report` types. Use `LoadPolicy(path)` to read a root policy and its fragments.
 `DecodePolicy(bytes)` and `v2.Decode(bytes)` decode a self-contained policy without
 filesystem access and reject `includes`. File composition belongs to the adapter;
 the neutral compiler receives one assembled policy.
 
-For a separate consuming Go module, replacement directives in a dependency's
-`go.mod` are not inherited. The current unpublished modules require replacements
-for **both** local checkouts in your application's `go.mod`:
+To use configdiffer from a local checkout in another Go module, add a replacement
+for that checkout. The exporter dependency is downloaded at v0.8.0:
 
 ```gomod
-go 1.27.2
+go 1.27.3
 
-require (
-    github.com/elianderson/iscutilities/configdiffer v0.0.0
-    gitlab.com/easqrtech/iam/iscconfigexporter v0.0.0
-)
+require github.com/elianderson/iscutilities/configdiffer v0.0.0
 
 replace github.com/elianderson/iscutilities/configdiffer => /path/to/iscutilities/configdiffer
-replace gitlab.com/easqrtech/iam/iscconfigexporter => /path/to/iscutilities/configexporter
 ```
 
 These entries go below your application's own `module` declaration. Run
@@ -2311,7 +2284,7 @@ These entries go below your application's own `module` declaration. Run
 
 | Symptom | What to check |
 | --- | --- |
-| Build cannot find `configexporter` | Check the sibling directory and `go.mod` replacement; external consumers need their own replacements |
+| Build cannot find `configexporter` | Check access to `github.com/easqr/iscconfigexporter` v0.8.0 and run `go mod download` |
 | Selected scopes differ | Supply matching input type declarations or an explicit shared `--scope` |
 | Invalid artifact or unexpected JSON | Check envelope format, hexadecimal filename, and whether policies/mappings were placed inside an input tree |
 | Checksum/count failure in snapshot mode | Use an intact exported generation; choose tree mode explicitly for intended edits |
@@ -2323,23 +2296,14 @@ These entries go below your application's own `module` declaration. Run
 | Deployment remains unverified | Inspect uncovered fields, authority/evidence, environment values, baseline availability, and reference correspondence |
 | Hub context mismatch | Check source/target direction, resolved environments, manifest tenants, and explicit `default` binding |
 
-## Development and further documentation
+## Further documentation
 
-From this module, run:
-
-```sh
-go test ./...
-go test -race ./...
-go vet ./...
-go build ./...
-```
-
-Run the same checks from the sibling exporter when changing shared input
-contracts. Automated fixtures use invented data and temporary directories; they
-do not require credentials or tenant exports. Format changed Go files with
-`gofmt` and check whitespace with `git diff --check`.
-
-- [Policy and report contract](docs/policy.md): exact fields, semantics, and adapter boundaries.
+- [Documentation index](docs/README.md): usage and reference guides.
+- [Policy and report contract](docs/policy.md): policy syntax, comparison behavior, and reports.
 - [Export input contract](docs/contracts.md): snapshot format and validated readers.
-- [Exporter mapping retrieval](../configexporter/docs/MAPPINGS.md): optional retrieval and bundle provenance.
-- [Implementation record](docs/implementation.md) and [correctness review](docs/review.md): acceptance evidence and compatibility notes.
+- [Shipped rules and custom policies](docs/rule-packs.md): default profiles, connector classification, and overrides.
+- [Exporter mapping retrieval](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/MAPPINGS.md): optional retrieval and bundle provenance.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).

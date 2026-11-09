@@ -1,7 +1,5 @@
 module github.com/elianderson/iscutilities/configdiffer
 
-go 1.27.2
+go 1.27.3
 
-require gitlab.com/easqrtech/iam/iscconfigexporter v0.0.0
-
-replace gitlab.com/easqrtech/iam/iscconfigexporter => ../configexporter
+require github.com/easqr/iscconfigexporter v0.8.0

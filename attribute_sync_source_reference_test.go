@@ -3,8 +3,8 @@ package differ
 import (
 	"testing"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 const syncSourceIDRule = "isc.ATTR_SYNC_SOURCE_CONFIG.source-id"

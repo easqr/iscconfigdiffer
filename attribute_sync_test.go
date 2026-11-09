@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 const syncAttributesRule = "isc.ATTR_SYNC_SOURCE_CONFIG.attributes"

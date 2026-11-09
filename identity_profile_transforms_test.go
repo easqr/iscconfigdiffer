@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func identityProfileTransformsInput(t *testing.T, env string, alter func([]any)) snapshot.Input {

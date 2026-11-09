@@ -3,8 +3,8 @@ package differ
 import (
 	"testing"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func sourceRuleInput(t *testing.T, env, typ string, reference map[string]any) snapshot.Input {

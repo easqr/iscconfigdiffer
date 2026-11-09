@@ -1,5 +1,8 @@
 # Correctness review record
 
+Contributor reference for regression coverage and previous corrections. For usage,
+see the [README](../../README.md).
+
 The current engine's regression tests protect these behavior boundaries:
 
 | Area | Correct behavior | Evidence |
@@ -46,4 +49,4 @@ existence cannot be established without a baseline. Delete validation and
 baseline-derived references need that evidence. Full impact analysis, change
 authorization, remediation, and proprietary draft formats remain outside scope.
 
-Run the checks in [implementation.md](implementation.md) after code changes.
+Run the [contributor checks](../DEVELOPMENT.md#local-checks) after code changes.

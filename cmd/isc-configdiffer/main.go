@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	differ "github.com/elianderson/iscutilities/configdiffer"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 type inputFlags struct{ dir, mode, label, env, types *string }

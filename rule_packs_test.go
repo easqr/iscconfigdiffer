@@ -3,8 +3,8 @@ package differ
 import (
 	"testing"
 
+	"github.com/easqr/iscconfigexporter/snapshot"
 	"github.com/elianderson/iscutilities/configdiffer/v2"
-	"gitlab.com/easqrtech/iam/iscconfigexporter/snapshot"
 )
 
 func connectorInput(t *testing.T, env, name, connector string, extra map[string]any) snapshot.Input {
