@@ -8,6 +8,7 @@ and open your first report. For a run without tenant exports, use the
 
 | I want to… | Read |
 | --- | --- |
+| Validate production against an approved snapshot in Git | [Production drift validation](production-drift.md) |
 | Understand snapshot/tree modes, scope, and object selection | [Input format and scope](inputs.md) |
 | Understand findings, filters, values, or exit codes | [Reports and exit codes](reports.md) |
 | Allow approved environment differences | [Environment mappings](environment-mappings.md) |
