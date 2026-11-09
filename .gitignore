@@ -6,3 +6,6 @@ policy.json
 
 # Local implementation policy fragments
 /policy-rules/
+
+# macOS folder metadata
+.DS_Store
