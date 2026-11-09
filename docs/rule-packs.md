@@ -2,14 +2,23 @@
 
 ISC profiles supply default identities, normalization, exclusions, and array
 matching rules. Your custom policy adds environment-specific decisions and
-exceptions.
+exceptions. See [profiles and policy syntax](configuration.md#policy-syntax-and-profiles)
+for choosing a preset, or [environment mappings](environment-mappings.md) for
+a complete custom-policy example.
 
 | Layer | Packs | Responsibility |
 | --- | --- | --- |
 | Common ISC defaults | `common`, `envelope`, `portable` | Identities, null handling, envelope expectations, selected metadata exclusions |
 | SOURCE defaults | `source`, `source-portable` | Schema/provisioning structure and specific generated/reference ID exclusions |
-| IDENTITY_PROFILE defaults | `identity-profile` | Relative priority equivalence in drift |
+| IDENTITY_PROFILE defaults | `identity-profile` | Relative priority equivalence in drift; attribute transforms matched by identity attribute name and selected source IDs excluded |
 | IDENTITY_OBJECT_CONFIG defaults | `identity-object-config` | Attribute definitions matched by name; contextual attribute-source precedence and reference-ID exclusions |
+| ATTR_SYNC_SOURCE_CONFIG defaults | `attribute-sync` | Attribute arrays matched by target; parent SOURCE reference-ID exclusion |
+| ACCESS_REQUEST_CONFIG defaults | `access-request-config` | Grant-request approval scheme reference-ID exclusion |
+| ROLE defaults | `role` | Access profile, entitlement, and entitlement-source reference-ID exclusions |
+| ACCESS_PROFILE defaults | `access-profile` | Entitlement and source reference-ID exclusions |
+| WORKFLOW defaults | `workflow` | Creator/modifier reference-ID and modifier-name exclusions |
+| SPS_PARAMETER defaults | `sps-parameter` | Modification timestamps and modifier-subtree exclusions |
+| LIFECYCLE_STATE defaults | `lifecycle-state` | Account-action source matching by name, reference-ID exclusions, and redundant account-action exclusion |
 | Connector defaults | `active-directory`, `microsoft-entra` | Connector-specific array keys, conditional applicability, display labels |
 | Custom policy | The user's policy | Environment mapping extensions, approved differences, authoritative expectations, explicit overrides |
 
@@ -19,9 +28,9 @@ normalization; `isc-portable-v2` additionally includes portable metadata
 normalization. Connector rules apply only to matching classified documents.
 A neutral policy with no ISC profile still uses its own authored rules.
 
-The rule packs are included in the executable. Select them through `profile`;
-external pack files cannot be loaded at runtime. Add environment mappings,
-expectations, and exceptions through your `--policy` file.
+The rule packs are included in the executable. Select them through `profile`.
+Add environment mappings, expectations, and exceptions through your `--policy`
+file.
 
 Reports record each selected pack's ID, version, layer, and SHA-256 digest.
 Applied rules and their pack origins are included in the effective policy digest.

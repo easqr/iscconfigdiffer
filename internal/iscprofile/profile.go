@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/elianderson/iscutilities/configdiffer/v2"
+	"github.com/easqr/iscconfigdiffer/v2"
 )
 
 //go:embed packs/*.json

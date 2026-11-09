@@ -63,9 +63,7 @@ evidence. Every effective rule is included in profile/policy digest calculation.
 Maintainers edit JSON, run the test/build checks, and ship a new executable.
 Adding a supported selector, key, exclusion, label, or connector alias ordinarily
 requires no Go rule declarations. A new comparison mechanism still requires
-engine work. Users do not need to modify the packs. Runtime loading of external
-pack files is not implemented; user exceptions belong in the implementation
-policy.
+engine work. User exceptions belong in custom comparison policies.
 
 ## Checks
 

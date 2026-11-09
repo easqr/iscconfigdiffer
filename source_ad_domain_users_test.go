@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elianderson/iscutilities/configdiffer/v2"
+	"github.com/easqr/iscconfigdiffer/v2"
 )
 
 func multipleDomainUsers(env string) []any {

@@ -30,6 +30,29 @@ The repository ignores `policy.json`, `policy-rules/`, `reports/`, and `bin/`.
 Use these locations for local policies, generated reports, and compiled commands.
 Keep reusable examples under `examples/`, using invented names and values.
 
+## Local module overrides
+
+Consumers normally use `github.com/easqr/iscconfigdiffer` v0.6.0. To test changes
+from a checkout before publishing, add a replacement in the consuming application's
+`go.mod`:
+
+```gomod
+replace github.com/easqr/iscconfigdiffer => /absolute/path/to/iscconfigdiffer
+```
+
+Run `go mod tidy` after adding imports. This override is for local testing;
+release consumers do not need it. The exporter stays pinned to its published
+v0.8.0 dependency.
+
+## Releases
+
+Use matching source and module tags such as `v0.6.0`. Before tagging, run the
+checks above, verify the module path and pinned dependency, and review the
+staged files. Commit the release source and documentation, then create an
+annotated tag at that commit. Push the branch and tag together. Verify the
+published CLI with `go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.6.0`
+and check `isc-configdiffer --help` returns success.
+
 ## Contributor references
 
 - [Rule-pack authoring](development/rule-packs.md): embedded format, validation, and changing defaults.

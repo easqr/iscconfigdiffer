@@ -4,6 +4,11 @@ Comparison policies use schema `2` for offline comparison of validated ISC
 exports and saved Configuration Hub mappings. The `v2` library package also
 supports vendor-neutral documents and policies.
 
+This is the detailed contract reference. For a first comparison, start with the
+[README](../README.md). For policy authoring examples, use the
+[configuration reference](configuration.md); for application setup, use the
+[Go library guide](library.md).
+
 ## Library entry points
 
 * `v2.Decode`, `v2.Compile`, `v2.Run`: neutral policy/documents.
@@ -54,8 +59,8 @@ remain part of each rule. A fragment has no `version`, `id`, or `includes` heade
 
 Composition appends arrays and then compiles once. Rule IDs are globally unique
 across categories and files. Repeated disabled IDs also fail. Include order does
-not confer precedence: normal conflict, specificity, replacement, and disabling
-rules still apply. File names do not confer scope; explicit selectors do.
+not confer precedence. Conflict checks, explicit replacement, and disabling
+rules apply across all files; a more specific selector does not override a broader rule. File names do not confer scope; explicit selectors do.
 Rule validation errors carry structured `*v2.RuleError` ownership, available via
 `errors.As`; file attribution uses those exact IDs rather than words in an error
 message. Cross-file conflicts identify both owners where known, and filenames
@@ -79,7 +84,7 @@ reformatting, or reordering a manifest changes policy/request digests without
 necessarily changing decisions. Relocating an unchanged bundle with the same
 root basename and relative layout does not change file provenance. The same comparison rules apply to single-file and assembled policies.
 
-See the [README walkthrough](../README.md#organize-policies-across-files) and the
+See the [policy-file walkthrough](policy-files.md#organize-policies-across-files) and the
 [modular example](../examples/policy-includes.json). These are custom
 policy fragments, distinct from the adapter's embedded [rule packs](rule-packs.md).
 
@@ -207,10 +212,9 @@ do not put secrets in them.
 Selectors contain `type`, `path`, optional exact logical `key`, optional
 adapter-classified `variant`, and optional `space` (`content`, the default, or `metadata`). Paths are JSON Pointers relative
 to the selected section. `""` selects the section root. Escape `~` as `~0` and
-`/` as `~1`. A segment exactly `*` selects one object member or array item; no
-recursive wildcard, regex, filter or expression language exists. A literal member
-named `*` cannot be addressed by a selector. Literal missing paths are evaluated;
-wildcards expand only from available structures.
+`/` as `~1`. A segment exactly `*` selects one object member or array item.
+Literal missing paths are evaluated; wildcards expand only from available
+structures.
 
 | Array | Additional fields |
 | --- | --- |
@@ -1016,8 +1020,8 @@ SKU/service-plan matching is needed. Disabling restores ordinary comparison;
 it does not infer deployment expectations.
 
 See the [complete drift example](../examples/policy-drift.json),
-[forest walkthrough](../README.md#forest-names-that-differ-between-environments),
-and [domain walkthrough](../README.md#domain-settings-between-environments).
+[forest walkthrough](environment-mappings.md#forest-names-that-differ-between-environments),
+and [domain walkthrough](environment-mappings.md#domain-settings-between-environments).
 
 ## SOURCE provisioning policy rules
 
@@ -1077,7 +1081,7 @@ scope requires equal selected type sets in the two primary inputs; selected type
 with zero objects remain declared scope.
 
 For a worked explanation of intent, action checks, and partial-draft handling,
-see the [operations walkthrough](../README.md#deployment-operations-file).
+see the [operations walkthrough](deployment.md#deployment-operations-file).
 
 Deployment takes a strict operations JSON array:
 
@@ -1145,9 +1149,7 @@ object pairing.
 Deployment import requires both `--hub-deployment-authority APPROVAL` and
 `--hub-deployment-evidence /policies/evidence.json`. Evidence is a strict object
 with nonempty `kind`. Promotion creates guarded destination expectations; it does
-not rewrite the draft. A multi-case mapping group is rejected for automatic
-deployment promotion because choosing among conditional destinations needs an
-explicit authored policy. It remains supported for drift. Successful retrieval
+not rewrite the draft. Successful retrieval
 does not establish applicability or approval, and no undocumented global Hub
 substitution parity is claimed.
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 const grantApprovalIDRule = "isc.ACCESS_REQUEST_CONFIG.grant-approval-scheme-id"

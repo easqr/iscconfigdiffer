@@ -97,15 +97,13 @@ checked. All example policies use schema `2`.
   formats require a separately inspected adapter.
 * Baseline-derived references and explicit delete validation require baseline
   evidence; the actual draft never supplies its own expected destination ID.
-* Hub multi-case groups work for drift and require authored deployment
-  expectations instead of automatic promotion.
 * Counts distinguish decision units from object groups and do not claim leaf
   coverage percentages for whole-subtree assertions or exclusions.
 * No deployment, remediation, destination-impact analysis or authorization gate
   is implemented. SDK/authentication stay in the exporter.
 * Builds download `github.com/easqr/iscconfigexporter` v0.8.0 without a local
-  replacement. Standalone versioned installation is unavailable while configdiffer
-  remains unpublished.
+  replacement. The published configdiffer module path is
+  `github.com/easqr/iscconfigdiffer`.
 
 ## Entra collection compatibility
 

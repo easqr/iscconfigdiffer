@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 type HubOptions struct {

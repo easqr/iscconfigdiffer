@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	exporter "github.com/easqr/iscconfigexporter"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 func rule(id string) v2.Rule {

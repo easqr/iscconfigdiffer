@@ -3,9 +3,9 @@ package differ
 import (
 	"context"
 	"encoding/json"
+	"github.com/easqr/iscconfigdiffer/v2"
 	exporter "github.com/easqr/iscconfigexporter"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 	"os"
 	"path/filepath"
 	"testing"

@@ -5,6 +5,9 @@ Comparison policies and reports use schema `2`; their contract is documented in
 format, whose manifest `schema` and envelope `version` fields are both `1`.
 These storage-format versions are independent of the policy and report schema.
 
+For choosing input directories, reading modes, or scope, start with the
+[input guide](inputs.md). The rules below describe the exact validation contract.
+
 ## Schema and inventory
 
 The SDK-free exporter `snapshot` package owns `Artifact`, `Changes`, `Manifest`, and `Snapshot`, along with the shared JSON decoding, checksums and path validation. Exporter APIs use these types directly. `exporter.BuildSnapshot` converts a complete download into an in-memory snapshot; `FileStore.Publish` saves it. For exporter filenames, manifest fields and Go reader modes, see the exporter's [Snapshot files and readers](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/SNAPSHOTS.md) reference. This document describes the additional requirements for comparison inputs.

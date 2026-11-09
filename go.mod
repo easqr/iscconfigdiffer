@@ -1,4 +1,4 @@
-module github.com/elianderson/iscutilities/configdiffer
+module github.com/easqr/iscconfigdiffer
 
 go 1.27.3
 

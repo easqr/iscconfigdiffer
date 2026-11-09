@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 func tree(t *testing.T, value string) string {
@@ -38,6 +38,32 @@ func writeJSON(t *testing.T, v any) string {
 	}
 	return p
 }
+func TestCLIHelp(t *testing.T) {
+	for _, args := range [][]string{{"--help"}, {"-h"}, {"--mode", "deployment", "--help"}} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			dir := t.TempDir()
+			t.Chdir(dir)
+			var output bytes.Buffer
+			if code := run(args, &output); code != 0 {
+				t.Fatalf("help exited %d: %s", code, output.String())
+			}
+			if !strings.Contains(output.String(), "Usage of isc-configdiffer:") || !strings.Contains(output.String(), "-policy") {
+				t.Fatalf("missing usage or options: %s", output.String())
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("help created files: %v, %v", entries, err)
+			}
+		})
+	}
+	for _, args := range [][]string{{"--unknown-option"}, {"--mode"}, {}} {
+		var output bytes.Buffer
+		if code := run(args, &output); code != 2 {
+			t.Fatalf("invalid request %q exited %d: %s", args, code, output.String())
+		}
+	}
+}
+
 func TestCLIModesAndReports(t *testing.T) {
 	left, right := tree(t, "same"), tree(t, "same")
 	args := []string{"--mode", "drift", "--left", left, "--right", right, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--format", "json"}

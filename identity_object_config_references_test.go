@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/elianderson/iscutilities/configdiffer/v2"
+	"github.com/easqr/iscconfigdiffer/v2"
 )
 
 func identityReferenceDetails(env string) []any {

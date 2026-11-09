@@ -3,8 +3,8 @@ package differ
 import (
 	"testing"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 func runtimeMetadataInput(t *testing.T, env, typ, connector, field string, timestamp any, present bool, timeout int) snapshot.Input {

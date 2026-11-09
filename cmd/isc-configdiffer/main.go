@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	differ "github.com/easqr/iscconfigdiffer"
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	differ "github.com/elianderson/iscutilities/configdiffer"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 type inputFlags struct{ dir, mode, label, env, types *string }
@@ -46,6 +47,9 @@ func run(args []string, errOut io.Writer) int {
 	ha := f.String("hub-deployment-authority", "", "explicit authority for deployment expectations")
 	he := f.String("hub-deployment-evidence", "", "JSON evidence file for explicit deployment promotion")
 	if e := f.Parse(args); e != nil {
+		if errors.Is(e, flag.ErrHelp) {
+			return 0
+		}
 		return 2
 	}
 	fail := func(e error) int { fmt.Fprintln(errOut, e); return 2 }

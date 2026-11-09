@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 func nestedProvisioningInput(t *testing.T, env string, reverse, otherTemplates bool, changeTransform bool) snapshot.Input {

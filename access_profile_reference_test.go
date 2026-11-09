@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
-	"github.com/elianderson/iscutilities/configdiffer/v2"
 )
 
 func accessProfileReferenceInput(t *testing.T, env, typ string, alter func(map[string]any)) snapshot.Input {

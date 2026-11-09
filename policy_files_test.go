@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elianderson/iscutilities/configdiffer/v2"
+	"github.com/easqr/iscconfigdiffer/v2"
 )
 
 func policyFile(t *testing.T, dir, name, body string) string {
