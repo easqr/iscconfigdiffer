@@ -1,4 +1,15 @@
 {
+  "ignores": [
+    {
+      "id": "governance-group-members",
+      "type": "GOVERNANCE_GROUP",
+      "path": "/members",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "governance-group-members-exclusion"
+      }
+    }
+  ],
   "equivalences": [
     {
       "id": "owner-breakglass-name-access-profile",
