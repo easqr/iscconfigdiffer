@@ -1,0 +1,688 @@
+{
+    "equivalences":[
+        {
+            "id": "workflow-immeidate-term-loop",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/Compare Strings/choiceList/0/variableB",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f4685d6d0ce2471796d0a92c82cb1bd3",
+                    "right": "6267b02c9afb4d84aa241da0653e2f02"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-immediate-term-loop"
+            },
+            "key": "PJI - Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-immeidate-term-lifecyclestate",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/jsonRequestBody/lifecycleStateId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "76144017d22d4a69a3c2b92ad6ca95e8",
+                    "right": "fcefecb5d49949408dc40a902e513154"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-immediate-term-loop"
+            },
+            "key": "PJI - Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-immeidate-term-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "eb5efeff-06f5-4f6f-bfe4-105de9237253",
+                    "right": "e55c08d0-8d6b-4519-b831-a41f61374f24"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-immediate-term-paramid"
+            },
+            "key": "PJI - Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-immeidate-term-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "34dd2af9-faa5-42fc-a403-22f2c25e4d41",
+                    "right": "e39405fc-bc66-43d3-a809-5efd6fb0f423"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-immediate-term-refid"
+            },
+            "key": "PJI - Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-immeidate-term-url",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v3/identities/{{$.loop.loopInput}}/set-lifecycle-state",
+                    "right": "https://papajohns.api.identitynow.com/v3/identities/{{$.loop.loopInput}}/set-lifecycle-state"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-immediate-term-url"
+            },
+            "key": "PJI - Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-joiner-notifications-client",
+            "type": "WORKFLOW",
+            "path": "/trigger/attributes/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "b1ce8534-5ecd-4ee2-b0be-0e3fbaea08d5",
+                    "right": "ce4a9405-2ab2-4266-9bbb-0da427e80cd7"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-joiner-notifications-client"
+            },
+            "key": "PJI - Joiner Notifications"
+        },
+        {
+            "id": "workflow-new-ad-paramid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f781f7e0-8af0-4601-92a6-542c6d4d4b23",
+                    "right": "408725e5-f64f-470e-82f8-b82a6817a8fb"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-paramid-3"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-new-ad-refid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "2de1eb0e-2ff6-4794-b064-dc9ed318ac3e",
+                    "right": "f5ba65cd-7ab6-4701-868b-3208d213b50f"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-refid-3"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-new-ad-url-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-url-3"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-new-ad-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f781f7e0-8af0-4601-92a6-542c6d4d4b23",
+                    "right": "408725e5-f64f-470e-82f8-b82a6817a8fb"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-paramid"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-new-ad-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "c3ab2be3-8571-4b67-af41-63b618c0ec2b",
+                    "right": "4a12a873-accd-4fc7-9415-bc49b85f6f69"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-refid"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-new-ad-url",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/d92e2eec-c8e4-48c0-8dc0-204da404b587",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/d92e2eec-c8e4-48c0-8dc0-204da404b587"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-new-ad-url"
+            },
+            "key": "PJI - New Primary AD Account"
+        },
+        {
+            "id": "workflow-revert-term-loop",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/Compare Strings/choiceList/0/variableB",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f4685d6d0ce2471796d0a92c82cb1bd3",
+                    "right": "6267b02c9afb4d84aa241da0653e2f02"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-revert-term-loop"
+            },
+            "key": "PJI - Revert Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-revert-term-lifecyclestate",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/jsonRequestBody/lifecycleStateId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "bb85e00ad3b145619504aef529dc1ac0",
+                    "right": "132f650293db4bb79110a6a70f2c5129"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-revert-term-loop"
+            },
+            "key": "PJI - Revert Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-revert-term-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "eb5efeff-06f5-4f6f-bfe4-105de9237253",
+                    "right": "e55c08d0-8d6b-4519-b831-a41f61374f24"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-revert-term-paramid"
+            },
+            "key": "PJI - Revert Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-revert-term-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f0c637cd-1614-43fc-8d15-18b4f4d5fb59",
+                    "right": "b76bedd6-66cb-4c00-9344-541d1dc76ff2"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-revert-term-refid"
+            },
+            "key": "PJI - Revert Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-revert-term-url",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 1/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v3/identities/{{$.loop.loopInput}}/set-lifecycle-state",
+                    "right": "https://papajohns.api.identitynow.com/v3/identities/{{$.loop.loopInput}}/set-lifecycle-state"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-revert-term-url"
+            },
+            "key": "PJI - Revert Immediate Identity Termination"
+        },
+        {
+            "id": "workflow-sspr-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 1/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "ef9017e5-92ec-475a-988a-b66cba6099fc",
+                    "right": "71d6e1bd-7826-4312-8020-9c352c93e7f6"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-paramid"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 1/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "764ddb18-5156-4242-8cf1-9787f359031d",
+                    "right": "1acd03f9-afd3-4bc3-bacd-f1759f4ba92b"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-refid"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-scopes-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 1/attributes/param_oauth_scopes/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "1ca67009-8feb-4e4a-8373-28df846f1a86",
+                    "right": "c394ccfc-7afe-461f-9936-10231a2fb9f8"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-scopes-paramid"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-scopes-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 1/attributes/param_oauth_scopes/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "1ed36c59-6a9c-4a5b-831f-b3f41d468104",
+                    "right": "5575efaa-5114-4179-b62d-6c4e3d823338"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-scopes-refid"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-paramid-2",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 2/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "ef9017e5-92ec-475a-988a-b66cba6099fc",
+                    "right": "71d6e1bd-7826-4312-8020-9c352c93e7f6"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-paramid-2"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-refid-2",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 2/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "764ddb18-5156-4242-8cf1-9787f359031d",
+                    "right": "1acd03f9-afd3-4bc3-bacd-f1759f4ba92b"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-refid-2"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-scopes-paramid-2",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 2/attributes/param_oauth_scopes/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "1ca67009-8feb-4e4a-8373-28df846f1a86",
+                    "right": "c394ccfc-7afe-461f-9936-10231a2fb9f8"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-scopes-paramid-2"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-scopes-refid-2",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 2/attributes/param_oauth_scopes/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "1ed36c59-6a9c-4a5b-831f-b3f41d468104",
+                    "right": "5575efaa-5114-4179-b62d-6c4e3d823338"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-scopes-refid-2"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-clientid",
+            "type": "WORKFLOW",
+            "path": "/trigger/attributes/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "32e7062c-6f21-441b-ae6b-6314052394a6",
+                    "right": "644ecf02-562d-4280-89b0-39e7b4cdeca1"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-clientid"
+            },
+            "key": "PJI - SSPR"
+        },
+        {
+            "id": "workflow-sspr-joiner-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 2/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "3b53cd2c-3ea8-43b8-91e1-189d9d440f5e",
+                    "right": "1ee03d69-a6ef-4cf2-b145-4d46ce2d2f83"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-paramid"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-sspr-joiner-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 3/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "fc031903-a464-42f1-a3bb-1f7d5c99bd91",
+                    "right": "7bf3643d-7d01-4311-9d73-6e32327aefa2"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-refid"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-sspr-joiner-url",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/Loop/attributes/steps/HTTP Request 3/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-url"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-sspr-joiner-paramid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "3b53cd2c-3ea8-43b8-91e1-189d9d440f5e",
+                    "right": "1ee03d69-a6ef-4cf2-b145-4d46ce2d2f83"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-paramid-3"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-sspr-joiner-refid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "fc031903-a464-42f1-a3bb-1f7d5c99bd91",
+                    "right": "7bf3643d-7d01-4311-9d73-6e32327aefa2"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-refid-3"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-sspr-joiner-url-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-sspr-joiner-url-3"
+            },
+            "key": "PJI - SSPR - Joiner"
+        },
+        {
+            "id": "workflow-rehire-paramid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "3b53cd2c-3ea8-43b8-91e1-189d9d440f5e",
+                    "right": "1ee03d69-a6ef-4cf2-b145-4d46ce2d2f83"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-paramid-3"
+            },
+            "key": "PJI - Rehire"
+        },
+        {
+            "id": "workflow-rehire-refid-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "2de1eb0e-2ff6-4794-b064-dc9ed318ac3e",
+                    "right": "f5ba65cd-7ab6-4701-868b-3208d213b50f"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-refid-3"
+            },
+            "key": "PJI - Rehire"
+        },
+        {
+            "id": "workflow-rehire-url-3",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request 3/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/acd2054c-4100-4fad-9d6c-42f02bf147aa"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-url-3"
+            },
+            "key": "PJI - Rehire"
+        },
+        {
+            "id": "workflow-rehire-paramid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/param_oauth/paramID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "f781f7e0-8af0-4601-92a6-542c6d4d4b23",
+                    "right": "408725e5-f64f-470e-82f8-b82a6817a8fb"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-paramid"
+            },
+            "key": "PJI - Rehire"
+        },
+        {
+            "id": "workflow-rehire-refid",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/param_oauth/refID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "680c8358-dec8-456a-86a6-e0e81e1f4bb7",
+                    "right": "a00a6ea5-a7f0-4598-b128-b409b0d010b9"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-refid"
+            },
+            "key": "PJI - Rehire"
+        },
+        {
+            "id": "workflow-rehire-url",
+            "type": "WORKFLOW",
+            "path": "/definition/steps/HTTP Request/attributes/url",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/v2024/workflows/execute/external/d92e2eec-c8e4-48c0-8dc0-204da404b587",
+                    "right": "https://papajohns.api.identitynow.com/v2024/workflows/execute/external/d92e2eec-c8e4-48c0-8dc0-204da404b587"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "workflow-rehire-url"
+            },
+            "key": "PJI - Rehire"
+        }
+    ]
+}

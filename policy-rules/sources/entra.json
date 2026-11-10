@@ -1,0 +1,76 @@
+{
+    "equivalences":[
+        {
+            "id": "entra-clientid",
+            "type": "SOURCE",
+            "path": "/connectorAttributes/clientID",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                "left": "455243ca-b052-4007-b36e-2f8c0c09bc10",
+                "right": "6456b886-5691-470f-a394-05cf326f2062"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "entra-clientid"
+            },
+            "key": "Entra"
+        },
+        {
+            "id": "entra-domain-name",
+            "type": "SOURCE",
+            "path": "/connectorAttributes/domainName",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                "left": "papajohnsqaad.onmicrosoft.com",
+                "right": "papajohns.onmicrosoft.com"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "entra-domain-name"
+            },
+            "key": "Entra"
+        },
+        {
+            "id": "entra-user-filter",
+            "type": "SOURCE",
+            "path": "/connectorAttributes/userFilters",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                "left": "onPremisesSyncEnabled eq true and not(endswith(userPrincipalName,'@pjfranqaad.com'))",
+                "right": "onPremisesSyncEnabled eq true and not(endswith(userPrincipalName,'@pjfran.com') or endswith(userPrincipalName,'@pjidstest.com'))"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "entra-user-filter"
+            },
+            "key": "Entra"
+        },
+        {
+            "id": "entra-correlation",
+            "type": "SOURCE",
+            "path": "/correlationConfigDetails/name",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                "left": "65493f05a2aa4106a340cc7e963c070b Account Correlation Config",
+                "right": "2064cb48a8d54b3d8b73abd8019216ba Account Correlation Config"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "entra-correlation"
+            },
+            "key": "Entra"
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+{
+  "collection_mappings": [
+    {
+      "id": "ad-forests",
+      "key_mappings": [
+        {
+          "path": "/forestName",
+          "groups": [
+            {
+              "key": "corporate-forest",
+              "values": {
+                "dev": "pjidsqa.net",
+                "prod": "us.pjids.net"
+              }
+            }
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-forests"
+      },
+      "collection": "isc.SOURCE.ad-forests"
+    },
+    {
+      "id": "ad-domains",
+      "key_mappings": [
+        {
+          "path": "/forestName",
+          "groups": [
+            {
+              "key": "corporate-forest",
+              "values": {
+                "dev": "pjidsqa.net",
+                "prod": "us.pjids.net"
+              }
+            }
+          ]
+        },
+        {
+          "path": "/domainDN",
+          "groups": [
+            {
+              "key": "corporate-domain",
+              "values": {
+                "dev": "DC=qa,DC=pjidsqa,DC=net",
+                "prod": "DC=us,DC=pjids,DC=net"
+              }
+            }
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-domains"
+      },
+      "collection": "isc.SOURCE.ad-domains"
+    }
+  ]
+}

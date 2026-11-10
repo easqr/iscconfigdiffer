@@ -1,0 +1,13 @@
+{
+  "ignores": [
+    {
+      "id": "source-app-template-data",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/appTemplateData",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "source-app-template-data-exclusion"
+      }
+    }
+  ]
+}

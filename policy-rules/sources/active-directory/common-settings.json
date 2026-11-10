@@ -1,0 +1,174 @@
+{
+  "equivalences": [
+    {
+      "id": "ad-iqservice-host",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/IQServiceHost",
+      "left_env": "dev",
+      "right_env": "prod",
+      "pairs": [
+        {
+          "left": "qa-iq.papajohns.com",
+          "right": "iq.papajohns.com"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-hosts"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-iqservice-user",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/IQServiceUser",
+      "left_env": "dev",
+      "right_env": "prod",
+      "pairs": [
+        {
+          "left": "PJIQA\\Sailpoint_IdentityNo",
+          "right": "PJIUS\\Sailpoint_IdentityNo"
+        }
+      ],
+      "evidence": {
+        "kind": "invented-policy",
+        "record_id": "environment-hosts"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-forest-names",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/forestSettings/*/forestName",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "pjidsqa.net",
+          "prod": "us.pjids.net"
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-forests"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-domain-forestName",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/domainSettings/*/forestName",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "pjidsqa.net",
+          "prod": "us.pjids.net"
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-domains"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-domain-domainDN",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/domainSettings/*/domainDN",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "DC=qa,DC=pjidsqa,DC=net",
+          "prod": "DC=us,DC=pjids,DC=net"
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-domains"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-domain-servers",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/domainSettings/*/servers",
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": [
+            "ge4-qadc-w-q01.qa.pjidsqa.net"
+          ],
+          "prod": [
+            "ge4-usdc-w-p01.us.pjids.net",
+            "ge4-usdc-w-p02.us.pjids.net",
+            "gw2-usdc-w-p01.us.pjids.net",
+            "gw2-usdc-w-p02.us.pjids.net"
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-environment-domain-servers"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-forest-user",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/forestSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-forests",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "Sailpoint_IdentityNow_Svc@papajohnsqaad.com",
+          "prod": "Sailpoint_IdentityNow_Svc@papajohns.com"
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-corporate-forest-service-account"
+      },
+      "variant": "active-directory"
+    },
+    {
+      "id": "ad-domain-user",
+      "type": "SOURCE",
+      "path": "/connectorAttributes/domainSettings/*/user",
+      "item": {
+        "collection": "isc.SOURCE.ad-domains",
+        "keys": {
+          "/forestName": {
+            "mapped": "corporate-forest"
+          },
+          "/domainDN": {
+            "mapped": "corporate-domain"
+          }
+        }
+      },
+      "left_env": "dev",
+      "right_env": "prod",
+      "groups": [
+        {
+          "dev": "Sailpoint_IdentityNow_Svc@papajohnsqaad.com",
+          "prod": "Sailpoint_IdentityNow_Svc@papajohns.com"
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "ad-corporate-domain-service-account"
+      },
+      "variant": "active-directory"
+    }
+  ]
+}

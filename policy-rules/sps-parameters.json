@@ -1,0 +1,148 @@
+{
+    "equivalences":[
+        {
+            "id": "sps-parameter-isc-creds-clientid",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "4627e858184c48fe850947920e690082",
+                    "right": "7c94e354c2814eb3a95a33d514859d1c"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-isc-creds-clientid"
+            },
+            "key": "ISC Credentials"
+        },
+        {
+            "id": "sps-parameter-isc-creds-tokenurl",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/tokenURL",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/oauth/token",
+                    "right": "https://papajohns.api.identitynow.com/oauth/token"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-isc-creds-tokenurl"
+            },
+            "key": "ISC Credentials"
+        },
+        {
+            "id": "sps-parameter-joiner-notification-workflow-clientid",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "b1ce8534-5ecd-4ee2-b0be-0e3fbaea08d5",
+                    "right": "ce4a9405-2ab2-4266-9bbb-0da427e80cd7"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-joiner-notification-workflow-clientid"
+            },
+            "key": "Joiner Notifications Workflow Credentials"
+        },
+        {
+            "id": "sps-parameter-joiner-notification-workflow-tokenurl",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/tokenURL",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/oauth/token?grant_type=client_credentials",
+                    "right": "https://papajohns.api.identitynow.com/oauth/token?grant_type=client_credentials"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-joiner-notification-workflow-tokenurl"
+            },
+            "key": "Joiner Notifications Workflow Credentials"
+        },
+        {
+            "id": "sps-parameter-entra-clientid",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "455243ca-b052-4007-b36e-2f8c0c09bc10",
+                    "right": "6456b886-5691-470f-a394-05cf326f2062"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-entra-clientid"
+            },
+            "key": "Microsoft Entra"
+        },
+        {
+            "id": "sps-parameter-entra-tokenurl",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/tokenURL",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://login.microsoftonline.com/papajohnsqaad.onmicrosoft.com/oauth2/v2.0/token",
+                    "right": "https://login.microsoftonline.com/papajohns.onmicrosoft.com/oauth2/v2.0/token"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-entra-tokenurl"
+            },
+            "key": "Microsoft Entra"
+        },
+        {
+            "id": "sps-parameter-sspr-workflow-clientid",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/clientId",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "32e7062c-6f21-441b-ae6b-6314052394a6",
+                    "right": "644ecf02-562d-4280-89b0-39e7b4cdeca1"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-sspr-workflow-clientid"
+            },
+            "key": "SSPR Workflow Credentials"
+        },
+        {
+            "id": "sps-parameter-sspr-workflow-tokenurl",
+            "type": "SPS_PARAMETER",
+            "path": "/publicFields/tokenURL",
+            "left_env": "dev",
+            "right_env": "prod",
+            "pairs": [
+                {
+                    "left": "https://papajohns-sb.api.identitynow.com/oauth/token",
+                    "right": "https://papajohns.api.identitynow.com/oauth/token"
+                }
+            ],
+            "evidence": {
+                "kind": "invented-policy",
+                "record_id": "sps-parameter-sspr-workflow-tokenurl"
+            },
+            "key": "SSPR Workflow Credentials"
+        }
+    ]
+}
