@@ -625,7 +625,11 @@ and [`examples/policy-drift.json`](../examples/policy-drift.json). Each equivale
 rule connects an object/field selector, input environment labels, and approved
 whole-value pairs. Optional `groups` can replace `pairs` for explicitly symmetric
 relationships, such as `[{"dev":"dev-host","prod":"prod-host"}]`.
-Do not combine both forms. Equivalence rules run only in drift mode.
+For missing properties, use `state_pairs` with tagged `present`/`absent` states;
+for example, a policy may approve `false` on one side and absence on the other.
+These cases preserve the distinction between absence and explicit `null`.
+See the [policy syntax](policy.md) for a complete example. Use exactly one of
+`pairs`, `groups`, or `state_pairs`. Equivalence rules run only in drift mode.
 
 ## Expectations: required states and values
 

@@ -1,6 +1,15 @@
 {
   "ignores": [
     {
+      "id": "source-management-workgroup-id",
+      "type": "SOURCE",
+      "path": "/managementWorkgroup/id",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "source-management-workgroup-id-exclusion"
+      }
+    },
+    {
       "id": "source-app-template-data",
       "type": "SOURCE",
       "path": "/connectorAttributes/appTemplateData",

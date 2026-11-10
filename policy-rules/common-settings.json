@@ -1,0 +1,550 @@
+{
+  "equivalences": [
+    {
+      "id": "owner-breakglass-name-access-profile",
+      "type": "ACCESS_PROFILE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-access-request-config",
+      "type": "ACCESS_REQUEST_CONFIG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-attr-sync-source-config",
+      "type": "ATTR_SYNC_SOURCE_CONFIG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-auth-org",
+      "type": "AUTH_ORG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-campaign-filter",
+      "type": "CAMPAIGN_FILTER",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-connector-rule",
+      "type": "CONNECTOR_RULE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-form-definition",
+      "type": "FORM_DEFINITION",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-governance-group",
+      "type": "GOVERNANCE_GROUP",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-identity-object-config",
+      "type": "IDENTITY_OBJECT_CONFIG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-identity-profile",
+      "type": "IDENTITY_PROFILE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-lifecycle-state",
+      "type": "LIFECYCLE_STATE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-notification-template",
+      "type": "NOTIFICATION_TEMPLATE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-password-policy",
+      "type": "PASSWORD_POLICY",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-password-sync-group",
+      "type": "PASSWORD_SYNC_GROUP",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-public-identities-config",
+      "type": "PUBLIC_IDENTITIES_CONFIG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-role",
+      "type": "ROLE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-rule",
+      "type": "RULE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-segment",
+      "type": "SEGMENT",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-service-desk-integration",
+      "type": "SERVICE_DESK_INTEGRATION",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-sod-policy",
+      "type": "SOD_POLICY",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-source",
+      "type": "SOURCE",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-sps-parameter",
+      "type": "SPS_PARAMETER",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-tag",
+      "type": "TAG",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-transform",
+      "type": "TRANSFORM",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-trigger-subscription",
+      "type": "TRIGGER_SUBSCRIPTION",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    },
+    {
+      "id": "owner-breakglass-name-workflow",
+      "type": "WORKFLOW",
+      "path": "/owner/name",
+      "left_env": "dev",
+      "right_env": "prod",
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "breakglass-owner-name-case-equivalence"
+      },
+      "groups": [
+        {
+          "dev": "Breakglass.Admin",
+          "prod": "breakglass.admin"
+        },
+        {
+          "dev": "breakglass.admin",
+          "prod": "Breakglass.Admin"
+        }
+      ]
+    }
+  ]
+}

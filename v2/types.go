@@ -112,6 +112,12 @@ type ValuePair struct {
 	Left  any `json:"left"`
 	Right any `json:"right"`
 }
+
+// StatePair explicitly distinguishes absent properties from present JSON values.
+type StatePair struct {
+	Left  State `json:"left"`
+	Right State `json:"right"`
+}
 type Equivalence struct {
 	Rule
 	Selector
@@ -123,6 +129,7 @@ type Equivalence struct {
 	LeftTenant  string                   `json:"left_tenant,omitempty"`
 	RightTenant string                   `json:"right_tenant,omitempty"`
 	Pairs       []ValuePair              `json:"pairs,omitempty"`
+	StatePairs  []StatePair              `json:"state_pairs,omitempty"`
 	// Each environment contributes exactly one value to a group. Groups and
 	// pairs cannot be combined in one rule. Groups are explicitly symmetric.
 	Groups []map[string]any `json:"groups,omitempty"`

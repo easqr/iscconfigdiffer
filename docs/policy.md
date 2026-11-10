@@ -222,7 +222,7 @@ structures.
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id` |
 | `ignores` | Selector; explicit subtree exclusion/normalization |
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
-| `equivalences` | Selector; `left_env`, `right_env`; `pairs` or `groups`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` or `items` scope |
+| `equivalences` | Selector; `left_env`, `right_env`; exactly one of `pairs`, `groups`, or `state_pairs`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` or `items` scope |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
 | `collection_mappings` | `collection` effective keyed collection ID, optional object `key`, and nonempty `key_mappings`; common rule fields except `replaces` |
 | `collections` | Selector; `mode`: `ordered`, `keyed`, or `multiset`; `keys`, optional `component_type`, `key_cases`, and `key_mappings` only for keyed; optional `item_label` and `display_fields` for report context |
@@ -251,9 +251,39 @@ stricter identity-overlap prohibition.
 `pairs` is an array of typed `{left,right}` values, applicable in the declared
 direction and environment pair. `groups` is an array of environment-to-value
 objects; each group explicitly establishes symmetric equivalence among its
-environments. Do not combine pairs/groups. Cases must be unambiguous. There is no
+environments. Do not combine case forms. Cases must be unambiguous. There is no
 substring replacement, substitution chaining, inferred transitivity or coercion.
 Several disjoint cases belong in one rule; overlapping rule ownership is rejected.
+
+Use `state_pairs` when an approved relationship includes an absent property.
+Each `left` and `right` is a tagged state: `{"state":"absent"}` or
+`{"state":"present","value":...}`. For example, a policy can explicitly approve
+an optional setting's disabled value and absence in either direction:
+
+```json
+{
+  "id": "optional-setting-disabled",
+  "type": "SOURCE",
+  "key": "Invented Source",
+  "path": "/connectorAttributes/optionalSetting",
+  "left_env": "dev",
+  "right_env": "prod",
+  "state_pairs": [
+    {"left": {"state": "present", "value": false}, "right": {"state": "absent"}},
+    {"left": {"state": "absent"}, "right": {"state": "present", "value": false}}
+  ]
+}
+```
+
+State pairs apply only in the declared left/right environment direction, just
+like `pairs`; list both cases to approve both value orientations. Each left state
+and each right state must be unique within its respective side. An absent state
+cannot contain `value`; a present state requires it, including explicit `null`.
+Matching uses exact presence and typed JSON equality, so `false`, `null`, and
+absence remain distinct within these cases even with `null_equals_absent` enabled.
+Existing `pairs` and `groups` continue to require both properties to be present.
+These are drift equivalences, not exclusions or deployment assertions. Reports
+retain the original values, presence, pointers, rule attribution, and item scope.
 
 ### Equivalence item scopes
 

@@ -71,6 +71,102 @@
         "record_id": "wd-correlation"
       },
       "key": "Workday"
+    },
+    {
+      "id": "wd-same-day-termination-false-absent",
+      "type": "SOURCE",
+      "key": "Workday",
+      "path": "/connectorAttributes/sameDayTermination",
+      "left_env": "dev",
+      "right_env": "prod",
+      "state_pairs": [
+        {
+          "left": {
+            "state": "present",
+            "value": false
+          },
+          "right": {
+            "state": "absent"
+          }
+        },
+        {
+          "left": {
+            "state": "absent"
+          },
+          "right": {
+            "state": "present",
+            "value": false
+          }
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "wd-same-day-termination-false-absent"
+      }
+    },
+    {
+      "id": "wd-debug-logging-false-absent",
+      "type": "SOURCE",
+      "key": "Workday",
+      "path": "/connectorAttributes/spConnDebugLoggingEnabled",
+      "left_env": "dev",
+      "right_env": "prod",
+      "state_pairs": [
+        {
+          "left": {
+            "state": "present",
+            "value": false
+          },
+          "right": {
+            "state": "absent"
+          }
+        },
+        {
+          "left": {
+            "state": "absent"
+          },
+          "right": {
+            "state": "present",
+            "value": false
+          }
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "wd-debug-logging-false-absent"
+      }
+    },
+    {
+      "id": "wd-stateful-commands-false-absent",
+      "type": "SOURCE",
+      "key": "Workday",
+      "path": "/connectorAttributes/spConnEnableStatefulCommands",
+      "left_env": "dev",
+      "right_env": "prod",
+      "state_pairs": [
+        {
+          "left": {
+            "state": "present",
+            "value": false
+          },
+          "right": {
+            "state": "absent"
+          }
+        },
+        {
+          "left": {
+            "state": "absent"
+          },
+          "right": {
+            "state": "present",
+            "value": false
+          }
+        }
+      ],
+      "evidence": {
+        "kind": "local-policy",
+        "record_id": "wd-stateful-commands-false-absent"
+      }
     }
   ]
 }

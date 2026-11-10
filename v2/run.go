@@ -502,6 +502,14 @@ func (x *execution) walk(f frame) {
 				x.record(nf, "unverified", "equivalence tenant context mismatch", r.Rule, "")
 				return
 			}
+			if l.Environment == r.LeftEnv && rr.Environment == r.RightEnv {
+				for _, pair := range r.StatePairs {
+					if matchesEquivalenceState(f.nodes[0], pair.Left) && matchesEquivalenceState(f.nodes[1], pair.Right) {
+						x.record(nf, "equivalent", "approved value relationship", r.Rule, "")
+						return
+					}
+				}
+			}
 			if !f.nodes[0].present || !f.nodes[1].present {
 				continue
 			}
@@ -639,12 +647,28 @@ func (x *execution) literalChildren(f frame) map[string]bool {
 	for _, r := range x.c.policy.Expectations {
 		add(r.Selector, r.Rule)
 	}
+	for _, r := range x.c.policy.Equivalences {
+		if len(r.StatePairs) > 0 && x.request.Mode == "drift" {
+			add(r.Selector, r.Rule)
+		}
+	}
 	for _, r := range x.c.policy.References {
 		if x.request.Mode == "drift" {
 			add(r.Selector, r.Rule)
 		}
 	}
 	return out
+}
+
+func matchesEquivalenceState(node slot, state State) bool {
+	if node.unavailable {
+		return false
+	}
+	if state.State == "absent" {
+		return !node.present
+	}
+	value, _ := JSON(state.Value) // States are validated during compilation.
+	return node.present && equal(node.value, value)
 }
 func (x *execution) leaf(f frame, code string) {
 	a, b := f.nodes[0], f.nodes[1]

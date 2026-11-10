@@ -449,7 +449,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			return nil, ruleError(errors.New("equivalence is drift-only"), r.ID)
 		}
 		if r.Operation == "relative_order" {
-			if !concrete(r.Path) || r.Path == "" || r.Key != "" || r.Variant != "" || space(r.Space) != "content" || idents[r.Type].Strategy == "" || r.Item != nil || len(r.Items) > 0 || r.LeftEnv != "" || r.RightEnv != "" || r.LeftTenant != "" || r.RightTenant != "" || len(r.Pairs) > 0 || len(r.Groups) > 0 {
+			if !concrete(r.Path) || r.Path == "" || r.Key != "" || r.Variant != "" || space(r.Space) != "content" || idents[r.Type].Strategy == "" || r.Item != nil || len(r.Items) > 0 || r.LeftEnv != "" || r.RightEnv != "" || r.LeftTenant != "" || r.RightTenant != "" || len(r.Pairs) > 0 || len(r.Groups) > 0 || len(r.StatePairs) > 0 {
 				return nil, ruleError(errors.New("relative_order requires a concrete content priority path and a type identity; value cases, item selectors and environment restrictions are not supported"), r.ID)
 			}
 			continue
@@ -457,9 +457,31 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		if r.Operation != "" {
 			return nil, ruleError(errors.New("invalid equivalence operation"), r.ID)
 		}
-		if r.LeftEnv == "" || r.RightEnv == "" || (len(r.Pairs) == 0) == (len(r.Groups) == 0) {
+		caseForms := 0
+		for _, count := range []int{len(r.Pairs), len(r.Groups), len(r.StatePairs)} {
+			if count > 0 {
+				caseForms++
+			}
+		}
+		if r.LeftEnv == "" || r.RightEnv == "" || caseForms != 1 {
 			return nil, ruleError(errors.New("equivalence context/cases required"), r.ID)
 		}
+		stateLeft, stateRight := map[string]bool{}, map[string]bool{}
+		for _, pair := range r.StatePairs {
+			for _, state := range []State{pair.Left, pair.Right} {
+				if err := validateState(state); err != nil {
+					return nil, ruleError(fmt.Errorf("equivalence state pair: %w", err), r.ID)
+				}
+			}
+			l, rr := equivalenceStateKey(pair.Left), equivalenceStateKey(pair.Right)
+			if stateLeft[l] || stateRight[rr] {
+				return nil, ruleError(errors.New("ambiguous equivalence state pairs"), r.ID)
+			}
+			stateLeft[l], stateRight[rr] = true, true
+		}
+		sort.Slice(r.StatePairs, func(i, j int) bool {
+			return equivalenceStateKey(r.StatePairs[i].Left) < equivalenceStateKey(r.StatePairs[j].Left)
+		})
 		seenL, seenR := map[string]bool{}, map[string]bool{}
 		for _, pair := range r.Pairs {
 			l, rr := valueKey(pair.Left), valueKey(pair.Right)
@@ -678,6 +700,14 @@ func validateState(s State) error {
 		return errors.New("invalid state")
 	}
 	return nil
+}
+
+func equivalenceStateKey(s State) string {
+	if s.State == "absent" {
+		return "absent"
+	}
+	v, _ := JSON(s.Value)
+	return "present:" + valueKey(v)
 }
 
 // literalSegments is used by adapters to reject unsupported wildcard members.

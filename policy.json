@@ -3,6 +3,7 @@
   "id": "invented-drift",
   "profile": "isc-portable-v2",
   "includes": [
+    "policy-rules/common-settings.json",
     "policy-rules/sources/common-settings.json",
     "policy-rules/sources/active-directory/collections.json",
     "policy-rules/sources/active-directory/common-settings.json",
