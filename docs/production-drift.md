@@ -9,12 +9,12 @@ The result is a local report. Neither tool applies configuration changes to prod
 
 ## 1. Prepare the tools and production access
 
-Use these latest published releases, verified on November 9, 2026:
+Use these release versions:
 
 | Tool | Release | Installation and build instructions |
 | --- | --- | --- |
 | configexporter | [v0.8.0](https://github.com/easqr/iscconfigexporter/releases/tag/v0.8.0) | [configexporter README](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/README.md#build-and-run) |
-| configdiffer | [v0.6.0](https://github.com/easqr/iscconfigdiffer/releases/tag/v0.6.0) | [configdiffer README](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/README.md#build-and-install) |
+| configdiffer | [v0.7.0](https://github.com/easqr/iscconfigdiffer/releases/tag/v0.7.0) | [configdiffer README](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/README.md#build-and-install) |
 
 Follow the respective README to install or build each tool. The examples below assume their executables are available on your shell's `PATH` as `isc-exporter` and `isc-configdiffer`. If you build from source, you can instead use the absolute path to each executable in every command. Both releases require Go 1.27.3 or newer to build. This guide assumes the workflow is available on macOS, Linux, and Windows. Use a private local filesystem for the working folders. The macOS/Linux examples use Bash or Zsh; the Windows examples use PowerShell 7 or newer, which provides the UTF-8 file-writing options shown below. On Windows, the executable filenames are `isc-exporter.exe` and `isc-configdiffer.exe`; PowerShell can invoke them without the `.exe` suffix when they are on `PATH`. To invoke a quoted absolute executable path in PowerShell, prefix it with `&`.
 
@@ -148,7 +148,7 @@ If the repository already contains an approved policy, review and use it instead
 
 **Review these defaults before accepting a clean result.** The profile also excludes some operational fields, reference IDs, and connector inventory values. It treats absent and null payload properties as equivalent. Consequently, a clean result means no unexpected differences under this policy and scope; it does not mean the exports are byte-for-byte identical.
 
-For a previous snapshot of the same production tenant, decide whether physical IDs or metadata must also be monitored. `isc-envelope-v2` retains more of those fields than the portable profile. Add `"null_handling": "strict"` if null-versus-absent changes must be reported. All ISC profiles still include some type/connector normalization; select explicit `disabled_rules` for exclusions you need to reverse. Review the [profile reference](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/configuration.md#policy-syntax-and-profiles) and [shipped rules](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/rule-packs.md) before making these changes.
+For a previous snapshot of the same production tenant, decide whether physical IDs or metadata must also be monitored. `isc-envelope-v2` retains more of those fields than the portable profile. Add `"null_handling": "strict"` if null-versus-absent changes must be reported. All ISC profiles still include some type/connector normalization; select explicit `disabled_rules` for exclusions you need to reverse. Review the [profile reference](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/configuration.md#policy-syntax-and-profiles) and [shipped rules](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/rule-packs.md) before making these changes.
 
 ### Add only reviewed, specific exceptions
 
@@ -187,14 +187,14 @@ If the snapshot is from the same production tenant, you normally do not need env
 
 Use this only after replacing the source name, field path, values, and approval reference with reviewed values from your exports. Policy paths are relative to the object's payload: use `/connectorAttributes/host`, not `/object/connectorAttributes/host`. The `snapshot` and `prod` labels must match the command in step 6; these labels do not connect to a tenant.
 
-This rule accepts the stated pair. A different production hostname remains drift. It does not require the field to exist or enforce a production value independently; use an `expectations` rule when you need that additional assertion. A mapping also does not match differently named objects. Resolve such findings using the documented identity/pairing rules rather than broadly excluding them. See the [mapping walkthrough](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/environment-mappings.md).
+This rule accepts the stated pair. A different production hostname remains drift. It does not require the field to exist or enforce a production value independently; use an `expectations` rule when you need that additional assertion. A mapping also does not match differently named objects. Resolve such findings using the documented identity/pairing rules rather than broadly excluding them. See the [mapping walkthrough](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/environment-mappings.md).
 
 Maintain policies as follows:
 
 - Version and review the policy alongside the baseline. Keep credentials, new production exports, and reports outside the repository unless your approved storage process explicitly includes them.
 - Keep all relevant objects in scope initially. An `object_filters` include list can hide new, unexpected production objects. Use filters only for an intentionally limited check and document the coverage.
 - Add an `ignores` rule only when every value at that narrowly scoped field is deliberately irrelevant. Do not ignore a whole source or connector-attributes object to clear a report.
-- Keep one root policy for a small comparison. As rules grow, use explicit `includes` for rule-only fragments grouped by source or connector. Fragments stay beneath the root policy directory, use unique rule IDs, and contain no root headers or nested includes. The CLI receives only the root policy path. See [policy file organization](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/policy-files.md).
+- Keep one root policy for a small comparison. As rules grow, use explicit `includes` for rule-only fragments grouped by source or connector. Fragments stay beneath the root policy directory, use unique rule IDs, and contain no root headers or nested includes. The CLI receives only the root policy path. See [policy file organization](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/policy-files.md).
 - Use strict JSON: no comments or trailing commas. No Configuration Hub mapping export or deployment operations file is required for this workflow.
 
 ## 4. Configure the production export
@@ -366,7 +366,7 @@ if ($DIFF_EXIT -notin @(0, 1)) { throw 'The comparison did not complete successf
 
 Type names are case-sensitive; do not add spaces in comma-separated lists. Both manifests must declare every scoped type. If you omit `--scope`, both snapshots must declare the same complete type set.
 
-Use `snapshot` reading mode for this workflow. Do not switch to `tree` merely to bypass a checksum error: investigate why the checked-in baseline or production capture changed. Tree mode is intended for deliberately edited or manifest-free inputs, as described in the [input guide](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/inputs.md).
+Use `snapshot` reading mode for this workflow. Do not switch to `tree` merely to bypass a checksum error: investigate why the checked-in baseline or production capture changed. Tree mode is intended for deliberately edited or manifest-free inputs, as described in the [input guide](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/inputs.md).
 
 The macOS/Linux examples assume an interactive session without automatic exit-on-error enabled. In a script, explicitly handle comparison exit `1` as a completed run with findings; do not let it be mistaken for a failed execution. In PowerShell, capture native executable exit codes from `$LASTEXITCODE`, not `$?`. The Windows comparison example accepts both `0` and `1` as completed runs. If your PowerShell profile enables `$PSNativeCommandUseErrorActionPreference`, set it to `$false` for this session so a drift exit code of `1` can be handled explicitly.
 
@@ -415,4 +415,4 @@ For the next check, select the intended approved baseline again and create a new
 | Policy compilation failure | Check strict JSON, unique rule IDs, exact selectors, include paths, and overlaps with shipped rules |
 | No visible report | Read terminal errors; invalid requests may fail before a report exists; verify the output directory is writable |
 
-For further diagnostics, see [exporter operations](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/OPERATIONS.md) and [configdiffer troubleshooting](https://github.com/easqr/iscconfigdiffer/blob/v0.6.0/docs/troubleshooting.md).
+For further diagnostics, see [exporter operations](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/OPERATIONS.md) and [configdiffer troubleshooting](https://github.com/easqr/iscconfigdiffer/blob/v0.7.0/docs/troubleshooting.md).

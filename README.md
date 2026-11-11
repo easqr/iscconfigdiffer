@@ -34,7 +34,7 @@ for a first comparison and larger examples you can adapt later.
 Get the source and build the command-line tool:
 
 ```sh
-git clone --branch v0.6.0 https://github.com/easqr/iscconfigdiffer.git
+git clone --branch v0.7.0 https://github.com/easqr/iscconfigdiffer.git
 cd iscconfigdiffer
 mkdir -p bin
 go build -o ./bin/isc-configdiffer ./cmd/isc-configdiffer
@@ -47,7 +47,7 @@ exporter checkout. Run the examples below from the configdiffer repository root.
 To install the published command without a source checkout, run:
 
 ```sh
-go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.6.0
+go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.7.0
 ```
 
 Go installs it in `GOBIN` or the default `GOPATH/bin`. Add that directory to your
@@ -172,7 +172,7 @@ The module path is **`github.com/easqr/iscconfigdiffer`**; its root package is n
 `differ`. Add the published release to your application's Go module:
 
 ```sh
-go get github.com/easqr/iscconfigdiffer@v0.6.0
+go get github.com/easqr/iscconfigdiffer@v0.7.0
 ```
 
 The [Go library guide](docs/library.md) shows how to load a policy, read validated

@@ -32,7 +32,7 @@ Keep reusable examples under `examples/`, using invented names and values.
 
 ## Local module overrides
 
-Consumers normally use `github.com/easqr/iscconfigdiffer` v0.6.0. To test changes
+Consumers normally use `github.com/easqr/iscconfigdiffer` v0.7.0. To test changes
 from a checkout before publishing, add a replacement in the consuming application's
 `go.mod`:
 
@@ -46,11 +46,11 @@ v0.8.0 dependency.
 
 ## Releases
 
-Use matching source and module tags such as `v0.6.0`. Before tagging, run the
+Use matching source and module tags such as `v0.7.0`. Before tagging, run the
 checks above, verify the module path and pinned dependency, and review the
 staged files. Commit the release source and documentation, then create an
 annotated tag at that commit. Push the branch and tag together. Verify the
-published CLI with `go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.6.0`
+published CLI with `go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.7.0`
 and check `isc-configdiffer --help` returns success.
 
 ## Contributor references

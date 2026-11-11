@@ -10,7 +10,7 @@ For a new application, create a directory and run
 use its current Go module directory. Then add the published release:
 
 ```sh
-go get github.com/easqr/iscconfigdiffer@v0.6.0
+go get github.com/easqr/iscconfigdiffer@v0.7.0
 ```
 
 Go also downloads `github.com/easqr/iscconfigexporter` v0.8.0. No local exporter
