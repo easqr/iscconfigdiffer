@@ -17,6 +17,13 @@ HTML reports are self-contained documents that open locally in a browser without
 network access. Use `--format md` for a Markdown document, or `--format json` for
 structured processing. Choosing a format does not change comparison results.
 
+Exceptions identify accepted known differences separately from environment
+`equivalent` decisions. Each applied exception includes its rule ID and required
+`rationale` in JSON, HTML, and Markdown. Exceptions alone allow exit `0`; other
+unexpected differences still return `1`. Invalid exception definitions, including
+missing, blank, or non-string rationales, return exit `2` before comparison.
+Rationales are policy metadata and remain visible with `--exclude-values`.
+
 ## Read findings and counts
 
 Start with the result and input summary: it identifies the compared environments,
@@ -155,7 +162,7 @@ A report's `complete` flag and correctness are separate. `correct` is false
 whenever the result is incomplete. Reports include effective scope, input hashes,
 policy/profile/request digests, matching decisions, concrete per-input locations,
 applied rule IDs, evidence, coverage, and diagnostics. Statuses include `equal`,
-`equivalent`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
+`equivalent`, `exception`, `excluded`, `verified`, `different`, `violation`, `unverified`, and
 `conflict`. Decision counts are not object counts or percentage leaf coverage.
 
 ## Values and privacy

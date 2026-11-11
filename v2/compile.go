@@ -40,7 +40,7 @@ func ruleOf(v reflect.Value) Rule { return v.FieldByName("Rule").Interface().(Ru
 func categories(p *Policy) []reflect.Value {
 	v := reflect.ValueOf(p).Elem()
 	a := []reflect.Value{}
-	for _, n := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "References", "Collections", "Sensitive", "CollectionMappings"} {
+	for _, n := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "Exceptions", "References", "Collections", "Sensitive", "CollectionMappings"} {
 		a = append(a, v.FieldByName(n))
 	}
 	return a
@@ -197,9 +197,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	for _, cat := range pc {
 		sort.Slice(cat.Interface(), func(i, j int) bool { return ruleOf(cat.Index(i)).ID < ruleOf(cat.Index(j)).ID })
 	}
-	for i := range p.Equivalences {
-		if len(p.Equivalences[i].Modes) == 0 {
-			p.Equivalences[i].Modes = []string{"drift"}
+	for _, r := range p.valueRulePointers() {
+		if len(r.Modes) == 0 {
+			r.Modes = []string{"drift"}
 		}
 	}
 	for i := range p.References {
@@ -224,9 +224,9 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		return false
 	}
 	collectionsByID := map[string]Collection{}
-	equivalencesByID := map[string]Equivalence{}
-	for _, r := range p.Equivalences {
-		equivalencesByID[r.ID] = r
+	valueRulesByID := map[string]Equivalence{}
+	for _, r := range p.valueRules() {
+		valueRulesByID[r.ID] = r
 	}
 	for _, r := range p.Collections {
 		collectionsByID[r.ID] = r
@@ -254,7 +254,13 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			if !coactive(rulesByID[id], rulesByID[old.id]) {
 				continue
 			}
-			if kind == "equivalence" && old.kind == "equivalence" && disjointEquivalenceItems(equivalencesByID[id], equivalencesByID[old.id]) {
+			if (kind == "equivalence" || kind == "exception") && (old.kind == "equivalence" || old.kind == "exception") && disjointEquivalenceItems(valueRulesByID[id], valueRulesByID[old.id]) {
+				continue
+			}
+			// An exact container/absence exception is checked before descent.
+			// Nested normalization and alignment still apply when it does not match.
+			if kind == "exception" && (old.kind == "ignore" || old.kind == "collection") && exceptionSubtreeCovers(valueRulesByID[id], old.s, old.kind == "collection") ||
+				old.kind == "exception" && (kind == "ignore" || kind == "collection") && exceptionSubtreeCovers(valueRulesByID[old.id], s, kind == "collection") {
 				continue
 			}
 			if kind == "collection" && old.kind == "collection" {
@@ -437,16 +443,32 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			}
 		}
 	}
-	for i := range p.Equivalences {
-		r := &p.Equivalences[i]
-		if e := claim(r.Selector, "equivalence", r.ID); e != nil {
+	exceptions := map[string]string{}
+	for _, r := range p.Exceptions {
+		exceptions[r.ID] = r.Rationale
+	}
+	for _, r := range p.valueRulePointers() {
+		kind := "equivalence"
+		if _, ok := exceptions[r.ID]; ok {
+			kind = "exception"
+		}
+		if e := claim(r.Selector, kind, r.ID); e != nil {
 			return nil, ruleError(e, r.ID)
 		}
 		if identityOverlap(r.Selector, idents) {
-			return nil, ruleError(errors.New("equivalence overlaps identity"), r.ID)
+			return nil, ruleError(fmt.Errorf("%s overlaps identity", kind), r.ID)
 		}
 		if contains(r.Modes, "deployment") {
-			return nil, ruleError(errors.New("equivalence is drift-only"), r.ID)
+			return nil, ruleError(fmt.Errorf("%s is drift-only", kind), r.ID)
+		}
+		if r.Operation == "exclude" {
+			if kind != "exception" {
+				return nil, ruleError(errors.New("exclude operation is only valid for exceptions"), r.ID)
+			}
+			if len(r.Pairs) > 0 || len(r.Groups) > 0 || len(r.StatePairs) > 0 {
+				return nil, ruleError(errors.New("exclude exception cannot carry pairs, groups or state_pairs"), r.ID)
+			}
+			continue
 		}
 		if r.Operation == "relative_order" {
 			if !concrete(r.Path) || r.Path == "" || r.Key != "" || r.Variant != "" || space(r.Space) != "content" || idents[r.Type].Strategy == "" || r.Item != nil || len(r.Items) > 0 || r.LeftEnv != "" || r.RightEnv != "" || r.LeftTenant != "" || r.RightTenant != "" || len(r.Pairs) > 0 || len(r.Groups) > 0 || len(r.StatePairs) > 0 {
@@ -455,7 +477,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			continue
 		}
 		if r.Operation != "" {
-			return nil, ruleError(errors.New("invalid equivalence operation"), r.ID)
+			return nil, ruleError(fmt.Errorf("invalid %s operation", kind), r.ID)
 		}
 		caseForms := 0
 		for _, count := range []int{len(r.Pairs), len(r.Groups), len(r.StatePairs)} {
@@ -464,18 +486,18 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			}
 		}
 		if r.LeftEnv == "" || r.RightEnv == "" || caseForms != 1 {
-			return nil, ruleError(errors.New("equivalence context/cases required"), r.ID)
+			return nil, ruleError(fmt.Errorf("%s context/cases required", kind), r.ID)
 		}
 		stateLeft, stateRight := map[string]bool{}, map[string]bool{}
 		for _, pair := range r.StatePairs {
 			for _, state := range []State{pair.Left, pair.Right} {
 				if err := validateState(state); err != nil {
-					return nil, ruleError(fmt.Errorf("equivalence state pair: %w", err), r.ID)
+					return nil, ruleError(fmt.Errorf("%s state pair: %w", kind, err), r.ID)
 				}
 			}
 			l, rr := equivalenceStateKey(pair.Left), equivalenceStateKey(pair.Right)
 			if stateLeft[l] || stateRight[rr] {
-				return nil, ruleError(errors.New("ambiguous equivalence state pairs"), r.ID)
+				return nil, ruleError(fmt.Errorf("ambiguous %s state pairs", kind), r.ID)
 			}
 			stateLeft[l], stateRight[rr] = true, true
 		}
@@ -486,7 +508,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		for _, pair := range r.Pairs {
 			l, rr := valueKey(pair.Left), valueKey(pair.Right)
 			if seenL[l] || seenR[rr] || seenR[l] || seenL[rr] {
-				return nil, ruleError(errors.New("ambiguous equivalence cases"), r.ID)
+				return nil, ruleError(fmt.Errorf("ambiguous %s cases", kind), r.ID)
 			}
 			seenL[l] = true
 			seenR[rr] = true
@@ -495,7 +517,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 		seen := map[string]bool{}
 		for _, g := range r.Groups {
 			if len(g) < 2 {
-				return nil, ruleError(errors.New("equivalence group needs environments"), r.ID)
+				return nil, ruleError(fmt.Errorf("%s group needs environments", kind), r.ID)
 			}
 			if _, ok := g[r.LeftEnv]; !ok {
 				return nil, ruleError(errors.New("group environment missing"), r.ID)
@@ -506,7 +528,7 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 			for env, v := range g {
 				k := env + "/" + valueKey(v)
 				if env == "" || seen[k] {
-					return nil, ruleError(errors.New("ambiguous equivalence group"), r.ID)
+					return nil, ruleError(fmt.Errorf("ambiguous %s group", kind), r.ID)
 				}
 				seen[k] = true
 			}
@@ -609,8 +631,48 @@ func Compile(p Policy, profiles ...Profile) (*Compiled, error) {
 	b, _ = json.Marshal(p)
 	v, _ := JSON(b)
 	b, _ = json.Marshal(canonical(v))
-	return &Compiled{policy: p, digest: hash(b), replacements: replaced, profileDigest: profileDigest}, nil
+	return &Compiled{policy: p, digest: hash(b), replacements: replaced, profileDigest: profileDigest, exceptions: exceptions, valueRules: p.valueRules()}, nil
 }
+
+// exceptionSubtreeCovers permits explicit exclusions and whole-container presence
+// cases above nested structural rules. Competing value rules still conflict.
+func exceptionSubtreeCovers(r Equivalence, child Selector, collection bool) bool {
+	parentPath, _ := pointer(r.Path)
+	childPath, _ := pointer(child.Path)
+	// An explicit exclusion runs before collection alignment at the same path.
+	if r.Operation == "exclude" && collection && overlap(r.Selector, child) && len(parentPath) == len(childPath) {
+		return true
+	}
+	if !overlap(r.Selector, child) || len(parentPath) >= len(childPath) {
+		return false
+	}
+	if r.Operation == "exclude" {
+		return true
+	}
+	if len(r.StatePairs) == 0 {
+		return false
+	}
+	for _, pair := range r.StatePairs {
+		present, absent := pair.Left, pair.Right
+		if present.State == "absent" {
+			present, absent = absent, present
+		}
+		if present.State != "present" || absent.State != "absent" {
+			return false
+		}
+		value, err := JSON(present.Value)
+		if err != nil {
+			return false
+		}
+		switch value.(type) {
+		case map[string]any, []any:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func nested(parent, child Selector) bool {
 	if !overlap(parent, child) {
 		return false

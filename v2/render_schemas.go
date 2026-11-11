@@ -70,7 +70,7 @@ func schemaDetail(d Decision, roles []string) bool {
 	if d.Key == "[redacted]" || d.Authority != "" || d.ExpectedRole != "" || d.Derivation != nil {
 		return false
 	}
-	return d.Status == "equal" || d.Status == "equivalent" || d.Status == "excluded"
+	return d.Status == "equal" || d.Status == "equivalent" || d.Status == "exception" || d.Status == "excluded"
 }
 
 func groupMissingSchemas(decisions []Decision, views []humanDecision, roles []string, inputs map[string]Input) ([]Decision, []humanDecision) {

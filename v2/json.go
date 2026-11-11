@@ -144,7 +144,10 @@ func shape(v any, t reflect.Type) error {
 			}
 		}
 		for k, f := range fields {
-			if t == reflect.TypeFor[Equivalence]() && m["operation"] == "relative_order" && (k == "left_env" || k == "right_env") {
+			if t == reflect.TypeFor[Exception]() && m["operation"] == "exclude" && (k == "left_env" || k == "right_env") {
+				continue
+			}
+			if (t == reflect.TypeFor[Equivalence]() || t == reflect.TypeFor[Exception]()) && m["operation"] == "relative_order" && (k == "left_env" || k == "right_env") {
 				continue
 			}
 			if !strings.Contains(f.Tag.Get("json"), "omitempty") {

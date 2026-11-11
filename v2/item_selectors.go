@@ -63,7 +63,12 @@ func disjointItems(a, b *CollectionItemSelector) bool {
 	return false
 }
 func validateItemForms(p Policy) error {
-	for _, r := range p.Equivalences {
+	for _, r := range p.Exceptions {
+		if strings.TrimSpace(r.Rationale) == "" {
+			return ruleError(errors.New("exception rationale must be nonblank text"), r.ID)
+		}
+	}
+	for _, r := range p.valueRules() {
 		if r.Item != nil && r.Items != nil {
 			return ruleError(errors.New("equivalence must use item or items, not both"), r.ID)
 		}
@@ -98,7 +103,7 @@ func disjointEquivalenceItems(a, b Equivalence) bool {
 	return false
 }
 func validateEquivalenceItems(p Policy, collections map[string]Collection) error {
-	for _, r := range p.Equivalences {
+	for _, r := range p.valueRules() {
 		scopes := equivalenceItems(r)
 		seenCollections := map[string]bool{}
 		for i := range scopes {

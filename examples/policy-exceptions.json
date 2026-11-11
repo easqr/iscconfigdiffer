@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "known-differences",
+  "profile": "isc-portable-v2",
+  "exceptions": [
+    {
+      "id": "pending-description-update",
+      "type": "SOURCE",
+      "key": "Example Directory",
+      "path": "/description",
+      "left_env": "dev",
+      "right_env": "prod",
+      "pairs": [{"left": "Updated description", "right": "Legacy description"}],
+      "rationale": "Production description update is deferred until the connector migration."
+    }
+  ]
+}

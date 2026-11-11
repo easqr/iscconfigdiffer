@@ -133,6 +133,14 @@ A hostname change from development to production may be intentional. To allow
 that pair of values, add an `equivalences` rule to your own policy. To require a
 particular value in each environment, use an `expectations` rule instead.
 
+For an accepted known difference with a documented reason, use `exceptions`.
+Value-matching exceptions use the same syntax as equivalences. Use
+`operation: "exclude"` to exclude a complete selected subtree, such as a named
+schema. Both forms require a nonblank text `rationale`. Reports label matches `exception` and show the rationale separately
+from environment equivalences. Missing or invalid rationales return exit `2`.
+See [the exception example](examples/policy-exceptions.json) and
+[policy syntax](docs/configuration.md#exceptions).
+
 Follow the [environment-mapping walkthrough](docs/environment-mappings.md) to
 identify an object and field, save a complete policy, assign environment labels,
 and rerun the comparison. It includes hostname, Active Directory, service-account,

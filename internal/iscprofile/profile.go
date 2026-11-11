@@ -179,7 +179,7 @@ func packShape(value any) error {
 func ruleCategories(p *v2.Policy) []reflect.Value {
 	out := []reflect.Value{}
 	v := reflect.ValueOf(p).Elem()
-	for _, field := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "References", "Collections", "Sensitive"} {
+	for _, field := range []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "Exceptions", "References", "Collections", "Sensitive"} {
 		out = append(out, v.FieldByName(field))
 	}
 	return out

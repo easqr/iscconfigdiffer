@@ -135,6 +135,33 @@ type Equivalence struct {
 	Groups []map[string]any `json:"groups,omitempty"`
 }
 
+// Exception accepts a known difference for a documented reason. Its matching
+// syntax is shared with Equivalence, but its meaning and report status are distinct.
+type Exception struct {
+	Equivalence
+	Rationale string `json:"rationale"`
+}
+
+// valueRules shares matching and validation mechanics without merging policy categories.
+func (p Policy) valueRules() []Equivalence {
+	rules := append([]Equivalence{}, p.Equivalences...)
+	for _, r := range p.Exceptions {
+		rules = append(rules, r.Equivalence)
+	}
+	return rules
+}
+
+func (p *Policy) valueRulePointers() []*Equivalence {
+	rules := make([]*Equivalence, 0, len(p.Equivalences)+len(p.Exceptions))
+	for i := range p.Equivalences {
+		rules = append(rules, &p.Equivalences[i])
+	}
+	for i := range p.Exceptions {
+		rules = append(rules, &p.Exceptions[i].Equivalence)
+	}
+	return rules
+}
+
 // CollectionItemSelector selects an aligned item by its complete logical key.
 // Mapped keys reference declared mapping-group names; values match raw keys.
 type CollectionItemSelector struct {
@@ -183,6 +210,7 @@ type Policy struct {
 	Pairings           []Pairing           `json:"pairings,omitempty"`
 	Ignores            []Ignore            `json:"ignores,omitempty"`
 	Expectations       []Expectation       `json:"expectations,omitempty"`
+	Exceptions         []Exception         `json:"exceptions,omitempty"`
 	Equivalences       []Equivalence       `json:"equivalences,omitempty"`
 	References         []Reference         `json:"references,omitempty"`
 	Collections        []Collection        `json:"collections,omitempty"`
@@ -208,6 +236,8 @@ type Compiled struct {
 	digest        string
 	replacements  map[string]string
 	profileDigest string
+	exceptions    map[string]string
+	valueRules    []Equivalence
 }
 
 func (c *Compiled) Digest() string { return c.digest }
@@ -271,6 +301,7 @@ type Location struct {
 	Context   []ItemContext `json:"context,omitempty"`
 }
 type Decision struct {
+	Rationale     string                   `json:"rationale,omitempty"`
 	Items         []CollectionItemSelector `json:"items,omitempty"`
 	Item          *CollectionItemSelector  `json:"item,omitempty"`
 	Extensions    []CollectionMappingUsage `json:"extensions,omitempty"`

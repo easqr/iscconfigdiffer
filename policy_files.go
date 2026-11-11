@@ -18,10 +18,10 @@ import (
 
 var fragmentFields = map[string]bool{
 	"identities": true, "pairings": true, "ignores": true, "expectations": true,
-	"equivalences": true, "references": true, "collections": true, "collection_mappings": true,
+	"equivalences": true, "exceptions": true, "references": true, "collections": true, "collection_mappings": true,
 	"sensitive": true, "disabled_rules": true, "evidence": true,
 }
-var policyRuleFields = []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "References", "Collections", "CollectionMappings", "Sensitive"}
+var policyRuleFields = []string{"Identities", "Pairings", "Ignores", "Expectations", "Equivalences", "Exceptions", "References", "Collections", "CollectionMappings", "Sensitive"}
 
 // LoadPolicy reads one root policy and its explicitly included rule fragments.
 // Includes are relative to, and contained within, the root policy directory.

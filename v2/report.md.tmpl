@@ -125,6 +125,9 @@ These rules did not apply. They do not by themselves make the comparison incompl
 {{if .FindingTitle}}
 Reason: {{cell .Code}}
 {{end}}
+{{if .Rationale}}
+Rationale: {{cell .Rationale}}
+{{end}}
 Section: {{cell .Space}}
 {{if .HasContext}}
 | Role | Containing items |

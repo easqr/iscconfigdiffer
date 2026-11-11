@@ -394,7 +394,16 @@ func (x *execution) diagnose(d Diagnostic) {
 	x.report.Complete = false
 }
 func (x *execution) record(f frame, status, code string, r Rule, authority string) {
-	d := Decision{Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
+	rationale := x.c.exceptions[r.ID]
+	if rationale != "" {
+		if status == "equivalent" {
+			status = "exception"
+			code = "accepted known difference"
+		} else if code == "equivalence tenant context mismatch" {
+			code = "exception tenant context mismatch"
+		}
+	}
+	d := Decision{Rationale: rationale, Type: x.current.typ, Key: x.current.key, Status: status, Code: code, Space: f.space, RuleID: r.ID, Replaces: r.Replaces, Authority: authority, Evidence: r.Evidence, ItemKeys: append([]string{}, f.itemKeys...), Locations: map[string]Location{}}
 	d.Normalization = x.normalization
 	d.Item = f.itemScope
 	d.Items = f.itemScopes
@@ -486,7 +495,7 @@ func (x *execution) walk(f frame) {
 				return
 			}
 		}
-		for _, r := range x.c.policy.Equivalences {
+		for _, r := range x.c.valueRules {
 			if !active(r.Rule, "drift") || !x.selected(r.Selector, f) || !equivalenceItemsSelected(r, f.items) {
 				continue
 			}
@@ -501,6 +510,16 @@ func (x *execution) walk(f frame) {
 			if (r.LeftTenant != "" && r.LeftTenant != l.Tenant) || (r.RightTenant != "" && r.RightTenant != rr.Tenant) {
 				x.record(nf, "unverified", "equivalence tenant context mismatch", r.Rule, "")
 				return
+			}
+			if r.Operation == "exclude" {
+				if r.LeftEnv != "" && r.LeftEnv != l.Environment || r.RightEnv != "" && r.RightEnv != rr.Environment {
+					continue
+				}
+				if f.nodes[0].present || f.nodes[1].present {
+					x.record(nf, "exception", "explicit exception exclusion", r.Rule, "")
+					return
+				}
+				continue
 			}
 			if l.Environment == r.LeftEnv && rr.Environment == r.RightEnv {
 				for _, pair := range r.StatePairs {
@@ -647,7 +666,7 @@ func (x *execution) literalChildren(f frame) map[string]bool {
 	for _, r := range x.c.policy.Expectations {
 		add(r.Selector, r.Rule)
 	}
-	for _, r := range x.c.policy.Equivalences {
+	for _, r := range x.c.valueRules {
 		if len(r.StatePairs) > 0 && x.request.Mode == "drift" {
 			add(r.Selector, r.Rule)
 		}

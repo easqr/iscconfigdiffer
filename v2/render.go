@@ -28,24 +28,24 @@ type humanLocation struct {
 	Context                                                         []ItemContext
 }
 type humanDecision struct {
-	HasCollapsedValues                                            bool
-	Category, StatusTokens                                        string
-	WholeSchema                                                   bool
-	FindingTitle, ChildrenNotice                                  string
-	Children                                                      []humanDecision
-	Nested                                                        bool
-	DecisionCount                                                 int
-	HasContext                                                    bool
-	Status, Code, Explanation, Space, RuleID, Authority, Replaces string
-	Normalization                                                 string
-	ExpectedRole, ExpectedValue                                   string
-	ItemKeys                                                      []string
-	Locations                                                     []humanLocation
-	Evidence                                                      []reportField
-	PolicyFiles                                                   []reportField
-	ItemScope                                                     []reportField
-	Extensions                                                    []reportField
-	Derivation                                                    []reportField
+	HasCollapsedValues                                                       bool
+	Category, StatusTokens                                                   string
+	WholeSchema                                                              bool
+	FindingTitle, ChildrenNotice                                             string
+	Children                                                                 []humanDecision
+	Nested                                                                   bool
+	DecisionCount                                                            int
+	HasContext                                                               bool
+	Status, Code, Explanation, Space, RuleID, Authority, Replaces, Rationale string
+	Normalization                                                            string
+	ExpectedRole, ExpectedValue                                              string
+	ItemKeys                                                                 []string
+	Locations                                                                []humanLocation
+	Evidence                                                                 []reportField
+	PolicyFiles                                                              []reportField
+	ItemScope                                                                []reportField
+	Extensions                                                               []reportField
+	Derivation                                                               []reportField
 }
 type humanGroup struct {
 	Sections                []humanSection
@@ -143,7 +143,7 @@ func locationView(role string, loc Location) humanLocation {
 	return humanLocation{Role: role, State: state, Kind: loc.ValueKind, Pointer: path, ID: loc.ID, Artifact: loc.Artifact, Value: value, CollapseValue: collapse, Context: loc.Context, ContextSummary: contextSummary(loc.Context)}
 }
 func decisionView(d Decision, roles []string, excludeValues bool) humanDecision {
-	out := humanDecision{Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
+	out := humanDecision{Rationale: d.Rationale, Normalization: d.Normalization, Status: d.Status, Code: d.Code, Space: d.Space, RuleID: d.RuleID, Authority: d.Authority, Replaces: d.Replaces, ItemKeys: d.ItemKeys}
 	out.Category = decisionCategory(d)
 	scopes := d.Items
 	if d.Item != nil {
@@ -172,6 +172,8 @@ func decisionView(d Decision, roles []string, excludeValues bool) humanDecision 
 		out.Explanation = "Unexpected drift under the selected policy."
 	case "violation":
 		out.Explanation = "A declared deployment operation or expectation is not satisfied."
+	case "exception":
+		out.Explanation = "The policy accepts this known difference for the documented rationale."
 	case "equivalent":
 		out.Explanation = "The policy approves this difference or reference relationship."
 	case "excluded":

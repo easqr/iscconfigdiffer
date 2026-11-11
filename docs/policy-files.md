@@ -72,7 +72,7 @@ Use object keys or connector variants to keep connector-specific rules isolated.
 | Where | Allowed content |
 | --- | --- |
 | Root only | `version`, `id`, `profile`, `bindings`, `null_handling`, policy-level `modes`, `includes` |
-| Root or fragments | `identities`, `pairings`, `ignores`, `expectations`, `equivalences`, `references`, `collections`, `collection_mappings`, `sensitive`, `disabled_rules`, `evidence` |
+| Root or fragments | `identities`, `pairings`, `ignores`, `expectations`, `equivalences`, `exceptions`, `references`, `collections`, `collection_mappings`, `sensitive`, `disabled_rules`, `evidence` |
 
 Rule-level `modes` remain allowed inside fragment rules. Root-level `evidence`
 and fragment-level `evidence` are arrays of attribution records; individual rule

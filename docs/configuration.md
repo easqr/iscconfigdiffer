@@ -786,3 +786,104 @@ an identity rule. Overriding a built-in identity requires an explicit replacemen
 such as `"replaces":"isc.identity.SOURCE"`. Pairing renamed objects does not hide
 the name difference. Reference IDs are resolved only at declared paths; IDs are
 not stripped globally.
+
+
+## Exceptions
+
+Use `equivalences` for expected environment differences. Use `exceptions` for
+known differences accepted for a documented reason. Exceptions have their own
+policy array and `exception` report status; they do not count as equivalences.
+
+```json
+{
+  "version": 2,
+  "id": "known-differences",
+  "profile": "isc-portable-v2",
+  "exceptions": [
+    {
+      "id": "pending-description-update",
+      "type": "SOURCE",
+      "key": "Example Directory",
+      "path": "/description",
+      "left_env": "dev",
+      "right_env": "prod",
+      "pairs": [{"left": "Updated description", "right": "Legacy description"}],
+      "rationale": "Production description update is deferred until the connector migration."
+    }
+  ]
+}
+```
+
+For value-matching exceptions, the environment and optional tenant context,
+`pairs`, `groups`, `state_pairs`, collection item scopes, and drift-only
+restrictions are the same as equivalences. Explicit subtree exclusions use
+`operation: "exclude"`, as described below. Exceptions can be authored in the root policy or included rule
+fragments. Conflicting selectors fail validation; exceptions do not override
+other value rules by precedence.
+
+An exception using only `state_pairs` that match an exact present object or array
+against an absent property may contain nested collection and ignore rules. The
+whole-subtree exception is checked before those nested rules. A match produces
+one `exception` decision; if the declared subtree does not match, normal nested
+comparison continues. The match uses the complete raw JSON value, including
+array order and IDs, before nested normalization. Same-path rules and overlapping
+expectations, equivalences, or other exceptions still conflict.
+
+Use exact accepted values: an unlisted difference
+still fails the comparison.
+
+Every exception must contain a string `rationale` with at least one non-whitespace
+character. Missing, null, non-string, empty, or whitespace-only rationales are
+invalid and cause CLI exit `2`, even if the rule would not match any input.
+Valid matched exceptions appear with their rationale in all report formats and
+allow exit `0` when no other problems remain. Rationales participate in policy
+digests and remain visible when values are excluded. Like equivalences,
+exceptions do not supply deployment authority.
+
+
+### Exclude a complete named schema
+
+Use `"operation": "exclude"` inside `exceptions` to skip a selected value and
+all its descendants. This records one `exception` decision with the rule's
+required rationale. For example, this rule excludes the named schema only on
+the Entra source, regardless of array order:
+
+```json
+{
+  "id": "entra-eligible-group-schema",
+  "type": "SOURCE",
+  "key": "Entra",
+  "path": "/schemas/*",
+  "operation": "exclude",
+  "item": {
+    "collection": "isc.SOURCE.schemas",
+    "keys": {
+      "/name": {"value": "azureADEligibleGroup"}
+    }
+  },
+  "rationale": "Production-only schema intentionally excluded from sandbox comparison."
+}
+```
+
+Place the rule in the `exceptions` array of your root policy or a rule fragment.
+Use a second rule with a different ID and schema name for another schema. See
+[the complete two-schema example](../examples/policy-schema-exclusions.json).
+
+This excludes presence and content differences whether the schema exists on
+one side or both. It does not require the complete schema JSON, `pairs`, `groups`,
+or `state_pairs`; supplying value cases with `exclude` is an error. Only
+exceptions support this operation, and a nonblank `rationale` remains required.
+
+`left_env` and `right_env` are optional, independent restrictions for this
+operation. Omit them to apply in any environment pair; supply them to limit the
+exclusion. Optional tenant restrictions retain the normal context checks.
+Exclusions are drift-only and do not grant deployment authority. Existing item
+and nested-item selectors remain supported.
+
+Nested collection and ignore rules can coexist with an exclusion. A collection
+rule at the exclusion path can also coexist: the exclusion runs before collection
+alignment or priority-order checks for the selected item. Comparison
+stops at the excluded subtree, so those nested rules do not run for that match.
+Other schema items and other source fields still compare normally. Competing
+value rules and same-path ignores still fail validation. The exception's observed
+values follow the normal report value-exclusion and redaction settings.

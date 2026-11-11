@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "id": "entra-schema-exceptions",
+  "profile": "isc-portable-v2",
+  "exceptions": [
+    {
+      "id": "entra-azureADEligibleGroup-schema",
+      "type": "SOURCE",
+      "key": "Entra",
+      "path": "/schemas/*",
+      "operation": "exclude",
+      "item": {
+        "collection": "isc.SOURCE.schemas",
+        "keys": {
+          "/name": {
+            "value": "azureADEligibleGroup"
+          }
+        }
+      },
+      "rationale": "Production-only schema intentionally excluded from sandbox comparison."
+    },
+    {
+      "id": "entra-azureADActiveGroup-schema",
+      "type": "SOURCE",
+      "key": "Entra",
+      "path": "/schemas/*",
+      "operation": "exclude",
+      "item": {
+        "collection": "isc.SOURCE.schemas",
+        "keys": {
+          "/name": {
+            "value": "azureADActiveGroup"
+          }
+        }
+      },
+      "rationale": "Production-only schema intentionally excluded from sandbox comparison."
+    }
+  ]
+}

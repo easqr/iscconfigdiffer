@@ -47,7 +47,7 @@ Root settings (`version`, `id`, `profile`, `bindings`, `null_handling`, `modes`,
 are never merged from fragments. Fragments accept only these fields:
 
 ```text
-identities, pairings, ignores, expectations, equivalences, references,
+identities, pairings, ignores, expectations, equivalences, exceptions, references,
 collections, collection_mappings, sensitive, disabled_rules, evidence
 ```
 
@@ -222,6 +222,7 @@ structures.
 | `pairings` | `type`, `left_id`, `right_id`, optional `baseline_id` |
 | `ignores` | Selector; explicit subtree exclusion/normalization |
 | `expectations` | Selector; `operation`, `authority`; operation-specific fields below |
+| `exceptions` | Value matching uses the same syntax and drift-only restrictions as `equivalences`, plus required nonblank string `rationale`; matched decisions have status `exception`. `operation: "exclude"` skips a selected subtree without value cases and with optional environment restrictions. Exact container/absence `state_pairs` may enclose nested collection and ignore rules; see [subtree exceptions](configuration.md#exceptions). |
 | `equivalences` | Selector; `left_env`, `right_env`; exactly one of `pairs`, `groups`, or `state_pairs`; optional `left_tenant`, `right_tenant`, and keyed-ancestor `item` or `items` scope |
 | `references` | Selector; `target_type`, optional one-to-one `external` ID map; drift-only |
 | `collection_mappings` | `collection` effective keyed collection ID, optional object `key`, and nonempty `key_mappings`; common rule fields except `replaces` |
@@ -1191,7 +1192,7 @@ usage, adapter evidence, diagnostics, decision counts and object coverage.
 Each input also has a measured `document_hash` covering detached documents and
 declared types, independently of an upstream artifact `content_hash` supplied by
 a neutral caller. Request digests bind both.
-Decision statuses are `equal`, `equivalent`, `excluded`, `verified`, `different`,
+Decision statuses are `equal`, `equivalent`, `exception`, `excluded`, `verified`, `different`,
 `violation`, `unverified`, and `conflict`. Locations retain each role's physical
 pointer, presence and JSON kind. Keyed item identities are opaque hashes rather
 than raw item-key values. Derived expectations retain the independent origin's

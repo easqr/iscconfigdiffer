@@ -289,3 +289,63 @@ func TestCLIIncludedPolicy(t *testing.T) {
 		t.Fatal(code, errOut.String())
 	}
 }
+
+func TestCLIExceptionsAndRequiredRationale(t *testing.T) {
+	left, right := tree(t, "old"), tree(t, "new")
+	for _, rationale := range []any{nil, "", " \t", 42, "Pending migration"} {
+		rule := map[string]any{"id": "known", "type": "ROLE", "path": "/secret", "left_env": "dev", "right_env": "prod", "pairs": []any{map[string]any{"left": "old", "right": "new"}}}
+		if rationale != nil {
+			rule["rationale"] = rationale
+		}
+		policy := writeJSON(t, map[string]any{"version": 2, "id": "exceptions", "profile": "isc-portable-v2", "exceptions": []any{rule}})
+		args := []string{"--mode", "drift", "--left", left, "--right", right, "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--left-env", "dev", "--right-env", "prod", "--policy", policy, "--format", "json"}
+		var out, errOut bytes.Buffer
+		code := runWithReports(t, args, &out, &errOut)
+		if rationale != "Pending migration" {
+			if code != 2 {
+				t.Fatalf("invalid rationale %v: exit %d, %s", rationale, code, errOut.String())
+			}
+			continue
+		}
+		var report v2.Report
+		if code != 0 || json.Unmarshal(out.Bytes(), &report) != nil || report.Counts["exception"] != 1 || report.Counts["equivalent"] != 0 {
+			t.Fatalf("exit %d: %s %s", code, out.String(), errOut.String())
+		}
+	}
+}
+
+func TestCLIExceptionExclusionFragment(t *testing.T) {
+	dir := t.TempDir()
+	fragment := `{"exceptions":[{"id":"known-secret","type":"ROLE","key":"Invented","path":"/secret","operation":"exclude","rationale":"Accepted excluded setting"}]}`
+	if err := os.WriteFile(filepath.Join(dir, "exceptions.json"), []byte(fragment), 0600); err != nil {
+		t.Fatal(err)
+	}
+	policy := filepath.Join(dir, "policy.json")
+	if err := os.WriteFile(policy, []byte(`{"version":2,"id":"exclusions","profile":"isc-portable-v2","includes":["exceptions.json"]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"--mode", "drift", "--left", tree(t, "old"), "--right", tree(t, "new"), "--left-mode", "tree", "--right-mode", "tree", "--left-types", "ROLE", "--right-types", "ROLE", "--policy", policy, "--format", "json"}
+	var out, errOut bytes.Buffer
+	if code := runWithReports(t, args, &out, &errOut); code != 0 {
+		t.Fatal(code, errOut.String())
+	}
+	var r v2.Report
+	if err := json.Unmarshal(out.Bytes(), &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Counts["exception"] != 1 || r.Counts["different"] != 0 {
+		t.Fatal(r.Counts)
+	}
+	found := false
+	for _, d := range r.Decisions {
+		if d.RuleID == "known-secret" {
+			found = true
+			if d.Rationale != "Accepted excluded setting" || d.Code != "explicit exception exclusion" {
+				t.Fatal(d)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("missing exclusion decision")
+	}
+}
