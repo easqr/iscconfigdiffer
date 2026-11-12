@@ -10,14 +10,13 @@ For a new application, create a directory and run
 use its current Go module directory. Then add the published release:
 
 ```sh
-go get github.com/easqr/iscconfigdiffer@v0.7.0
+go get github.com/easqr/iscconfigdiffer@v0.8.0
 ```
 
-The existing `v0.7.0` release downloads exporter `v0.8.0` and predates the new
-filename formats. This development checkout pins exporter `v0.10.0`, supporting
-manifest schemas 1-5. Use this checkout through a local differ replacement until
-a new differ release is published; no exporter replacement is required. For contributor testing against a local
-checkout, see the [contributor guide](DEVELOPMENT.md#local-module-overrides).
+Release `v0.8.0` pins exporter `v0.10.0`, supporting manifest schemas 1-5
+and the hex, ID, and name filename modes. No local replacement is required.
+For contributor testing against a local checkout, see the
+[contributor guide](DEVELOPMENT.md#local-module-overrides).
 
 ## Compare two snapshots
 

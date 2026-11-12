@@ -7,6 +7,8 @@ are resolved relative to the current working directory unless absolute.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
+| `--version` | `false` | Print version, commit, modification state, Go version and platform without reading configuration |
+| `--validate-policy` | `false` | Require `--policy FILE`; validate includes, profiles and rule conflicts without reading exports or writing reports |
 | `--mode` | `drift` | `drift` or `deployment` |
 | `--policy FILE` | Built-in `default` / `isc-envelope-v2` | Read a comparison policy JSON file using schema `2` |
 | `--scope TYPES` | Full declared type set; primary sets must match | Explicit comma-separated type subset available in all inputs |
@@ -48,3 +50,14 @@ Optional Configuration Hub flags:
 
 The other Hub flags require `--hub`. Deployment Hub import requires both authority and
 evidence flags. Neither is used to perform a remote approval operation.
+
+`--validate-policy` accepts only `--policy FILE`; comparison and output flags are
+rejected. It returns `0` for a valid policy and `2` for invalid configuration or
+an output failure. This is a static check: input-dependent rule usage, identity
+resolution and scope validation happen during comparison. `--version` bypasses
+configuration and input loading, and cannot be combined with `--validate-policy`.
+
+After saving a report, stdout shows the result, completeness, unexpected-decision
+count (`different` plus `violation`), and saved path. Counts are decisions, not
+grouped findings. Incomplete comparisons are explicitly labelled and return `2`.
+Errors and usage go to stderr; the full report remains in the selected file.

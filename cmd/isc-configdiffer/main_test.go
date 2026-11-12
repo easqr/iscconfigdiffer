@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,11 @@ import (
 	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
 )
+
+// Existing report tests inspect saved files and discard the terminal summary.
+func run(args []string, errOut io.Writer) int {
+	return runWithOutput(args, io.Discard, errOut)
+}
 
 func tree(t *testing.T, value string) string {
 	t.Helper()

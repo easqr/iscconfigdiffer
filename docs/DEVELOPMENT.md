@@ -32,7 +32,7 @@ Keep reusable examples under `examples/`, using invented names and values.
 
 ## Local module overrides
 
-Consumers normally use `github.com/easqr/iscconfigdiffer` v0.7.0. To test changes
+Consumers normally use `github.com/easqr/iscconfigdiffer` v0.8.0. To test changes
 from a checkout before publishing, add a replacement in the consuming application's
 `go.mod`:
 
@@ -46,11 +46,11 @@ v0.10.0 dependency; filename compatibility tests must pass without a local overr
 
 ## Releases
 
-Use matching source and module tags such as `v0.7.0`. Before tagging, run the
+Use matching source and module tags such as `v0.8.0`. Before tagging, run the
 checks above, verify the module path and pinned dependency, and review the
 staged files. Commit the release source and documentation, then create an
 annotated tag at that commit. Push the branch and tag together. Verify the
-published CLI with `go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.7.0`
+published CLI with `go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.8.0`
 and check `isc-configdiffer --help` returns success.
 
 ## Contributor references
@@ -58,3 +58,14 @@ and check `isc-configdiffer --help` returns success.
 - [Rule-pack authoring](development/rule-packs.md): embedded format, validation, and changing defaults.
 - [Implementation and verification record](development/implementation.md): architecture, test coverage, historical checks, and compatibility notes.
 - [Correctness review record](development/review.md): previous corrections and regression coverage.
+
+## Build identification
+
+`isc-configdiffer --version` reads embedded Go build metadata without opening
+configuration files. The version comes from embedded module metadata when available
+(including Go-generated development versions); otherwise it is `development`.
+Missing revision or modification metadata is `unknown`.
+Release builds can set the version using
+`go build -ldflags '-X github.com/easqr/iscconfigdiffer/internal/buildinfo.releaseVersion=vX.Y.Z' -o ./bin/isc-configdiffer ./cmd/isc-configdiffer`,
+substituting the release tag. Verify the tag matches the clean source checkout
+before building a release. This override does not change embedded VCS metadata.

@@ -2,9 +2,9 @@
 
 | Symptom | What to check |
 | --- | --- |
-| Build cannot find `configexporter` | Check access to `github.com/easqr/iscconfigexporter` v0.8.0 and run `go mod download` |
+| Build cannot find `configexporter` | Check access to `github.com/easqr/iscconfigexporter` v0.10.0 and run `go mod download` |
 | Selected scopes differ | Supply matching input type declarations or an explicit shared `--scope` |
-| Invalid artifact or unexpected JSON | Check envelope format, hexadecimal filename, and whether policies/mappings were placed inside an input tree |
+| Invalid artifact or unexpected JSON | Check envelope format, manifest-declared filename mode, and whether policies/mappings were placed inside an input tree |
 | Checksum/count failure in snapshot mode | Use an intact exported generation; choose tree mode explicitly for intended edits |
 | Identity unavailable or ambiguous | Check exact names, parent objects, duplicates, and explicit strategies for unknown types |
 | Overlapping rule/profile error | Use `collection_mappings` for environment mappings; remove competing ownership or use an explicit same-category replacement for structural changes |

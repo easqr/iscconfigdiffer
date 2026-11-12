@@ -24,6 +24,12 @@ unexpected differences still return `1`. Invalid exception definitions, includin
 missing, blank, or non-string rationales, return exit `2` before comparison.
 Rationales are policy metadata and remain visible with `--exclude-values`.
 
+After a report is saved, the CLI prints its path and a short result to stdout,
+including completeness and the number of unexpected decisions (`different` plus
+`violation`). This count is not the grouped-finding count. An incomplete comparison
+is labelled explicitly even if it has zero unexpected decisions. A report-writing
+failure returns `2` without printing a saved-report summary.
+
 ## Read findings and counts
 
 Start with the result and input summary: it identifies the compared environments,

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	differ "github.com/easqr/iscconfigdiffer"
+	"github.com/easqr/iscconfigdiffer/internal/buildinfo"
 	"github.com/easqr/iscconfigdiffer/v2"
 	"github.com/easqr/iscconfigexporter/snapshot"
 )
@@ -45,9 +46,11 @@ func readInput(f inputFlags) (snapshot.Input, error) {
 	}
 	return in, nil
 }
-func run(args []string, errOut io.Writer) int {
+func runWithOutput(args []string, out, errOut io.Writer) int {
 	f := flag.NewFlagSet("isc-configdiffer", flag.ContinueOnError)
 	f.SetOutput(errOut)
+	version := f.Bool("version", false, "print build identification without reading configuration")
+	validatePolicy := f.Bool("validate-policy", false, "validate --policy without comparison inputs")
 	mode := f.String("mode", "drift", "drift or deployment")
 	left, right := addInput(f, "left"), addInput(f, "right")
 	source, actual, baseline := addInput(f, "source"), addInput(f, "actual"), addInput(f, "baseline")
@@ -85,6 +88,41 @@ func run(args []string, errOut io.Writer) int {
 			emptyName = true
 		}
 	})
+	if *version {
+		if *validatePolicy {
+			return bad("version and validate-policy are mutually exclusive")
+		}
+		i := buildinfo.Read()
+		if _, e := fmt.Fprintf(out, "isc-configdiffer %s\ncommit: %s\nmodified: %s\ngo: %s\nplatform: %s/%s\n", i.Version, i.Commit, i.Modified, i.GoVersion, i.GOOS, i.GOARCH); e != nil {
+			return fail(e)
+		}
+		return 0
+	}
+	if *validatePolicy {
+		incompatible := false
+		f.Visit(func(fl *flag.Flag) {
+			if fl.Name != "validate-policy" && fl.Name != "policy" {
+				incompatible = true
+			}
+		})
+		if incompatible || f.NArg() != 0 {
+			return bad("validate-policy accepts only --policy FILE")
+		}
+		if *policyPath == "" {
+			return bad("validate-policy requires --policy FILE")
+		}
+		p, e := differ.LoadPolicy(*policyPath)
+		if e != nil {
+			return fail(e)
+		}
+		if _, e = differ.Compile(p); e != nil {
+			return fail(e)
+		}
+		if _, e = fmt.Fprintln(out, "policy valid (static checks only; rule applicability requires comparison inputs)"); e != nil {
+			return fail(e)
+		}
+		return 0
+	}
 	if emptyOutput {
 		return bad("output directory and filename must not be empty")
 	}
@@ -234,6 +272,16 @@ func run(args []string, errOut io.Writer) int {
 	if e = saveReport(*outputDir, filename, rendered.Bytes()); e != nil {
 		return fail(fmt.Errorf("cannot save report: %w", e))
 	}
+	result := "no unexpected differences"
+	if report.ExitCode() == 1 {
+		result = "unexpected differences found"
+	}
+	if !report.Complete {
+		result = "incomplete comparison"
+	}
+	if _, e := fmt.Fprintf(out, "%s; complete: %t; unexpected decisions: %d\nReport: %s\n", result, report.Complete, report.Counts["different"]+report.Counts["violation"], filepath.Join(*outputDir, filename)); e != nil {
+		return fail(e)
+	}
 	return report.ExitCode()
 }
 
@@ -273,4 +321,4 @@ func list(s string) []string {
 	}
 	return strings.Split(s, ",")
 }
-func main() { os.Exit(run(os.Args[1:], os.Stderr)) }
+func main() { os.Exit(runWithOutput(os.Args[1:], os.Stdout, os.Stderr)) }

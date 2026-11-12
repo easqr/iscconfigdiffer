@@ -44,9 +44,8 @@ If you already have a checkout, run the build commands from its root directory.
 Go downloads the exporter dependency automatically; you do not need a sibling
 exporter checkout. Run the examples below from the configdiffer repository root.
 
-The existing published `v0.7.0` command predates the new filename formats and
-pins exporter `v0.8.0`. Build this development checkout to use the updated reader.
-To install that older published command without a source checkout, run:
+Release `v0.8.0` supports exporter `v0.10.0` filename formats.
+To install the published command without a source checkout, run:
 
 ```sh
 go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.7.0
@@ -56,6 +55,17 @@ Go installs it in `GOBIN` or the default `GOPATH/bin`. Add that directory to you
 `PATH` and run `isc-configdiffer --help` to check the installation; help exits
 successfully without needing inputs. The examples below use the source checkout's
 `./bin/isc-configdiffer` and included policy files.
+
+## Check the build and policy
+
+```sh
+./bin/isc-configdiffer --version
+./bin/isc-configdiffer --validate-policy --policy examples/policy.json
+```
+
+Neither command needs exports or tenant credentials. Policy validation loads included
+fragments, expands the profile, and checks rule conflicts. Rule applicability,
+references, and required selector usage still need a comparison with real inputs.
 
 ## Compare two exports
 
@@ -98,8 +108,8 @@ explicit type declarations.
 
 The command above saves **`reports/portable-comparison.html`**, relative to the
 directory where you ran it. Open that file in a browser. It is self-contained
-and needs no network connection. The report itself is saved to a file rather
-than printed to the terminal.
+and needs no network connection. The terminal prints a short result, completeness, unexpected-decision count,
+and report path. The full report is saved to a file.
 
 Start with the result and input summary to confirm the inputs, policy, and scope.
 Then use the object index to find a configuration and inspect its differences.
@@ -174,7 +184,7 @@ The module path is **`github.com/easqr/iscconfigdiffer`**; its root package is n
 `differ`. Add the published release to your application's Go module:
 
 ```sh
-go get github.com/easqr/iscconfigdiffer@v0.7.0
+go get github.com/easqr/iscconfigdiffer@v0.8.0
 ```
 
 The [Go library guide](docs/library.md) shows how to load a policy, read validated
