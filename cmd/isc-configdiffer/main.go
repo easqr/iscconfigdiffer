@@ -16,13 +16,34 @@ import (
 	"github.com/easqr/iscconfigexporter/snapshot"
 )
 
-type inputFlags struct{ dir, mode, label, env, types *string }
+type inputFlags struct {
+	role                                       string
+	dir, mode, label, env, types, filenameMode *string
+	filenameEscape, filenameAppendID           *bool
+}
 
 func addInput(f *flag.FlagSet, role string) inputFlags {
-	return inputFlags{f.String(role, "", role+" input directory"), f.String(role+"-mode", "", "snapshot or tree (required)"), f.String(role+"-label", role, "display label"), f.String(role+"-env", "", "environment"), f.String(role+"-types", "", "manifest-free tree types, comma separated")}
+	return inputFlags{
+		role:             role,
+		dir:              f.String(role, "", role+" input directory"),
+		mode:             f.String(role+"-mode", "", "snapshot or tree (required)"),
+		label:            f.String(role+"-label", role, "display label"),
+		env:              f.String(role+"-env", "", "environment"),
+		types:            f.String(role+"-types", "", "manifest-free tree types, comma separated"),
+		filenameMode:     f.String(role+"-filename-mode", "", "manifest-free tree filename mode: hex (default), id or name; manifests declare their own mode"),
+		filenameEscape:   f.Bool(role+"-filename-escape", false, "manifest-free tree uses percent-escaped filenames"),
+		filenameAppendID: f.Bool(role+"-filename-append-id", false, "manifest-free name tree forces ID suffixes on every filename"),
+	}
 }
 func readInput(f inputFlags) (snapshot.Input, error) {
-	return snapshot.Read(*f.dir, snapshot.Options{Mode: snapshot.Mode(*f.mode), Label: *f.label, Environment: *f.env, Types: list(*f.types)})
+	in, err := snapshot.Read(*f.dir, snapshot.Options{
+		Mode: snapshot.Mode(*f.mode), Label: *f.label, Environment: *f.env, Types: list(*f.types),
+		FilenameMode: snapshot.FilenameMode(*f.filenameMode), FilenameEscape: *f.filenameEscape, FilenameAppendID: *f.filenameAppendID,
+	})
+	if err != nil {
+		return snapshot.Input{}, fmt.Errorf("%s input: %w", f.role, err)
+	}
+	return in, nil
 }
 func run(args []string, errOut io.Writer) int {
 	f := flag.NewFlagSet("isc-configdiffer", flag.ContinueOnError)

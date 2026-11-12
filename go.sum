@@ -1,2 +1,4 @@
-github.com/easqr/iscconfigexporter v0.8.0 h1:zu1ujaoA3PKmlBQD9rqiCRq58RuGMJ6Y5kp3HltyH2g=
-github.com/easqr/iscconfigexporter v0.8.0/go.mod h1:O4Ol4BSZH5U2YTam6RcwacWXvn3q9B0EmKpLK2TQSpw=
+github.com/easqr/iscconfigexporter v0.10.0 h1:UggUoyd5wo5+khzsqq+PjcS+3A3fU8M7FeuB6X4yBLM=
+github.com/easqr/iscconfigexporter v0.10.0/go.mod h1:tk447fZld/3xniBO2rKNAA8mQf0ouVRbHeb/XC3iK90=
+golang.org/x/text v0.41.0 h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=
+golang.org/x/text v0.41.0/go.mod h1:jvf1O8ajNzZqhSrQBPbutR/EB83Cc0CFrezNQIwbb5M=

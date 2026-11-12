@@ -101,7 +101,7 @@ checked. All example policies use schema `2`.
   coverage percentages for whole-subtree assertions or exclusions.
 * No deployment, remediation, destination-impact analysis or authorization gate
   is implemented. SDK/authentication stay in the exporter.
-* Builds download `github.com/easqr/iscconfigexporter` v0.8.0 without a local
+* Builds download `github.com/easqr/iscconfigexporter` v0.10.0 without a local
   replacement. The published configdiffer module path is
   `github.com/easqr/iscconfigdiffer`.
 

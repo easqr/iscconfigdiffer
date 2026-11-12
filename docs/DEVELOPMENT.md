@@ -5,7 +5,7 @@ For installation, comparisons, and policy authoring, start with the
 
 ## Local checks
 
-Use Go 1.27.3 or newer. From the configdiffer module directory, run:
+Use Go 1.27.4 or newer. From the configdiffer module directory, run:
 
 ```sh
 go test ./...
@@ -19,7 +19,7 @@ Format changed Go files with `gofmt` before running the checks.
 Automated fixtures use invented data and temporary directories, without tenant
 credentials or live services. Documented examples are exercised by the test suite.
 
-Builds use `github.com/easqr/iscconfigexporter` v0.8.0 through `go.mod` and
+Builds use `github.com/easqr/iscconfigexporter` v0.10.0 through `go.mod` and
 `go.sum`. An exporter checkout is not required. When changing shared input
 contracts, also run the exporter's checks in its own checkout and verify
 compatibility with the published dependency.
@@ -42,7 +42,7 @@ replace github.com/easqr/iscconfigdiffer => /absolute/path/to/iscconfigdiffer
 
 Run `go mod tidy` after adding imports. This override is for local testing;
 release consumers do not need it. The exporter stays pinned to its published
-v0.8.0 dependency.
+v0.10.0 dependency; filename compatibility tests must pass without a local override.
 
 ## Releases
 

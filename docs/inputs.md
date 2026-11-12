@@ -4,7 +4,7 @@ CLI examples assume you have [built the tool](../README.md#build-and-install)
 and are running commands from the configdiffer repository root.
 
 Inputs use the format produced by the
-[`configexporter`](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/README.md) module:
+[`configexporter`](https://github.com/easqr/iscconfigexporter/blob/v0.10.0/README.md) module:
 
 ```text
 snapshot-root/
@@ -18,7 +18,7 @@ snapshot-root/
 Every object file uses the exporter envelope containing `self.type`, `self.id`, and
 an object-valued `object` payload. The [sample-data walkthrough](quick-start.md) creates files in this format.
 
-Object paths are derived from the export envelope's `self.type` and `self.id`:
+By default, object paths are derived from the export envelope's `self.type` and `self.id`:
 `<self.type>/id-<lowercase hexadecimal encoding of the UTF-8 bytes of self.id>.json`.
 The ID is read from `self.id`, rather than the nested `object.id` or `self.name`.
 Each byte becomes two hexadecimal characters, so a 32-character ASCII ID produces
@@ -40,6 +40,34 @@ while avoiding special characters, substitution collisions, and case collisions
 on filesystems that treat uppercase and lowercase filenames as equivalent.
 The original `self.id` and `self.name` remain readable inside the JSON file.
 
+## Filename formats
+
+The reader supports exporter manifest schemas 1 through 5. Manifests declare their
+filename convention; no filename flags are needed for a normal saved snapshot.
+Inputs can use different naming conventions in the same comparison:
+
+| Convention | Example relative filename |
+| --- | --- |
+| Hex ID (default) | `ROLE/id-616263313233.json` |
+| Literal ID | `ROLE/abc123.json` |
+| Escaped ID | `ATTR_SYNC_SOURCE_CONFIG/source%3Atarget.json` |
+| Readable name | `ROLE/Example role.json` |
+| Duplicate name, or forced ID suffix | `ROLE/Example role--abc123.json` |
+| Lifecycle state with profile context | `LIFECYCLE_STATE/Employees--Active.json` |
+
+Name mode's default adds IDs only to collision groups after escaping and profile
+prefixes. `filename_append_id: true` forces IDs on all name-mode files. The reader
+preserves the meanings of older name-only, always-suffixed, and unprefixed
+lifecycle-state formats. Escapes such as `%3A` remain part of the physical filename;
+matching uses the envelope and comparison policy, not decoded filename text.
+The comparison policy and report schema remain version 2.
+
+A valid filename alone is insufficient: the reader also checks its exact spelling
+against the envelope, manifest policy and, in snapshot mode, the inventory's
+conditional suffix plan. Files with missing profile context, mismatched IDs,
+incorrect escaping, or unresolved collisions are rejected. Preserve the manifest
+when copying a snapshot so its naming policy stays explicit.
+
 If the payload includes `id`, it must equal `self.id`. Arbitrary JSON payload
 files or filenames are not accepted.
 
@@ -60,6 +88,33 @@ manifest-free tree, declare its available types with `--<role>-types SOURCE,ROLE
 even when a declared type currently contains zero objects. Do not combine that
 flag with a manifest. Comma-separated lists must contain exact type names without
 extra spaces.
+
+### Trees without a manifest
+
+A manifest-free tree defaults to strict hex filenames. For each input role, specify
+its naming convention explicitly when using ID/name files:
+
+```sh
+./bin/isc-configdiffer --mode drift \
+  --left /data/approved --left-mode snapshot \
+  --right /data/working-copy --right-mode tree --right-types ROLE \
+  --right-filename-mode name --right-filename-escape \
+  --scope ROLE --format json
+```
+
+The same options exist for `left`, `right`, `source`, `actual`, and `baseline`:
+
+| Per-input suffix | Meaning |
+| --- | --- |
+| `-filename-mode` (`hex`, `id`, or `name`) | Filename mode for a tree without a manifest |
+| `-filename-escape` | Filenames use the exporter's reversible percent escapes |
+| `-filename-append-id` | Every name-mode filename carries its object's ID |
+
+Omitting the last two flags means false. When a manifest is present it remains
+authoritative; conflicting filename options are errors. Tree mode permits valid
+historical suffixes after a colliding peer is removed from a working copy. It does
+not infer name mode from arbitrary filenames. A tree using a legacy naming
+convention should retain its original manifest.
 
 Without `--scope`, the primary inputs must declare the same type set. Use
 `--scope SOURCE,ROLE` to compare a subset that is declared by every supplied input,

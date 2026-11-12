@@ -16,10 +16,10 @@ module from an application, see [Go library usage](#use-as-a-go-library).
 
 You will need:
 
-- **Go 1.27.3 or newer** and Git to build the tool. Building requires network
-  access to download dependencies, including `iscconfigexporter v0.8.0`.
+- **Go 1.27.4 or newer** and Git to build the tool. Building requires network
+  access to download dependencies, including `iscconfigexporter v0.10.0`.
 - Two configuration exports in the
-  [iscconfigexporter format](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/SNAPSHOTS.md).
+  [iscconfigexporter format](https://github.com/easqr/iscconfigexporter/blob/v0.10.0/docs/SNAPSHOTS.md).
   Each untouched export should have a `manifest.json` and object directories
   such as `SOURCE` and `ROLE`.
 - Read access to the exports and a writable directory for reports. Reports can
@@ -34,7 +34,7 @@ for a first comparison and larger examples you can adapt later.
 Get the source and build the command-line tool:
 
 ```sh
-git clone --branch v0.7.0 https://github.com/easqr/iscconfigdiffer.git
+git clone https://github.com/easqr/iscconfigdiffer.git
 cd iscconfigdiffer
 mkdir -p bin
 go build -o ./bin/isc-configdiffer ./cmd/isc-configdiffer
@@ -44,7 +44,9 @@ If you already have a checkout, run the build commands from its root directory.
 Go downloads the exporter dependency automatically; you do not need a sibling
 exporter checkout. Run the examples below from the configdiffer repository root.
 
-To install the published command without a source checkout, run:
+The existing published `v0.7.0` command predates the new filename formats and
+pins exporter `v0.8.0`. Build this development checkout to use the updated reader.
+To install that older published command without a source checkout, run:
 
 ```sh
 go install github.com/easqr/iscconfigdiffer/cmd/isc-configdiffer@v0.7.0

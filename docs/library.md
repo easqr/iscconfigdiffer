@@ -1,6 +1,6 @@
 # Use as a Go library
 
-Use Go 1.27.3 or newer. The module path is
+Use Go 1.27.4 or newer. The module path is
 `github.com/easqr/iscconfigdiffer`, and its root package is named `differ`.
 
 ## Add the module to your application
@@ -13,8 +13,10 @@ use its current Go module directory. Then add the published release:
 go get github.com/easqr/iscconfigdiffer@v0.7.0
 ```
 
-Go also downloads `github.com/easqr/iscconfigexporter` v0.8.0. No local exporter
-or differ replacement is required. For contributor testing against a local
+The existing `v0.7.0` release downloads exporter `v0.8.0` and predates the new
+filename formats. This development checkout pins exporter `v0.10.0`, supporting
+manifest schemas 1-5. Use this checkout through a local differ replacement until
+a new differ release is published; no exporter replacement is required. For contributor testing against a local
 checkout, see the [contributor guide](DEVELOPMENT.md#local-module-overrides).
 
 ## Compare two snapshots
@@ -55,6 +57,21 @@ func CompareSnapshots(leftDir, rightDir, policyPath string) (v2.Report, error) {
     }, policy)
 }
 ```
+
+For a manifest-free tree, Go callers explicitly set naming options:
+
+```go
+input, err := snapshot.Read(treeDir, snapshot.Options{
+    Mode: snapshot.TreeMode,
+    Types: []string{"ROLE", "LIFECYCLE_STATE"},
+    FilenameMode: snapshot.NameFilename,
+    FilenameEscape: true,
+    FilenameAppendID: false,
+})
+```
+
+For snapshots, retain the manifest and let the reader apply its naming policy.
+Different filename conventions do not change policy-based object matching.
 
 ## Handle results and write a report
 

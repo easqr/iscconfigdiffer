@@ -26,8 +26,9 @@ and open your first report. For a run without tenant exports, use the
 - [Export input contract](contracts.md): validation rules, identities, and storage-format requirements.
 - [Shipped rules and custom policies](rule-packs.md): rule-pack behavior, connector classification, and overrides.
 - [Example policies](../examples): complete policies, fragments, and deployment operations using invented data.
-- [Exporter snapshot format](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/SNAPSHOTS.md): exported files, manifests, and readers.
-- [Exporter mapping retrieval](https://github.com/easqr/iscconfigexporter/blob/v0.8.0/docs/MAPPINGS.md): saved mapping arrays and bundles.
+- [Runtime dependencies and licenses](DEPENDENCIES.md): pinned exporter and Unicode support.
+- [Exporter snapshot format](https://github.com/easqr/iscconfigexporter/blob/v0.10.0/docs/SNAPSHOTS.md): exported files, manifests, and readers.
+- [Exporter mapping retrieval](https://github.com/easqr/iscconfigexporter/blob/v0.10.0/docs/MAPPINGS.md): saved mapping arrays and bundles.
 
 ## Contributors
 
